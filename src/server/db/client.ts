@@ -16,6 +16,10 @@ const createDatabase = () =>
 
 export type Database = ReturnType<typeof createDatabase>;
 
+export type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
+
+export type Executor = Database | Transaction;
+
 const globalForDb = globalThis as typeof globalThis & { mandegarDb?: Database };
 
 let database: Database | undefined;

@@ -2,6 +2,7 @@ import "@/styles/globals.css";
 
 import type { Metadata } from "next";
 
+import { AppProviders } from "@/components/providers/app-providers";
 import { siteConfig } from "@/config/site";
 import { rootViewport } from "@/config/viewport";
 import { localeMeta, locales } from "@/i18n/config";
@@ -44,6 +45,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function LocaleLayout({ children }: LayoutProps<"/[locale]">) {
   const locale = await getLocale();
+  const dictionary = await getDictionary(locale);
   const { hreflang, dir } = localeMeta[locale];
 
   return (
@@ -51,7 +53,11 @@ export default async function LocaleLayout({ children }: LayoutProps<"/[locale]"
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
-      <body className="min-h-dvh overflow-x-clip">{children}</body>
+      <body className="min-h-dvh overflow-x-clip">
+        <AppProviders locale={locale} dictionary={dictionary}>
+          {children}
+        </AppProviders>
+      </body>
     </html>
   );
 }

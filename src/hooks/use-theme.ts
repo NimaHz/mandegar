@@ -46,17 +46,29 @@ const subscribe = (onChange: () => void) => {
   };
 };
 
+const subscribePreference = (onChange: () => void) => {
+  listeners.add(onChange);
+  return () => {
+    listeners.delete(onChange);
+  };
+};
+
 const getResolved = (): ResolvedTheme =>
   document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 
 export function useTheme() {
   const theme = useSyncExternalStore(subscribe, getResolved, () => "light" as const);
+  const preference = useSyncExternalStore(
+    subscribePreference,
+    readPreference,
+    () => "system" as const,
+  );
 
-  const setTheme = useCallback((preference: ThemePreference) => {
+  const setTheme = useCallback((next: ThemePreference) => {
     try {
-      localStorage.setItem(THEME_STORAGE_KEY, preference);
+      localStorage.setItem(THEME_STORAGE_KEY, next);
     } catch {}
-    applyTheme(resolveTheme(preference));
+    applyTheme(resolveTheme(next));
     notify();
   }, []);
 
@@ -65,5 +77,5 @@ export function useTheme() {
     [setTheme],
   );
 
-  return { theme, setTheme, toggleTheme };
+  return { theme, preference, setTheme, toggleTheme };
 }

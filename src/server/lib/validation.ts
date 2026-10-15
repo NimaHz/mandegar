@@ -1,0 +1,70 @@
+import { z } from "zod";
+
+import { defaultLocale, locales } from "@/i18n/config";
+import { normalizeMobile } from "@/lib/persian";
+import { isProvinceCode } from "@/lib/provinces";
+
+const requiredText = (max: number) => z.string().trim().min(1).max(max);
+
+export const localizedText = (max = 200) =>
+  z.object({ fa: requiredText(max), en: requiredText(max) });
+
+export const optionalLocalizedText = (max = 200) =>
+  z.object({ fa: z.string().trim().max(max), en: z.string().trim().max(max) });
+
+export const localizedSeoSchema = z
+  .object({ title: optionalLocalizedText(80), description: optionalLocalizedText(200) })
+  .nullable();
+
+export const slugSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .max(120)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+
+export const idSchema = z.uuid();
+
+export const idParamsSchema = z.object({ id: z.uuid() });
+
+export const mobileSchema = z
+  .string()
+  .trim()
+  .max(20)
+  .transform((value, context) => {
+    const mobile = normalizeMobile(value);
+    if (!mobile) {
+      context.addIssue({ code: "custom", message: "Invalid mobile number" });
+      return z.NEVER;
+    }
+    return mobile;
+  });
+
+export const provinceSchema = z.string().trim().refine(isProvinceCode, "Unknown province");
+
+export const urlOrPathSchema = z
+  .string()
+  .trim()
+  .max(500)
+  .refine((value) => value.startsWith("/") || /^https:\/\//.test(value), "Invalid link");
+
+export const iconSchema = z
+  .string()
+  .trim()
+  .max(60)
+  .regex(/^[a-z0-9-]+$/);
+
+export const listQuerySchema = z.object({
+  q: z.string().trim().max(100).catch(""),
+  page: z.coerce.number().int().min(1).max(100_000).catch(1),
+});
+
+export const optionalFilter = <TSchema extends z.ZodType>(schema: TSchema) =>
+  z.preprocess((value) => (value === "" ? undefined : value), schema.optional()).catch(undefined);
+
+export const localeSchema = z.enum(locales).catch(defaultLocale);
+
+export const optionalText = <TSchema extends z.ZodType>(schema: TSchema) =>
+  z.preprocess((value) => (value === "" || value === null ? undefined : value), schema.optional());
+
+export const emailSchema = z.email().trim().toLowerCase().max(120);
