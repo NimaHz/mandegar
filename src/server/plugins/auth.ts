@@ -61,7 +61,7 @@ export const auth = new Elysia({ name: "auth" }).use(security).macro({
     resolve({ request }) {
       return { actor: requireActor(request) };
     },
-    async afterHandle({ request, route, params, body, responseValue }) {
+    async afterHandle({ request, route, params, body, responseValue, response }) {
       const actor = actors.get(request);
       if (!actor || request.method === "GET") return;
       await auditMutation(actor, {
@@ -69,7 +69,7 @@ export const auth = new Elysia({ name: "auth" }).use(security).macro({
         route,
         params,
         body,
-        response: responseValue,
+        response: responseValue ?? response,
       });
     },
   }),

@@ -36,6 +36,19 @@ export class ValidationFailure extends HttpError {
   }
 }
 
+export const isHttpError = (error: unknown): error is HttpError =>
+  typeof error === "object" &&
+  error !== null &&
+  "status" in error &&
+  "code" in error &&
+  typeof error.status === "number" &&
+  typeof error.code === "string" &&
+  error instanceof Error &&
+  error.name === "HttpError";
+
+export const isValidationFailure = (error: unknown): error is ValidationFailure =>
+  isHttpError(error) && "fields" in error && typeof error.fields === "object";
+
 export const unauthorized = (
   message = "Authentication required",
   code: ErrorCode = "UNAUTHORIZED",

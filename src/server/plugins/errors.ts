@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 
 import { isProduction } from "@/server/env";
-import { type ErrorCode, HttpError, ValidationFailure } from "@/server/lib/http-error";
+import { type ErrorCode, isHttpError, isValidationFailure } from "@/server/lib/http-error";
 
 interface IssueLike {
   path?: unknown;
@@ -37,11 +37,11 @@ const issuesOf = (error: unknown): IssueLike[] => {
 export const errors = new Elysia({ name: "errors" }).onError(
   { as: "global" },
   ({ code, error, set }) => {
-    if (error instanceof ValidationFailure) {
+    if (isValidationFailure(error)) {
       set.status = 422;
       return errorBody("VALIDATION", error.message, error.fields);
     }
-    if (error instanceof HttpError) {
+    if (isHttpError(error)) {
       set.status = error.status;
       if (error.retryAfterSec !== null) set.headers["retry-after"] = String(error.retryAfterSec);
       return errorBody(error.code, error.message);

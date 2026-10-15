@@ -30,7 +30,7 @@ import {
 import { errors } from "./plugins/errors";
 import { security } from "./plugins/security";
 
-export const app = new Elysia({ prefix: "/api" })
+export const app = new Elysia({ prefix: "/api", aot: false })
   .use(errors)
   .use(security)
   .use(healthRoutes)

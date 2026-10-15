@@ -1,0 +1,119 @@
+import { BookOpenText } from "lucide-react";
+import type { Metadata } from "next";
+import Link from "next/link";
+
+import { PageHero } from "@/components/layout/page-hero";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { buttonVariants } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { GuideCard } from "@/features/guides/components/guide-card";
+import { GuideFilters } from "@/features/guides/components/guide-filters";
+import { guidesContent } from "@/features/guides/content";
+import { loadGuidesSearchParams } from "@/features/guides/search-params";
+import { fill } from "@/i18n/fill";
+import { getDictionary } from "@/i18n/get-dictionary";
+import { getLocale } from "@/i18n/get-locale";
+import { localizePath } from "@/i18n/paths";
+import { formatNumber } from "@/lib/format";
+import { routes } from "@/lib/routes";
+import { pageMetadata } from "@/lib/seo/metadata";
+import { api } from "@/services";
+
+export const revalidate = 3600;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  const { meta } = guidesContent[locale];
+  return pageMetadata({
+    locale,
+    path: routes.guides,
+    title: meta.title,
+    description: meta.description,
+  });
+}
+
+export default async function GuidesPage({ searchParams }: PageProps<"/[locale]/guides">) {
+  const locale = await getLocale();
+  const content = guidesContent[locale];
+  const [{ nav, ui }, { category }, guides] = await Promise.all([
+    getDictionary(locale),
+    loadGuidesSearchParams(searchParams),
+    api.content.guides(locale),
+  ]);
+  const categories = [
+    ...new Map(
+      guides.flatMap((guide) => guide.categories).map((entry) => [entry.slug, entry.name]),
+    ),
+  ].map(([slug, name]) => ({
+    slug,
+    name,
+    count: guides.filter((guide) => guide.categories.some((entry) => entry.slug === slug)).length,
+  }));
+  const active = categories.some((entry) => entry.slug === category) ? category : null;
+  const visible = active
+    ? guides.filter((guide) => guide.categories.some((entry) => entry.slug === active))
+    : guides;
+
+  return (
+    <>
+      <PageHero
+        eyebrow={content.hero.eyebrow}
+        title={content.hero.title}
+        description={content.hero.description}
+        breadcrumbs={
+          <Breadcrumbs
+            label={ui.breadcrumbsLabel}
+            items={[
+              { label: nav.home, href: localizePath(locale, routes.home) },
+              { label: nav.guides },
+            ]}
+          />
+        }
+      >
+        <GuideFilters
+          locale={locale}
+          label={content.filter.label}
+          allLabel={content.filter.all}
+          total={guides.length}
+          active={active}
+          categories={categories}
+        />
+      </PageHero>
+      <section aria-labelledby="guides-results" className="container-page pb-16 sm:pb-20">
+        <h2 id="guides-results" className="sr-only">
+          {content.hero.title}
+        </h2>
+        <p role="status" className="mb-4 text-sm font-semibold text-muted">
+          {fill(content.filter.results, { count: formatNumber(locale, visible.length) })}
+        </p>
+        {visible.length === 0 ? (
+          <EmptyState
+            icon={BookOpenText}
+            title={content.empty.title}
+            description={content.empty.description}
+            action={
+              <Link
+                href={localizePath(locale, routes.guides)}
+                className={buttonVariants({ variant: "outline", size: "sm", className: "mt-1" })}
+              >
+                {content.empty.action}
+              </Link>
+            }
+          />
+        ) : (
+          <RevealGroup
+            key={active ?? "all"}
+            className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3"
+          >
+            {visible.map((guide) => (
+              <RevealItem key={guide.slug} className="min-w-0">
+                <GuideCard guide={guide} locale={locale} copy={content.card} />
+              </RevealItem>
+            ))}
+          </RevealGroup>
+        )}
+      </section>
+    </>
+  );
+}
