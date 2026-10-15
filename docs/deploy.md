@@ -321,6 +321,11 @@ immutable`), and so are `/_next/image` results for a given URL.
    journalctl -u mandegar -f
    ```
 
+   The unit binds to `localhost`, not `127.0.0.1`. Next.js reports loopback hosts as `localhost`
+   inside the proxy, so with a `127.0.0.1` bind its locale rewrites no longer match the server
+   origin and Persian pages answer with a 308 loop, or a 500 behind nginx. Check that
+   `getent ahosts localhost` lists `127.0.0.1`, so the nginx upstream below reaches the app.
+
 6. Reuse `deploy/nginx.conf` on the host with three changes: `server 127.0.0.1:3000;` instead of
    `server app:3000 resolve;`, remove the `resolver` line, and `root /var/lib/mandegar;` in the
    uploads location (nginx needs read access to `/var/lib/mandegar/uploads`). For Brotli on the host,

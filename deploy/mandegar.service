@@ -11,7 +11,7 @@ Group=mandegar
 WorkingDirectory=/opt/mandegar/current
 EnvironmentFile=/etc/mandegar/mandegar.env
 Environment=NODE_ENV=production
-Environment=HOSTNAME=127.0.0.1
+Environment=HOSTNAME=localhost
 Environment=PORT=3000
 Environment=UPLOAD_DIR=/var/lib/mandegar/uploads
 ExecStart=/usr/bin/node server.js
