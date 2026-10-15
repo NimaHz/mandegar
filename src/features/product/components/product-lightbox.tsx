@@ -82,7 +82,8 @@ export function ProductLightbox({
     pointer.current.down = false;
     const moved = Math.hypot(dx, dy);
     if (moved < TAP_DISTANCE) {
-      setZoom((current) => (current.active ? resting : { active: true, ...originFrom(event) }));
+      const origin = originFrom(event);
+      setZoom((current) => (current.active ? resting : { active: true, ...origin }));
       return;
     }
     if (zoom.active || count < 2) return;
