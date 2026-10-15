@@ -1,47 +1,106 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
-import { buttonVariants } from "@/components/ui/button";
-import { localeMeta, locales } from "@/i18n/config";
+import { JsonLd } from "@/components/seo/json-ld";
+import { CompareTray } from "@/components/shared/compare-tray";
+import { toTrayItems } from "@/features/compare/tray-items";
+import { BrandPromise } from "@/features/home/components/brand-promise";
+import { CategoriesBento } from "@/features/home/components/categories-bento";
+import { HeroCarousel } from "@/features/home/components/hero-carousel";
+import { HomeFaq } from "@/features/home/components/home-faq";
+import { InstallationGuides } from "@/features/home/components/installation-guides";
+import { LatestPosts } from "@/features/home/components/latest-posts";
+import { PartnerBrands } from "@/features/home/components/partner-brands";
+import { ProductsShowcase } from "@/features/home/components/products-showcase";
+import { ServiceJourney } from "@/features/home/components/service-journey";
+import { WarrantyStrip } from "@/features/home/components/warranty-strip";
+import { WhyMandegar } from "@/features/home/components/why-mandegar";
+import { homeContent } from "@/features/home/content";
+import { localizeHref } from "@/features/home/links";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getLocale } from "@/i18n/get-locale";
-import { languageAlternates, localizePath } from "@/i18n/paths";
+import { localizePath } from "@/i18n/paths";
+import { routes } from "@/lib/routes";
+import { homeGraph } from "@/lib/seo/graphs";
+import { pageMetadata } from "@/lib/seo/metadata";
+import { api } from "@/services";
+
+export const revalidate = 3600;
+
+const PRODUCT_LIMIT = 8;
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
+  const content = homeContent[locale];
+  const [slide] = await api.content.heroSlides(locale);
   return {
-    alternates: { canonical: localizePath(locale, "/"), languages: languageAlternates("/") },
+    ...pageMetadata({
+      locale,
+      path: routes.home,
+      title: content.metaTitle,
+      description: content.metaDescription,
+      image: slide
+        ? { url: slide.image.src, width: slide.image.width, height: slide.image.height }
+        : null,
+    }),
+    title: { absolute: content.metaTitle },
   };
 }
 
 export default async function HomePage() {
   const locale = await getLocale();
-  const { site, common } = await getDictionary(locale);
-  const alternate = locales.find((other) => other !== locale) ?? locale;
-  const { label, hreflang, dir } = localeMeta[alternate];
+  const [dictionary, slides, categories, featured, latest, brands, guides, posts, faqs, settings] =
+    await Promise.all([
+      getDictionary(locale),
+      api.content.heroSlides(locale),
+      api.catalog.categories(locale),
+      api.catalog.featured(locale, PRODUCT_LIMIT),
+      api.catalog.latest(locale, PRODUCT_LIMIT),
+      api.catalog.brands(locale),
+      api.content.guides(locale),
+      api.content.latestPosts(locale, 3),
+      api.content.faqs(locale, "general"),
+      api.content.settings(locale),
+    ]);
+  const showcaseImage =
+    featured
+      .flatMap((product) => (product.image ? [product.image] : []))
+      .toSorted((left, right) => right.height / right.width - left.height / left.width)[0] ?? null;
+
+  const content = homeContent[locale];
+  const graph = await homeGraph(
+    locale,
+    { name: content.metaTitle, description: content.metaDescription },
+    featured,
+  );
 
   return (
-    <main className="bg-glow grid min-h-dvh place-items-center px-6 py-16 text-center">
-      <div className="flex max-w-xl flex-col items-center gap-5">
-        <span className="rounded-full bg-primary-soft px-3 py-1 text-label font-bold text-primary">
-          {common.comingSoon}
-        </span>
-        <h1 className="font-display text-5xl leading-tight font-black text-ink sm:text-6xl">
-          {site.name}
-        </h1>
-        <p className="text-lead leading-8 text-body">{site.slogan}</p>
-        <nav aria-label={common.switchLanguage}>
-          <Link
-            href={localizePath(alternate, "/")}
-            hrefLang={hreflang}
-            lang={hreflang}
-            dir={dir}
-            className={buttonVariants({ variant: "line" })}
-          >
-            {label}
-          </Link>
-        </nav>
-      </div>
-    </main>
+    <>
+      <JsonLd data={graph} />
+      <h1 className="sr-only">
+        {dictionary.site.name}، {dictionary.site.slogan}
+      </h1>
+      <HeroCarousel
+        slides={slides.map((slide) => ({
+          ...slide,
+          ctaHref: slide.ctaHref ? localizeHref(locale, slide.ctaHref) : null,
+        }))}
+        secondaryHref={localizePath(locale, routes.products)}
+      />
+      <WarrantyStrip locale={locale} overlap={slides.length > 0} />
+      <CategoriesBento categories={categories} locale={locale} />
+      <ProductsShowcase featured={featured} latest={latest} locale={locale} />
+      <BrandPromise stats={settings.stats} locale={locale} />
+      <WhyMandegar
+        image={showcaseImage}
+        warrantyMonths={settings.stats.warrantyMonths}
+        locale={locale}
+      />
+      <PartnerBrands brands={brands} locale={locale} />
+      <InstallationGuides guides={guides} locale={locale} />
+      <ServiceJourney locale={locale} />
+      <LatestPosts posts={posts} locale={locale} />
+      <HomeFaq faqs={faqs} locale={locale} />
+      <CompareTray products={toTrayItems([...featured, ...latest])} />
+    </>
   );
 }
