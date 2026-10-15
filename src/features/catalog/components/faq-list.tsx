@@ -12,6 +12,19 @@ interface FaqListProps {
   className?: string;
 }
 
+const MODEL_CODE = /\b([A-Z]+-\d[\dA-Z]*)\b/;
+
+const isolateCodes = (text: string) =>
+  text.split(MODEL_CODE).map((part, index) =>
+    index % 2 === 1 ? (
+      <bdi key={index} dir="ltr" className="whitespace-nowrap">
+        {part}
+      </bdi>
+    ) : (
+      part
+    ),
+  );
+
 export function FaqList({ items, className }: FaqListProps) {
   return (
     <div className={cn("divide-y divide-line overflow-hidden card shadow-card", className)}>
@@ -27,7 +40,7 @@ export function FaqList({ items, className }: FaqListProps) {
             </span>
           </summary>
           <p className="max-w-3xl px-5 pb-5 text-sm leading-8 text-pretty text-body sm:px-6">
-            {item.answer}
+            {isolateCodes(item.answer)}
           </p>
         </details>
       ))}

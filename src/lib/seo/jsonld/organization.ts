@@ -8,19 +8,19 @@ import { absoluteUrl, localeUrl } from "../urls";
 import { ref, siteIds, websiteId } from "./ids";
 import type { JsonLdNode } from "./types";
 
-export const LOGO_PATH = "/apple-icon.png";
+const LOGO_PATH = "/apple-icon.png";
 const LOGO_SIZE = 180;
 
+const SUPPORT = /support|service|repair|after[\s-]?sales?|پشتیبانی|خدمات|تعمیر|پس از فروش/i;
 const SALES = /sale|dealer|فروش|نمایندگی/i;
-const SUPPORT = /support|service|repair|پشتیبانی|خدمات|تعمیر/i;
 
 const contactType = (label: string) => {
-  if (SALES.test(label)) return "sales";
   if (SUPPORT.test(label)) return "technical support";
+  if (SALES.test(label)) return "sales";
   return "customer service";
 };
 
-export const socialUrls = (socials: SocialLinks) =>
+const socialUrls = (socials: SocialLinks) =>
   Object.values(socials).filter((url): url is string => Boolean(url));
 
 const alternateNames = (locale: Locale) =>
@@ -28,7 +28,7 @@ const alternateNames = (locale: Locale) =>
     (name) => name !== siteConfig.name[locale],
   );
 
-export const logoNode = (): JsonLdNode => ({
+const logoNode = (): JsonLdNode => ({
   "@type": "ImageObject",
   "@id": siteIds.logo,
   url: absoluteUrl(LOGO_PATH),

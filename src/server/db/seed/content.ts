@@ -21,10 +21,7 @@ import {
   settingsSeed,
   slideSeeds,
 } from "./content-data";
-import { fromExcluded, seedId, updatableKeys } from "./helpers";
-
-const idsBySlug = (rows: { id: string; slug: string }[]): IdMap =>
-  new Map(rows.map((row) => [row.slug, row.id]));
+import { fromExcluded, idsBySlug, seedId, updatableKeys } from "./helpers";
 
 export const seedGuides = async (photos: IdMap) => {
   const now = Date.now();

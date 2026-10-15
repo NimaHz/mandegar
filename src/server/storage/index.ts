@@ -30,6 +30,13 @@ export const isSafeStorageKey = (key: string) => {
   );
 };
 
+const PRIVATE_ROOT = "private";
+
+export const privateStorageKey = (key: string) => `${PRIVATE_ROOT}/${key}`;
+
+export const isPublicStorageKey = (key: string) =>
+  isSafeStorageKey(key) && key.split("/")[0] !== PRIVATE_ROOT;
+
 let driver: Promise<StorageDriver> | undefined;
 
 const createDriver = async (): Promise<StorageDriver> => {

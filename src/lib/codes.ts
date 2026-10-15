@@ -42,7 +42,7 @@ const accumulate = (symbols: string) =>
 
 export const checkSymbol = (data: string) => CODE_ALPHABET[double(accumulate(data))] ?? "0";
 
-export const isAlphabetic = (value: string) =>
+const isAlphabetic = (value: string) =>
   [...value].every((symbol) => CODE_ALPHABET.includes(symbol));
 
 export const hasValidCheck = (code: string) =>

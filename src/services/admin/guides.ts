@@ -13,15 +13,8 @@ import {
   adminSorts,
 } from "@/types/admin";
 
-import {
-  collatedName,
-  iso,
-  isoOrNull,
-  mediaRefs,
-  paginate,
-  searchColumns,
-  sortedBy,
-} from "./shared";
+import { guideMediaIds, iso, isoOrNull } from "../db/mappers";
+import { collatedName, mediaRefs, paginate, searchColumns, sortedBy } from "./shared";
 
 const orders: Record<AdminSort<"guides">, SQL[]> = {
   "updated-desc": [desc(guides.updatedAt)],
@@ -41,12 +34,6 @@ const toListItem = (row: GuideRow): AdminGuideListItem => ({
   publishedAt: isoOrNull(row.publishedAt),
   updatedAt: iso(row.updatedAt),
 });
-
-const guideMediaIds = (row: GuideRow) => [
-  row.video?.posterMediaId,
-  row.video?.kind === "upload" ? row.video.mediaId : null,
-  ...row.steps.map((step) => step.mediaId),
-];
 
 export const guidesAdmin = {
   list: async (query: Partial<AdminGuidesQuery> = {}) => {

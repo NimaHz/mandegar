@@ -98,7 +98,7 @@ const copy: Record<Locale, LlmsCopy> = {
         note: "Mandegar and the partner brands it distributes and services.",
       },
       glossary: { label: "Glossary", note: "Plain definitions of appliance terms." },
-      blog: { label: "Mandegar magazine", note: "News, buying advice and maintenance tips." },
+      blog: { label: "Mandegar Journal", note: "News, buying advice and maintenance tips." },
     },
     full: {
       title: "Mandegar: full product and support facts (English)",
@@ -237,7 +237,7 @@ export const llmsText = (snapshot: SiteSnapshot) => {
     "",
     `> ${copy.en.summary}`,
     "",
-    `> ${copy.fa.summary}`,
+    copy.fa.summary,
     "",
     fill(copy.en.languages, { fa: localeUrl("fa", routes.home), en: localeUrl("en", routes.home) }),
     `Full plain-text facts: ${absoluteUrl("/llms-full.txt")}`,

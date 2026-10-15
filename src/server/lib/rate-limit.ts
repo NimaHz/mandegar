@@ -1,16 +1,33 @@
 import "server-only";
 
-import { and, eq, gt, lt, lte, sql } from "drizzle-orm";
+import { and, eq, lt, lte, sql } from "drizzle-orm";
 
 import { getDb } from "@/server/db/client";
 import { rateLimits } from "@/server/db/schema";
 
 import { tooManyRequests } from "./http-error";
 
+export interface RateLimitRule {
+  key: string;
+  limit: number;
+  windowSec: number;
+}
+
 interface RateLimitResult {
   allowed: boolean;
   count: number;
+  excess: number;
   retryAfterSec: number;
+}
+
+export interface Attempt extends RateLimitResult {
+  release: () => Promise<void>;
+}
+
+export interface Reservation {
+  allowed: boolean;
+  retryAfterSec: number;
+  release: () => Promise<void>;
 }
 
 const RETENTION_MS = 2 * 86_400_000;
@@ -27,11 +44,7 @@ const pruneExpired = async () => {
     .where(lt(rateLimits.windowStart, new Date(Date.now() - RETENTION_MS)));
 };
 
-export const rateLimit = async (
-  key: string,
-  limit: number,
-  windowSec: number,
-): Promise<RateLimitResult> => {
+const increment = async ({ key, limit, windowSec }: RateLimitRule) => {
   const now = Date.now();
   const current = new Date(now);
   const cutoff = new Date(now - windowSec * 1000);
@@ -50,31 +63,61 @@ export const rateLimit = async (
     .returning({ count: rateLimits.count, windowStart: rateLimits.windowStart });
   await pruneExpired();
   const count = row?.count ?? 1;
+  const windowStart = row?.windowStart ?? current;
   return {
-    allowed: count <= limit,
-    count,
-    retryAfterSec: retryAfter(row?.windowStart ?? current, windowSec, now),
+    windowStart,
+    result: {
+      allowed: count <= limit,
+      count,
+      excess: Math.max(0, count - limit),
+      retryAfterSec: retryAfter(windowStart, windowSec, now),
+    },
   };
 };
 
-export const isRateLimited = async (key: string, limit: number, windowSec: number) => {
-  const now = Date.now();
-  const [row] = await getDb()
-    .select({ count: rateLimits.count, windowStart: rateLimits.windowStart })
-    .from(rateLimits)
+const decrement = async ({ key, windowSec }: RateLimitRule, windowStart: Date) => {
+  await getDb()
+    .update(rateLimits)
+    .set({ count: sql`greatest(${rateLimits.count} - 1, 0)` })
     .where(
-      and(
-        eq(rateLimits.key, bucketOf(key, windowSec)),
-        gt(rateLimits.windowStart, new Date(now - windowSec * 1000)),
-      ),
+      and(eq(rateLimits.key, bucketOf(key, windowSec)), eq(rateLimits.windowStart, windowStart)),
     );
-  return row !== undefined && row.count >= limit;
+};
+
+const rateLimit = async (rule: RateLimitRule): Promise<RateLimitResult> =>
+  (await increment(rule)).result;
+
+export const countAttempt = async (rule: RateLimitRule): Promise<Attempt> => {
+  const { windowStart, result } = await increment(rule);
+  let released = false;
+  return {
+    ...result,
+    release: async () => {
+      if (released) return;
+      released = true;
+      await decrement(rule, windowStart);
+    },
+  };
+};
+
+export const reserveAttempts = async (rules: readonly RateLimitRule[]): Promise<Reservation> => {
+  const attempts = await Promise.all(rules.map(countAttempt));
+  const release = async () => {
+    await Promise.all(attempts.map((attempt) => attempt.release()));
+  };
+  const blocked = attempts.filter((attempt) => !attempt.allowed);
+  if (blocked.length > 0) await release();
+  return {
+    allowed: blocked.length === 0,
+    retryAfterSec: Math.max(0, ...blocked.map((attempt) => attempt.retryAfterSec)),
+    release,
+  };
 };
 
 export const enforceRateLimit = async (key: string, limit: number, windowSec: number) => {
-  const result = await rateLimit(key, limit, windowSec);
+  const result = await rateLimit({ key, limit, windowSec });
   if (!result.allowed) throw tooManyRequests(result.retryAfterSec);
 };
 
 export const claimOnce = async (key: string, windowSec: number) =>
-  (await rateLimit(key, 1, windowSec)).allowed;
+  (await rateLimit({ key, limit: 1, windowSec })).allowed;

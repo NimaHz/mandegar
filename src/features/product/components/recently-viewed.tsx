@@ -3,8 +3,9 @@
 import { History, Package } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
+import type { Locale } from "@/i18n/config";
 import { useLocale } from "@/i18n/locale-provider";
 import { localizePath } from "@/i18n/paths";
 import { routes } from "@/lib/routes";
@@ -14,37 +15,55 @@ import type { ProductListItem } from "@/types/catalog";
 
 import { productContent } from "../content";
 
-export type RecentCandidate = Pick<ProductListItem, "slug" | "name" | "modelCode" | "image"> & {
-  category: string;
-};
-
 interface RecentlyViewedProps {
   current: string;
-  candidates: RecentCandidate[];
+}
+
+interface Loaded {
+  key: string;
+  items: ProductListItem[];
 }
 
 const VISIBLE = 6;
 
-export function RecentlyViewed({ current, candidates }: RecentlyViewedProps) {
+const loadRecent = async (locale: Locale, key: string, signal: AbortSignal) => {
+  const params = new URLSearchParams({ slugs: key, locale });
+  const response = await fetch(`/api/products?${params}`, { signal });
+  const data: { items?: ProductListItem[] } = response.ok ? await response.json() : {};
+  return data.items ?? [];
+};
+
+export function RecentlyViewed({ current }: RecentlyViewedProps) {
   const locale = useLocale();
   const { recent } = productContent[locale];
   const hydrated = useStoresHydrated();
   const slugs = useRecentlyViewedStore((state) => state.slugs);
   const add = useRecentlyViewedStore((state) => state.add);
   const clear = useRecentlyViewedStore((state) => state.clear);
+  const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const others = slugs.filter((slug) => slug !== current).slice(0, VISIBLE);
+  const key = hydrated ? others.join(",") : "";
 
   useEffect(() => {
     if (hydrated) add(current);
   }, [hydrated, current, add]);
 
-  const known = new Map(candidates.map((candidate) => [candidate.slug, candidate]));
-  const items = slugs
-    .filter((slug) => slug !== current)
-    .flatMap((slug) => {
-      const candidate = known.get(slug);
-      return candidate ? [candidate] : [];
-    })
-    .slice(0, VISIBLE);
+  useEffect(() => {
+    if (!key) return;
+    const controller = new AbortController();
+    loadRecent(locale, key, controller.signal)
+      .then((items) => setLoaded({ key, items }))
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [key, locale]);
+
+  const known = new Map((loaded?.items ?? []).map((item) => [item.slug, item]));
+  const items = key
+    ? others.flatMap((slug) => {
+        const item = known.get(slug);
+        return item ? [item] : [];
+      })
+    : [];
 
   if (!hydrated || items.length === 0) return null;
 
@@ -90,7 +109,7 @@ export function RecentlyViewed({ current, candidates }: RecentlyViewedProps) {
                 </span>
                 <span className="flex min-w-0 flex-col gap-0.5">
                   <span className="truncate text-caption font-bold text-primary">
-                    {item.category}
+                    {item.category.name}
                   </span>
                   <span className="truncate text-sm font-extrabold text-ink group-hover:text-primary">
                     {item.name}

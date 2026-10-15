@@ -20,6 +20,8 @@ import { cn } from "@/lib/cn";
 
 export type ToastTone = "success" | "info" | "danger";
 
+export type ToastPlacement = "top" | "bottom";
+
 export interface ToastAction {
   label: string;
   onClick?: () => void;
@@ -62,8 +64,6 @@ const useToastStore = create<ToastState>()((set) => ({
   items: [],
   dismiss: (id) => set(({ items }) => ({ items: items.filter((item) => item.id !== id) })),
 }));
-
-export const dismissToast = (id: string) => useToastStore.getState().dismiss(id);
 
 export const toast = ({
   title,
@@ -114,7 +114,25 @@ function useAutoDismiss(item: ToastItem, running: boolean, onDone: () => void) {
   }, [duration, stamp, running, onDone]);
 }
 
-function ToastCard({ item, dismissLabel }: { item: ToastItem; dismissLabel: string }) {
+const placementMeta = {
+  top: {
+    region:
+      "top-[calc(4.5rem+env(safe-area-inset-top))] flex-col-reverse lg:top-[calc(5rem+env(safe-area-inset-top))]",
+    direction: -1,
+  },
+  bottom: {
+    region: "bottom-[calc(4.5rem+env(safe-area-inset-bottom))] flex-col lg:bottom-6",
+    direction: 1,
+  },
+} as const;
+
+interface ToastCardProps {
+  item: ToastItem;
+  dismissLabel: string;
+  direction: number;
+}
+
+function ToastCard({ item, dismissLabel, direction }: ToastCardProps) {
   const dismiss = useToastStore((state) => state.dismiss);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -148,11 +166,11 @@ function ToastCard({ item, dismissLabel }: { item: ToastItem; dismissLabel: stri
   return (
     <m.div
       layout={reduceMotion ? false : "position"}
-      initial={{ opacity: 0, y: 16, scale: 0.96 }}
+      initial={{ opacity: 0, y: 16 * direction, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={
         swipe === 0
-          ? { opacity: 0, y: 8, scale: 0.96, transition: { duration: 0.18 } }
+          ? { opacity: 0, y: 8 * direction, scale: 0.96, transition: { duration: 0.18 } }
           : { opacity: 0, x: swipe * 240, transition: { duration: 0.2 } }
       }
       transition={springSnappy}
@@ -209,19 +227,32 @@ function ToastCard({ item, dismissLabel }: { item: ToastItem; dismissLabel: stri
   );
 }
 
-export function Toaster() {
+interface ToasterProps {
+  placement?: ToastPlacement;
+}
+
+export function Toaster({ placement = "bottom" }: ToasterProps) {
   const { ui } = useDictionary();
   const items = useToastStore((state) => state.items);
+  const meta = placementMeta[placement];
 
   return (
     <section
       aria-label={ui.toastRegion}
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-70 flex flex-col items-center gap-2 px-4 lg:bottom-6 lg:items-end lg:pe-6"
+      className={cn(
+        "pointer-events-none fixed inset-x-0 z-70 flex items-center gap-2 px-4 lg:items-end lg:pe-6",
+        meta.region,
+      )}
     >
       <AnimatePresence initial={false} mode="popLayout">
         {items.map((item) => (
-          <ToastCard key={item.id} item={item} dismissLabel={ui.toastDismiss} />
+          <ToastCard
+            key={item.id}
+            item={item}
+            dismissLabel={ui.toastDismiss}
+            direction={meta.direction}
+          />
         ))}
       </AnimatePresence>
     </section>

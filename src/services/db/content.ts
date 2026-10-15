@@ -32,6 +32,7 @@ import type {
 import type { ContentService } from "../contracts";
 import {
   clampLimit,
+  guideMediaIds,
   iso,
   isoOrNull,
   mediaIndex,
@@ -77,8 +78,11 @@ const defaultSettings: SettingsValues = {
   },
 };
 
-export const readSettings = async (): Promise<SettingsValues> => {
-  const rows = await getDb().select().from(settings);
+type SettingRow = typeof settings.$inferSelect;
+
+const settingRows = () => getDb().select().from(settings);
+
+const parseSettings = (rows: SettingRow[]): SettingsValues => {
   const value = <TKey extends keyof SettingsValues>(key: TKey): SettingsValues[TKey] => {
     const parsed = settingsSchemas[key].safeParse(rows.find((row) => row.key === key)?.value);
     return parsed.success ? (parsed.data as SettingsValues[TKey]) : defaultSettings[key];
@@ -91,27 +95,43 @@ export const readSettings = async (): Promise<SettingsValues> => {
   };
 };
 
-const toSiteSettings = (values: SettingsValues, locale: Locale): SiteSettings => ({
-  phones: values.contact.phones.map((entry) => ({
-    label: pick(entry.label, locale),
-    value: entry.value,
-  })),
-  emails: values.contact.emails.map((entry) => ({
-    label: pick(entry.label, locale),
-    value: entry.value,
-  })),
-  address: pick(values.contact.address, locale),
-  hours: pick(values.contact.hours, locale),
-  socials: values.contact.socials,
-  location: values.contact.location,
-  stats: values.stats,
-  company: {
-    legalName: pick(values.company.legalName, locale),
-    nationalId: values.company.nationalId,
-    registrationNo: values.company.registrationNo,
-    foundingYear: values.company.foundingYear,
-  },
-});
+export const readSettings = async (): Promise<SettingsValues> => parseSettings(await settingRows());
+
+const newestUpdate = (rows: SettingRow[]) =>
+  rows.reduce<Date | null>(
+    (newest, row) => (!newest || row.updatedAt > newest ? row.updatedAt : newest),
+    null,
+  );
+
+const toSiteSettings = (rows: SettingRow[], locale: Locale): SiteSettings => {
+  const values = parseSettings(rows);
+  return {
+    phones: values.contact.phones.map((entry) => ({
+      label: pick(entry.label, locale),
+      value: entry.value,
+    })),
+    emails: values.contact.emails.map((entry) => ({
+      label: pick(entry.label, locale),
+      value: entry.value,
+    })),
+    address: pick(values.contact.address, locale),
+    hours: pick(values.contact.hours, locale),
+    socials: values.contact.socials,
+    location: values.contact.location,
+    stats: values.stats,
+    company: {
+      legalName: pick(values.company.legalName, locale),
+      nationalId: values.company.nationalId,
+      registrationNo: values.company.registrationNo,
+      foundingYear: values.company.foundingYear,
+    },
+    seo: {
+      title: pick(values.seo.defaultTitle, locale),
+      description: pick(values.seo.defaultDescription, locale),
+    },
+    updatedAt: isoOrNull(newestUpdate(rows)),
+  };
+};
 
 const isLivePost = () => and(eq(posts.status, "published"), lte(posts.publishedAt, new Date()));
 
@@ -197,6 +217,23 @@ const visibleProductRows = (where: SQL | undefined) =>
     .where(and(visibleProductsWhere, where))
     .orderBy(asc(products.modelCode));
 
+const relatedProductRows = async (ids: string[]) =>
+  ids.length === 0
+    ? []
+    : getDb().query.products.findMany({
+        where: (table) => and(inArray(table.id, ids), eq(table.status, "published")),
+        columns: { id: true, slug: true, name: true, modelCode: true },
+        with: {
+          category: { columns: { published: true } },
+          brand: { columns: { published: true } },
+          images: {
+            orderBy: (image) => [desc(image.isPrimary), asc(image.sortOrder)],
+            limit: 1,
+            with: { media: true },
+          },
+        },
+      });
+
 const publishedGuides = () =>
   getDb().query.guides.findMany({
     where: (table, { eq: equals }) => equals(table.published, true),
@@ -259,12 +296,6 @@ const toGuideVideo = (
     : null;
 };
 
-const guideMediaIds = (row: GuideRow) => [
-  row.video?.posterMediaId,
-  row.video?.kind === "upload" ? row.video.mediaId : null,
-  ...row.steps.map((step) => step.mediaId),
-];
-
 const guideProducts = async (guideId: string, categoryRows: GuideCategory[]) => {
   const direct = categoryRows.filter((category) => category.defaultGuideId === guideId);
   const inherited = categoryRows.filter(
@@ -326,6 +357,7 @@ export const contentService: ContentService = {
       group: row.group,
       question: pick(row.question, locale),
       answer: pick(row.answer, locale),
+      updatedAt: iso(row.updatedAt),
     }));
   },
   guides: async (locale) => {
@@ -334,12 +366,14 @@ export const contentService: ContentService = {
     return rows.map((row) => toGuideListItem(row, categoryRows, index, locale));
   },
   guide: async (locale, slug) => {
-    const row = await getDb().query.guides.findFirst({
-      where: (table, { and: all, eq: equals }) =>
-        all(equals(table.slug, normalizeSlug(slug)), equals(table.published, true)),
-    });
+    const [row, categoryRows] = await Promise.all([
+      getDb().query.guides.findFirst({
+        where: (table, { and: all, eq: equals }) =>
+          all(equals(table.slug, normalizeSlug(slug)), equals(table.published, true)),
+      }),
+      guideCategories(),
+    ]);
     if (!row) return null;
-    const categoryRows = await guideCategories();
     const [index, productRows] = await Promise.all([
       mediaIndex(guideMediaIds(row)),
       guideProducts(row.id, categoryRows),
@@ -375,52 +409,39 @@ export const contentService: ContentService = {
   guideSlugs: async () => (await publishedGuides()).map((row) => row.slug),
   posts: async (locale, query) => {
     const where = query.kind ? eq(posts.kind, query.kind) : undefined;
-    const total = await countLivePosts(where);
+    const page = clampPage(query.page);
+    const pageOf = async (target: number) =>
+      hydratePosts(
+        locale,
+        await livePostIds(where, POSTS_PAGE_SIZE, offsetOf(target, POSTS_PAGE_SIZE)),
+      );
+    const [total, items] = await Promise.all([countLivePosts(where), pageOf(page)]);
     const pageCount = Math.max(1, Math.ceil(total / POSTS_PAGE_SIZE));
-    const page = Math.min(clampPage(query.page), pageCount);
-    const ids = await livePostIds(where, POSTS_PAGE_SIZE, offsetOf(page, POSTS_PAGE_SIZE));
-    return toPaginated(await hydratePosts(locale, ids), total, page, POSTS_PAGE_SIZE);
+    if (page <= pageCount) return toPaginated(items, total, page, POSTS_PAGE_SIZE);
+    return toPaginated(await pageOf(pageCount), total, pageCount, POSTS_PAGE_SIZE);
   },
   latestPosts: async (locale, limit) =>
     hydratePosts(locale, await livePostIds(undefined, clampLimit(limit, 3))),
   post: async (locale, slug) => {
-    const [row] = await getDb()
-      .select({ id: posts.id })
-      .from(posts)
-      .where(and(isLivePost(), eq(posts.slug, normalizeSlug(slug))));
-    if (!row) return null;
-    const [full] = await findPostRows([row.id]);
+    const full = await getDb().query.posts.findFirst({
+      where: (table) =>
+        and(
+          eq(table.status, "published"),
+          lte(table.publishedAt, new Date()),
+          eq(table.slug, normalizeSlug(slug)),
+        ),
+      with: { author: { with: { avatar: true } }, cover: true },
+    });
     if (!full) return null;
-    const related = full.relatedProductIds.length
-      ? await getDb().query.products.findMany({
-          where: (table) => inArray(table.id, full.relatedProductIds),
-          columns: { id: true },
-        })
-      : [];
-    const visible = related.length
-      ? await visibleProductRows(
-          inArray(
-            products.id,
-            related.map((product) => product.id),
-          ),
-        )
-      : [];
-    const images = visible.length
-      ? await getDb().query.productImages.findMany({
-          where: (table) =>
-            inArray(
-              table.productId,
-              visible.map((product) => product.id),
-            ),
-          orderBy: (table) => [desc(table.isPrimary), asc(table.sortOrder)],
-          with: { media: true },
-        })
-      : [];
+    const related = await relatedProductRows(full.relatedProductIds);
+    const visible = related.filter(
+      (product) => product.category.published && product.brand.published,
+    );
     const detail: PostDetail = {
       ...toPostListItem(full, locale),
       body: pick(full.body, locale),
       relatedProducts: orderByIds(full.relatedProductIds, visible).map((product) => {
-        const image = images.find((entry) => entry.productId === product.id);
+        const [image] = product.images;
         return {
           slug: product.slug,
           name: pick(product.name, locale),
@@ -497,6 +518,7 @@ export const contentService: ContentService = {
       categories: categoryRows
         .filter((category) => row.categoryIds.includes(category.id))
         .map((category) => ({ slug: category.slug, name: pick(category.name, locale) })),
+      updatedAt: iso(row.updatedAt),
     }));
   },
   provinces: async (locale) => {
@@ -509,5 +531,5 @@ export const contentService: ContentService = {
       .map((row) => ({ code: row.code, name: provinceName(locale, row.code), count: row.total }))
       .toSorted((left, right) => left.name.localeCompare(right.name, locale));
   },
-  settings: async (locale) => toSiteSettings(await readSettings(), locale),
+  settings: async (locale) => toSiteSettings(await settingRows(), locale),
 };

@@ -22,7 +22,7 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
 
   return (
     <>
-      <TopBar locale={locale} phone={settings.phones[0]?.value ?? null} />
+      <TopBar locale={locale} phone={settings.phones[0]?.value ?? null} hours={settings.hours} />
       <HeaderShell>
         <div className="container-page flex h-16 items-center gap-3 lg:h-18 lg:gap-6">
           <MenuTrigger />

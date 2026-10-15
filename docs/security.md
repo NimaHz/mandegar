@@ -24,8 +24,11 @@ reached with a tracking code plus phone number, or a private token link).
 - Passwords are hashed with argon2id (`@node-rs/argon2`). Failed logins for unknown emails still
   run a verification against a decoy hash, so response time does not reveal which emails exist, and
   every failure returns the same `INVALID_CREDENTIALS` response.
-- Login lockouts are stored in PostgreSQL: 5 failures per email per 15 minutes, 20 per email per day
-  and 30 per client per 15 minutes. nginx adds a per-IP request limit on `/api/auth`.
+- Login lockouts are stored in PostgreSQL and counted atomically: 5 failures per email and client per
+  15 minutes, 20 per email and client per day, and 30 per client per 15 minutes. Failures for one
+  email from every client never lock the account; past 5 per 15 minutes or 20 per day each further
+  attempt waits up to 5 seconds and the owner sees a `login.throttled` audit entry. nginx adds a
+  per-IP request limit on `/api/auth`.
 - Optional TOTP two-factor authentication (otplib). Owners should enable it.
 - Users created by an owner get a temporary password and `mustChangePassword`; the API refuses
   other actions with `PASSWORD_CHANGE_REQUIRED` until it is changed.
@@ -90,11 +93,16 @@ The client IP comes from `X-Real-IP`, which nginx sets from the connection. Behi
 - Types are detected from magic bytes (`file-type`), never from the file name or the client's MIME
   type. Only JPEG, PNG, WebP, AVIF, MP4, WebM and PDF are accepted, with per-kind size limits; the
   request body is capped before parsing (1 MB by default, 30 MB for tickets, 210 MB for admin media).
+  Admin requests are authenticated before the body is read, and nginx only accepts a large
+  `/api/admin/media` body when a session cookie is present.
 - Images are decoded and re-encoded with sharp, which strips EXIF and other metadata (including GPS)
   and neutralizes polyglot files. SVG is not accepted.
 - Files get random keys (`YYYY/MM/<ulid>.<ext>`), deduplicated by SHA-256. The `/uploads` handler
   only serves keys that match a strict pattern, with a fixed `Content-Type` per extension and
   `X-Content-Type-Options: nosniff`; nginx serves the same files with the same restrictions.
+- Customer and staff ticket attachments are kept out of the media library. They are stored under
+  `private/`, which neither `/uploads` nor nginx serves, and are streamed only to `tickets:read`
+  staff or through signed, expiring customer links.
 
 ### Content Security Policy and headers
 

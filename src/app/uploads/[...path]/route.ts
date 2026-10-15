@@ -1,4 +1,4 @@
-import { type ByteRange, getStorage, isSafeStorageKey } from "@/server/storage";
+import { type ByteRange, getStorage, isPublicStorageKey } from "@/server/storage";
 
 export const runtime = "nodejs";
 
@@ -30,7 +30,7 @@ export async function GET(request: Request, context: RouteContext<"/uploads/[...
   const key = path.join("/");
   const extension = key.slice(key.lastIndexOf(".") + 1).toLowerCase();
   const contentType = contentTypes[extension];
-  if (!contentType || !isSafeStorageKey(key)) return notFound();
+  if (!contentType || !isPublicStorageKey(key)) return notFound();
   const requested = parseRange(request.headers.get("range"));
   const storage = await getStorage();
   const file = await storage.get(key, requested);

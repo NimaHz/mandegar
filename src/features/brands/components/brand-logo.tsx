@@ -7,10 +7,11 @@ import type { BrandSummary } from "@/types/catalog";
 interface BrandLogoProps {
   brand: Pick<BrandSummary, "name" | "logo" | "isOwn">;
   sizes: string;
+  priority?: boolean;
   className?: string;
 }
 
-export function BrandLogo({ brand, sizes, className }: BrandLogoProps) {
+export function BrandLogo({ brand, sizes, priority = false, className }: BrandLogoProps) {
   return (
     <span
       className={cn(
@@ -21,7 +22,15 @@ export function BrandLogo({ brand, sizes, className }: BrandLogoProps) {
       {brand.isOwn ? (
         <LogoMark className="size-3/4" />
       ) : brand.logo ? (
-        <Image src={brand.logo.src} alt="" fill sizes={sizes} className="object-cover" />
+        <Image
+          src={brand.logo.src}
+          alt=""
+          fill
+          sizes={sizes}
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : "auto"}
+          className="object-cover"
+        />
       ) : (
         <span aria-hidden className="font-display text-xl font-black text-ink">
           {brand.name.slice(0, 1)}

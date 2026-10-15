@@ -4,38 +4,19 @@ import type { Locale } from "@/i18n/config";
 import { formatWarrantyCode, parseWarrantyCode } from "@/lib/warranty-code";
 import { getDb } from "@/server/db/client";
 import { warrantyPolicies } from "@/server/db/schema";
-import { isRateLimited, rateLimit } from "@/server/lib/rate-limit";
+import { type RateLimitRule, reserveAttempts } from "@/server/lib/rate-limit";
 import type { WarrantyLookup, WarrantyMatch } from "@/types/warranty";
 
 import type { WarrantyService } from "../contracts";
-import { pick, toImage } from "./mappers";
-
-const FAILURE_WINDOWS = [
-  { scope: "minute", limit: 10, windowSec: 60 },
-  { scope: "day", limit: 50, windowSec: 86_400 },
-] as const;
+import { iso, pick, toImage } from "./mappers";
 
 const NOT_FOUND: WarrantyLookup = { status: "not-found" };
 const RATE_LIMITED: WarrantyLookup = { status: "rate-limited" };
 
-const failureKey = (scope: string, clientKey: string) => `warranty-fail:${scope}:${clientKey}`;
-
-const isBlocked = async (clientKey: string) =>
-  (
-    await Promise.all(
-      FAILURE_WINDOWS.map((window) =>
-        isRateLimited(failureKey(window.scope, clientKey), window.limit, window.windowSec),
-      ),
-    )
-  ).some(Boolean);
-
-const recordFailure = async (clientKey: string) => {
-  await Promise.all(
-    FAILURE_WINDOWS.map((window) =>
-      rateLimit(failureKey(window.scope, clientKey), window.limit, window.windowSec),
-    ),
-  );
-};
+const failureRules = (clientKey: string): RateLimitRule[] => [
+  { key: `warranty-fail:minute:${clientKey}`, limit: 10, windowSec: 60 },
+  { key: `warranty-fail:day:${clientKey}`, limit: 50, windowSec: 86_400 },
+];
 
 const findCode = (code: string) =>
   getDb().query.warrantyCodes.findFirst({
@@ -91,17 +72,14 @@ const toMatch = (row: CodeRow, locale: Locale): WarrantyMatch => {
 
 export const warrantyService: WarrantyService = {
   lookup: async (locale, input, clientKey) => {
-    if (await isBlocked(clientKey)) return RATE_LIMITED;
     const parsed = parseWarrantyCode(input);
-    if (!parsed.valid) {
-      if (parsed.reason !== "empty") await recordFailure(clientKey);
-      return { status: "invalid", reason: parsed.reason };
-    }
+    if (!parsed.valid && parsed.reason === "empty") return { status: "invalid", reason: "empty" };
+    const attempt = await reserveAttempts(failureRules(clientKey));
+    if (!attempt.allowed) return RATE_LIMITED;
+    if (!parsed.valid) return { status: "invalid", reason: parsed.reason };
     const row = await findCode(parsed.code);
-    if (!row || !isListed(row)) {
-      await recordFailure(clientKey);
-      return NOT_FOUND;
-    }
+    if (!row || !isListed(row)) return NOT_FOUND;
+    await attempt.release();
     return { status: "found", match: toMatch(row, locale) };
   },
   policies: async (locale) => {
@@ -118,6 +96,7 @@ export const warrantyService: WarrantyService = {
       startRule: pick(row.startRule, locale),
       coverage: row.coverage.map((item) => pick(item, locale)),
       exclusions: row.exclusions.map((item) => pick(item, locale)),
+      updatedAt: iso(row.updatedAt),
     }));
   },
 };

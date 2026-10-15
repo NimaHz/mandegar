@@ -1,5 +1,6 @@
 import type { ServiceCenter } from "@/types/content";
 
+import { parseOpeningHours } from "../opening-hours";
 import { nodeId, ref, siteIds } from "./ids";
 import type { JsonLdNode } from "./types";
 
@@ -38,7 +39,12 @@ export const serviceCenterNode = ({
       ? { "@type": "GeoCoordinates", latitude: center.lat, longitude: center.lng }
       : null,
   hasMap: mapUrl?.(center) ?? null,
-  openingHours: center.hours,
+  openingHoursSpecification: parseOpeningHours(center.hours)?.map((rule) => ({
+    "@type": "OpeningHoursSpecification",
+    dayOfWeek: rule.days,
+    opens: rule.opens,
+    closes: rule.closes,
+  })),
   areaServed: { "@type": "AdministrativeArea", name: center.provinceName },
   knowsAbout: center.categories.map((category) => category.name),
   parentOrganization: ref(siteIds.organization),

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, describe, it } from "node:test";
 
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, like, lt } from "drizzle-orm";
 import { generate } from "otplib";
 import sharp from "sharp";
 
@@ -19,14 +19,19 @@ import {
   warrantyCodes,
 } from "@/server/db/schema";
 import { randomToken, sha256 } from "@/server/lib/crypto";
-import { loadEnvFiles } from "@/server/load-env-files";
+import { customerAttachmentHref } from "@/server/modules/tickets/attachments";
 import { getStorage } from "@/server/storage";
-import { field, postJson, request, testIp } from "@/server/testing/http";
+import { field, loadTestEnv, postJson, request, testIp } from "@/server/testing/http";
 
-loadEnvFiles();
+loadTestEnv();
+
+const TEST_EMAIL_PATTERN = "%@test.local";
+const STALE_ACCOUNT_MS = 3_600_000;
+
+const randomPassword = () => `${randomToken(24)}-a1`;
 
 const suffix = Date.now().toString(36);
-const password = `Test-password-${suffix}-9`;
+const password = randomPassword();
 const accounts = {
   owner: { email: `owner-${suffix}@test.local`, id: "" },
   support: { email: `support-${suffix}@test.local`, id: "" },
@@ -54,7 +59,25 @@ const login = async (email: string, secret = password) => {
 
 const errorCode = (json: unknown) => field(field(json, "error"), "code");
 
+const purgeStaleTestAccounts = async () => {
+  const db = getDb();
+  const stale = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(
+      and(
+        like(users.email, TEST_EMAIL_PATTERN),
+        lt(users.createdAt, new Date(Date.now() - STALE_ACCOUNT_MS)),
+      ),
+    );
+  const ids = stale.map((row) => row.id);
+  if (ids.length === 0) return;
+  await db.delete(auditLogs).where(inArray(auditLogs.actorId, ids));
+  await db.delete(users).where(inArray(users.id, ids));
+};
+
 before(async () => {
+  await purgeStaleTestAccounts();
   const passwordHash = await hashPassword(password);
   const rows = await getDb()
     .insert(users)
@@ -132,6 +155,36 @@ describe("auth", () => {
     assert.equal((await request("/auth/me", { cookie: rotated })).status, 200);
   });
 
+  it("locks out one source without blocking the account", async () => {
+    const email = `target-${suffix}@test.local`;
+    const [target] = await getDb()
+      .insert(users)
+      .values({
+        name: "Test Target",
+        email,
+        passwordHash: await hashPassword(password),
+        role: "support",
+      })
+      .returning({ id: users.id });
+    assert.ok(target);
+    created.userIds.push(target.id);
+    const attacker = testIp();
+    const burst = await Promise.all(
+      Array.from({ length: 10 }, () =>
+        postJson("/auth/login", { email, password: "not-the-password-1" }, { ip: attacker }),
+      ),
+    );
+    const statuses = burst.map((response) => response.status).toSorted();
+    assert.deepEqual(statuses, [401, 401, 401, 401, 401, 429, 429, 429, 429, 429]);
+    const owner = await postJson("/auth/login", { email, password }, { ip: testIp() });
+    assert.equal(owner.status, 200);
+    const alerts = await getDb()
+      .delete(auditLogs)
+      .where(eq(auditLogs.entityId, target.id))
+      .returning({ action: auditLogs.action });
+    assert.ok(alerts.some((alert) => alert.action === "login.throttled"));
+  });
+
   it("requires TOTP once enabled and rejects a replayed code", async () => {
     const { cookie } = await login(accounts.support.email);
     const setup = await postJson("/auth/totp/setup", {}, { cookie });
@@ -170,6 +223,12 @@ describe("rbac", () => {
     assert.equal(errorCode(response.json), "UNAUTHORIZED");
   });
 
+  it("rejects anonymous uploads before reading the body", async () => {
+    const response = await postJson("/admin/media", { file: "not a file" });
+    assert.equal(response.status, 401);
+    assert.equal(errorCode(response.json), "UNAUTHORIZED");
+  });
+
   it("forces a password change for new users", async () => {
     const { cookie } = await login(accounts.owner.email);
     const email = `new-${suffix}@test.local`;
@@ -181,13 +240,20 @@ describe("rbac", () => {
     assert.equal(createdUser.status, 200);
     const userId = String(field(field(createdUser.json, "user"), "id"));
     created.userIds.push(userId);
+    const audit = await request("/admin/audit?entity=users", { cookie });
+    assert.ok(
+      (field(audit.json, "items") as unknown[]).some(
+        (item) => field(item, "entityId") === userId && field(item, "action") === "create",
+      ),
+      "the new account is linked from the audit log",
+    );
     const temporary = String(field(createdUser.json, "temporaryPassword"));
     const first = await login(email, temporary);
     const blocked = await request("/admin/stats", { cookie: first.cookie });
     assert.equal(errorCode(blocked.json), "PASSWORD_CHANGE_REQUIRED");
     const changed = await postJson(
       "/auth/password",
-      { currentPassword: temporary, newPassword: `Fresh-password-${suffix}-7` },
+      { currentPassword: temporary, newPassword: randomPassword() },
       { cookie: first.cookie },
     );
     assert.equal(changed.status, 200);
@@ -360,6 +426,26 @@ describe("catalog administration", () => {
     await getDb().delete(warrantyCodes).where(eq(warrantyCodes.productId, created.productId));
   });
 
+  it("rejects contact settings with a malformed email or phone", async () => {
+    const { cookie } = await login(accounts.owner.email);
+    const current = await request("/admin/settings", { cookie });
+    const contact = field(current.json, "contact");
+    const label = { fa: "آزمایش", en: "Test" };
+    const saved = await postJson(
+      "/admin/settings/contact",
+      {
+        ...(contact as object),
+        phones: [{ label, value: "call us maybe" }],
+        emails: [{ label, value: "not-an-email" }],
+      },
+      { cookie, method: "PUT" },
+    );
+    assert.equal(saved.status, 422);
+    const fields = field(field(saved.json, "error"), "fields");
+    assert.ok(field(fields, "phones.0.value"));
+    assert.ok(field(fields, "emails.0.value"));
+  });
+
   it("returns dashboard stats", async () => {
     const { cookie } = await login(accounts.owner.email);
     const stats = await request("/admin/stats", { cookie });
@@ -491,6 +577,19 @@ describe("staff ticket replies", () => {
     assert.ok(field(sent.json, "firstRespondedAt"));
     const files = attachmentsOf(lastMessage(sent.json));
     created.attachmentIds.push(...files.map((file) => String(field(file, "id"))));
+    const stored = await getDb()
+      .select({ scope: media.scope, storageKey: media.storageKey })
+      .from(media)
+      .where(inArray(media.id, created.attachmentIds));
+    assert.ok(
+      stored.every((row) => row.scope === "ticket" && row.storageKey.startsWith("private/")),
+    );
+    const staffUrl = String(field(files[0], "url")).replace(/^\/api/, "");
+    const opened = await request(staffUrl, { cookie });
+    assert.equal(opened.status, 200);
+    assert.equal(opened.headers.get("content-type"), "image/webp");
+    assert.equal(opened.headers.get("cache-control"), "private, no-store");
+    assert.equal((await request(staffUrl)).status, 401);
     assert.deepEqual(
       files.map((file) => [field(file, "kind"), field(file, "mime"), field(file, "name")]),
       [
@@ -528,7 +627,15 @@ describe("staff ticket replies", () => {
         ["wiring.pdf", "application/pdf"],
       ],
     );
-    assert.ok(publicFiles.every((file) => String(field(file, "href")).startsWith("/uploads/")));
+    const hrefs = publicFiles.map((file) => String(field(file, "href")).replace(/^\/api/, ""));
+    assert.ok(hrefs.every((href) => href.startsWith("/tickets/attachments/")));
+    const document = await request(hrefs[1] ?? "");
+    assert.equal(document.status, 200);
+    assert.match(document.headers.get("content-disposition") ?? "", /^attachment;.*wiring\.pdf/);
+    const forged = (hrefs[1] ?? "").replace(/signature=[^&]+/, "signature=forged");
+    assert.equal((await request(forged)).status, 404);
+    const noteLink = customerAttachmentHref(String(field(noteFiles[0], "id")));
+    assert.equal((await request(noteLink.replace(/^\/api/, ""))).status, 404);
     assert.equal(
       messages.flatMap((message) => attachmentsOf(message)).length,
       2,
@@ -543,6 +650,35 @@ describe("staff ticket replies", () => {
         field(item, "entityId") === created.ticketId && field(item, "action") === "messages",
     );
     assert.ok(entry, "the reply is audited");
+  });
+
+  it("keeps ticket attachments out of the media library", async () => {
+    const { cookie } = await login(accounts.owner.email);
+    const shared = await photo("shared.png");
+    const sent = await reply("Photo for the library check.", false, [shared], cookie);
+    assert.equal(sent.status, 200, JSON.stringify(sent.json));
+    const attachmentId = String(field(attachmentsOf(lastMessage(sent.json))[0], "id"));
+    created.attachmentIds.push(attachmentId);
+    const listed = await request("/admin/media?q=shared", { cookie });
+    const items = field(listed.json, "items");
+    assert.ok(Array.isArray(items));
+    assert.ok(items.every((item) => !created.attachmentIds.includes(String(field(item, "id")))));
+    assert.equal((await request(`/admin/media/${attachmentId}`, { cookie })).status, 404);
+    assert.equal((await request(`/admin/media/${attachmentId}/usages`, { cookie })).status, 404);
+    const logo = await postJson(
+      `/admin/brands/${created.brandId}`,
+      { logoMediaId: attachmentId },
+      { cookie, method: "PATCH" },
+    );
+    assert.equal(logo.status, 422);
+    assert.ok(field(field(field(logo.json, "error"), "fields"), "logoMediaId"));
+    const form = new FormData();
+    form.set("file", shared);
+    const upload = await request("/admin/media", { method: "POST", body: form, cookie });
+    assert.equal(upload.status, 200, JSON.stringify(upload.json));
+    const libraryId = String(field(upload.json, "id"));
+    created.attachmentIds.push(libraryId);
+    assert.notEqual(libraryId, attachmentId, "library uploads never reuse a ticket file");
   });
 
   it("still accepts JSON replies without attachments", async () => {
@@ -568,7 +704,8 @@ describe("staff ticket replies", () => {
       Array.from({ length: 6 }, (_, index) => photo(`extra-${index}.png`)),
     );
     const tooMany = await reply("Too many files", false, many, cookie);
-    assert.equal(tooMany.status, 422);
+    assert.equal(tooMany.status, 413);
+    assert.equal(errorCode(tooMany.json), "PAYLOAD_TOO_LARGE");
     const bare = await reply("Multipart reply without files", false, [], cookie);
     assert.equal(bare.status, 200);
     const form = new FormData();

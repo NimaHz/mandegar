@@ -10,13 +10,13 @@ import { toast } from "@/components/ui/toast";
 import { FocusHeading } from "@/features/warranty/components/focus-heading";
 import type { Locale } from "@/i18n/config";
 import { localizePath } from "@/i18n/paths";
+import { apiClient, apiResult } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/dates";
 import { routes } from "@/lib/routes";
 import { formatTrackingCode } from "@/lib/tracking-code";
 import type { PublicTicket, TicketStatus, TicketType, TrackTicketInput } from "@/types/support";
 
-import { postJson } from "../../api";
 import type { TrackContent } from "../../content";
 import { statusMeta, toneClasses } from "../../ticket-status";
 import type { AttachmentLabels } from "../attachment-picker";
@@ -60,7 +60,7 @@ export function TicketView({
 
   const refresh = async () => {
     setRefreshing(true);
-    const result = await postJson<PublicTicket>("/api/tickets/track", { ...source, locale });
+    const result = await apiResult(apiClient.api.tickets.track.post({ ...source, locale }));
     setRefreshing(false);
     if (result.ok) {
       onUpdate(result.data);
@@ -189,7 +189,12 @@ export function TicketView({
               <MessagesSquare className="size-4.5 text-primary" aria-hidden />
               {copy.thread.title}
             </h3>
-            <MessageThread locale={locale} messages={ticket.messages} copy={copy.thread} />
+            <MessageThread
+              locale={locale}
+              messages={ticket.messages}
+              copy={copy.thread}
+              statuses={statuses}
+            />
           </section>
 
           <section

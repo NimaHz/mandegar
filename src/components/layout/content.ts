@@ -2,7 +2,7 @@ import type { Locale } from "@/i18n/config";
 
 export interface LayoutContent {
   homeLabel: string;
-  topBar: { support: string; hours: string; quickWarranty: string; quickTrack: string };
+  topBar: { support: string; quickWarranty: string; quickTrack: string };
   header: {
     navLabel: string;
     productsMenu: string;
@@ -16,8 +16,8 @@ export interface LayoutContent {
     supportHints: Record<string, string>;
     warrantyCta: string;
     search: string;
-    searchShortcut: string;
     searchTitle: string;
+    closeSearch: string;
     searchHint: string;
     searchEmpty: string;
     searchKinds: Record<"product" | "category" | "guide" | "post", string>;
@@ -52,7 +52,6 @@ export const layoutContent: Record<Locale, LayoutContent> = {
     homeLabel: "ماندگار، صفحه اصلی",
     topBar: {
       support: "پشتیبانی",
-      hours: "شنبه تا پنجشنبه، ۸ تا ۱۷",
       quickWarranty: "استعلام گارانتی",
       quickTrack: "پیگیری درخواست",
     },
@@ -76,8 +75,8 @@ export const layoutContent: Record<Locale, LayoutContent> = {
       },
       warrantyCta: "استعلام گارانتی",
       search: "جستجو",
-      searchShortcut: "Ctrl K",
       searchTitle: "جستجو در ماندگار",
+      closeSearch: "بستن جستجو",
       searchHint: "نام مدل، کد مدل، دسته یا موضوع راهنما را بنویس.",
       searchEmpty: "چیزی با این عبارت پیدا نشد. املای دیگری را امتحان کن.",
       searchKinds: { product: "محصول", category: "دسته", guide: "راهنما", post: "مقاله" },
@@ -117,7 +116,6 @@ export const layoutContent: Record<Locale, LayoutContent> = {
     homeLabel: "Mandegar home",
     topBar: {
       support: "Support",
-      hours: "Sat to Thu, 8:00 to 17:00",
       quickWarranty: "Warranty check",
       quickTrack: "Track a request",
     },
@@ -142,8 +140,8 @@ export const layoutContent: Record<Locale, LayoutContent> = {
       },
       warrantyCta: "Warranty check",
       search: "Search",
-      searchShortcut: "Ctrl K",
       searchTitle: "Search Mandegar",
+      closeSearch: "Close search",
       searchHint: "Type a model name, model code, category or guide topic.",
       searchEmpty: "Nothing matched. Try a different spelling.",
       searchKinds: { product: "Product", category: "Category", guide: "Guide", post: "Article" },

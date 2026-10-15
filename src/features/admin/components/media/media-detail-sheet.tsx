@@ -11,12 +11,12 @@ import { Sheet } from "@/components/ui/sheet";
 import { siteConfig } from "@/config/site";
 import { apiClient } from "@/lib/api-client";
 import { formatDateTime } from "@/lib/dates";
+import { formatClock } from "@/lib/format";
 import type { AdminMedia, AdminMediaUsage } from "@/types/admin";
 
 import { adminContent } from "../../content";
-import { faNumber, formatBytes, formatClock } from "../../lib/format";
+import { faBytes, faNumber } from "../../lib/format";
 import { useAdminMutation } from "../../lib/use-admin-mutation";
-import { auditEntityLabel } from "../audit/audit-labels";
 import { MediaThumb } from "./media-thumb";
 
 const copy = adminContent.media;
@@ -49,12 +49,17 @@ export function MediaDetailSheet({ media, canWrite, onClose }: MediaDetailSheetP
 
   const rows = [
     { label: copy.type, value: <bdi dir="ltr">{media.mime}</bdi> },
-    { label: copy.size, value: formatBytes(media.size) },
+    { label: copy.size, value: faBytes(media.size) },
     ...(media.width && media.height
       ? [{ label: copy.dimensions, value: `${faNumber(media.width)} × ${faNumber(media.height)}` }]
       : []),
     ...(media.durationSec
-      ? [{ label: copy.duration, value: <bdi dir="ltr">{formatClock(media.durationSec)}</bdi> }]
+      ? [
+          {
+            label: copy.duration,
+            value: <bdi dir="ltr">{formatClock("fa", media.durationSec)}</bdi>,
+          },
+        ]
       : []),
     { label: copy.uploadedBy, value: media.uploadedBy?.name ?? adminContent.common.system },
     { label: copy.uploadedAt, value: formatDateTime("fa", media.createdAt) },
@@ -151,7 +156,9 @@ export function MediaDetailSheet({ media, canWrite, onClose }: MediaDetailSheetP
                   key={`${usage.entity}-${usage.id}`}
                   className="rounded-full bg-chip px-3 py-1 text-caption font-bold text-ink"
                 >
-                  {auditEntityLabel(usage.entity)} · {usage.label}
+                  {usage.label
+                    ? `${copy.usageEntities[usage.entity]} · ${usage.label}`
+                    : copy.usageEntities[usage.entity]}
                 </li>
               ))}
             </ul>

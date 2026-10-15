@@ -32,7 +32,7 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
       <body className="min-h-dvh overflow-x-clip">
-        <AppProviders locale="fa" dictionary={fa}>
+        <AppProviders locale="fa" dictionary={fa} toastPlacement="top">
           {children}
         </AppProviders>
       </body>

@@ -18,7 +18,7 @@ function FiltersSkeleton() {
   );
 }
 
-export function CatalogBodySkeleton({ count = 6 }: { count?: number }) {
+function CatalogBodySkeleton({ count = 6 }: { count?: number }) {
   return (
     <div className="container-page grid grid-cols-1 items-start gap-6 pb-16 lg:grid-cols-[17rem_minmax(0,1fr)]">
       <FiltersSkeleton />

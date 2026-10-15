@@ -6,17 +6,21 @@ import type { ReactNode, RefObject } from "react";
 import { useFormContext } from "react-hook-form";
 
 import { AltchaWidget } from "@/components/shared/altcha-widget";
+import type { AltchaState } from "@/components/shared/use-altcha";
 import type { Locale } from "@/i18n/config";
 import { localizePath } from "@/i18n/paths";
 import { formatDate } from "@/lib/dates";
+import { formatList } from "@/lib/format";
 import { normalizeMobile } from "@/lib/persian";
 import { provinceName } from "@/lib/provinces";
 import { routes } from "@/lib/routes";
+import { attachmentKey } from "@/lib/tickets";
 import { formatWarrantyCode } from "@/lib/warranty-code";
+import type { ModelOption } from "@/types/catalog";
 
+import type { RequestStep } from "../../constants";
 import type { RequestFlowContent } from "../../content";
-import type { RequestStep, RequestValues } from "../../schemas";
-import type { ModelOption } from "./model-picker";
+import type { RequestValues } from "../../schemas";
 
 interface ReviewStepProps {
   locale: Locale;
@@ -24,8 +28,7 @@ interface ReviewStepProps {
   typeLabels: Record<string, string>;
   models: ModelOption[];
   files: File[];
-  altchaKey: number;
-  onAltcha: (payload: string | null) => void;
+  altcha: AltchaState;
   honeypotRef: RefObject<HTMLInputElement | null>;
   onEdit: (step: RequestStep) => void;
 }
@@ -81,8 +84,7 @@ export function ReviewStep({
   typeLabels,
   models,
   files,
-  altchaKey,
-  onAltcha,
+  altcha,
   honeypotRef,
   onEdit,
 }: ReviewStepProps) {
@@ -159,7 +161,7 @@ export function ReviewStep({
               files.length > 0 ? (
                 <span className="flex flex-col gap-0.5 font-normal">
                   {files.map((file) => (
-                    <span key={`${file.name}-${file.size}`} className="truncate" dir="auto">
+                    <span key={attachmentKey(file)} className="truncate" dir="auto">
                       {file.name}
                     </span>
                   ))}
@@ -190,7 +192,7 @@ export function ReviewStep({
           },
           {
             label: copy.contact.province,
-            value: `${provinceName(locale, values.province)}${locale === "fa" ? "، " : ", "}${values.city}`,
+            value: formatList(locale, [provinceName(locale, values.province), values.city]),
           },
           { label: copy.contact.address, value: values.address },
         ]}
@@ -208,7 +210,7 @@ export function ReviewStep({
         {after}
       </p>
 
-      <AltchaWidget key={altchaKey} onChange={onAltcha} />
+      <AltchaWidget state={altcha} />
 
       <div aria-hidden className="sr-only">
         <label>

@@ -3,12 +3,16 @@ import "server-only";
 import { and, eq, inArray } from "drizzle-orm";
 import type { z } from "zod";
 
+import type { Locale } from "@/i18n/config";
 import { routes } from "@/lib/routes";
 import { getDb } from "@/server/db/client";
 import { brands, categories, media, productImages, products } from "@/server/db/schema";
+import { cacheTags } from "@/server/lib/cache-tags";
 import { guardDelete, guardWrite } from "@/server/lib/db-errors";
 import { notFound, ValidationFailure } from "@/server/lib/http-error";
-import { revalidatePages, revalidateRoutes } from "@/server/lib/revalidate";
+import { revalidateContent } from "@/server/lib/revalidate";
+import { assertLibraryMedia } from "@/server/modules/media/service";
+import { api } from "@/services";
 import { productsAdmin } from "@/services/admin/products";
 
 import type { productImagesSchema, productInputSchema, productPatchSchema } from "./schema";
@@ -49,8 +53,7 @@ const publicPaths = async (rows: ProductRow[]) => {
 };
 
 const revalidateProducts = async (rows: ProductRow[]) => {
-  revalidatePages(await publicPaths(rows));
-  revalidateRoutes(["/guides/[slug]", "/blog/[slug]"]);
+  revalidateContent([cacheTags.catalog], await publicPaths(rows));
 };
 
 const requireProduct = async (id: string) => {
@@ -65,10 +68,21 @@ const loadProduct = async (id: string) => {
   return product;
 };
 
+const assertDownloadMedia = (input: z.output<typeof productPatchSchema>) =>
+  assertLibraryMedia(
+    Object.fromEntries(
+      (input.downloads ?? []).map((download, index) => [
+        `downloads.${index}.mediaId`,
+        download.mediaId,
+      ]),
+    ),
+  );
+
 const publishedAtFor = (status: ProductRow["status"] | undefined, current: Date | null) =>
   status === "published" && !current ? new Date() : current;
 
 export const createProduct = async (input: z.output<typeof productInputSchema>) => {
+  await assertDownloadMedia(input);
   const [row] = await guardWrite(() =>
     getDb()
       .insert(products)
@@ -82,6 +96,7 @@ export const createProduct = async (input: z.output<typeof productInputSchema>) 
 
 export const updateProduct = async (id: string, patch: z.output<typeof productPatchSchema>) => {
   const before = await requireProduct(id);
+  await assertDownloadMedia(patch);
   const [row] = await guardWrite(() =>
     getDb()
       .update(products)
@@ -108,7 +123,9 @@ export const setProductImages = async (id: string, input: z.output<typeof produc
     ? await getDb()
         .select({ id: media.id })
         .from(media)
-        .where(and(inArray(media.id, mediaIds), eq(media.kind, "image")))
+        .where(
+          and(inArray(media.id, mediaIds), eq(media.kind, "image"), eq(media.scope, "library")),
+        )
     : [];
   if (found.length !== mediaIds.length || mediaIds.length !== input.images.length) {
     throw new ValidationFailure({ images: "Each image must be a distinct uploaded image" });
@@ -133,3 +150,7 @@ export const setProductImages = async (id: string, input: z.output<typeof produc
   await revalidateProducts([product]);
   return (await loadProduct(id)).images;
 };
+
+export const lookupProducts = async (locale: Locale, slugs: string[]) => ({
+  items: slugs.length > 0 ? await api.catalog.bySlugs(locale, slugs) : [],
+});

@@ -107,6 +107,18 @@ export interface ProductDetail extends ProductListItem {
   updatedAt: string;
 }
 
+export type ProductInsight = Pick<
+  ProductDetail,
+  "slug" | "name" | "modelCode" | "warrantyMonths" | "keyFacts" | "faqs"
+>;
+
+export interface ModelOption {
+  slug: string;
+  name: string;
+  modelCode: string;
+  category: string;
+}
+
 export interface ProductsQuery {
   q: string;
   category: string | null;

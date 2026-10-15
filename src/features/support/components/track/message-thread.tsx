@@ -1,26 +1,23 @@
-import { FileText, ImageIcon, Info } from "lucide-react";
+import { FileText, ImageIcon } from "lucide-react";
 
 import { LogoMark } from "@/components/brand/logo-mark";
 import type { Locale } from "@/i18n/config";
+import { fill } from "@/i18n/fill";
 import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/dates";
-import type { PublicTicketMessage } from "@/types/support";
+import type { PublicTicketMessage, PublicTicketPost, TicketStatus } from "@/types/support";
 
 import type { TrackContent } from "../../content";
+import { statusMeta, toneClasses } from "../../ticket-status";
 
 interface MessageThreadProps {
   locale: Locale;
   messages: PublicTicketMessage[];
   copy: TrackContent["thread"];
+  statuses: Record<TicketStatus, { label: string }>;
 }
 
-function Attachments({
-  items,
-  label,
-}: {
-  items: PublicTicketMessage["attachments"];
-  label: string;
-}) {
+function Attachments({ items, label }: { items: PublicTicketPost["attachments"]; label: string }) {
   if (items.length === 0) return null;
   return (
     <ul aria-label={label} className="mt-2.5 flex flex-wrap gap-1.5">
@@ -46,7 +43,7 @@ function Attachments({
   );
 }
 
-export function MessageThread({ locale, messages, copy }: MessageThreadProps) {
+export function MessageThread({ locale, messages, copy, statuses }: MessageThreadProps) {
   return (
     <ol className="flex flex-col gap-4">
       {messages.map((message) => {
@@ -56,13 +53,18 @@ export function MessageThread({ locale, messages, copy }: MessageThreadProps) {
           </time>
         );
         if (message.author === "system") {
+          const meta = statusMeta[message.status];
+          const StatusIcon = meta.icon;
           return (
             <li key={message.id} className="flex flex-col items-center gap-1 text-center">
               <span className="inline-flex max-w-md items-start gap-2 rounded-full bg-chip px-4 py-1.5 text-xs leading-6 font-semibold text-ink-soft">
-                <Info className="mt-1 size-3.5 shrink-0" aria-hidden />
-                <span dir="auto">
+                <StatusIcon
+                  className={cn("mt-1 size-3.5 shrink-0", toneClasses[meta.tone].text)}
+                  aria-hidden
+                />
+                <span>
                   <span className="sr-only">{copy.system}: </span>
-                  {message.body}
+                  {fill(copy.statusChanged, { status: statuses[message.status].label })}
                 </span>
               </span>
               {time}

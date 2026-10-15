@@ -3,7 +3,8 @@ import { warrantyCodeMessages } from "@/features/warranty/content";
 import type { Locale } from "@/i18n/config";
 import type { TicketStatus, TicketType } from "@/types/support";
 
-import type { RequestMessages, RequestStep } from "./schemas";
+import type { RequestStep } from "./constants";
+import type { RequestMessages } from "./schemas";
 
 interface Labeled {
   label: string;
@@ -133,6 +134,7 @@ export interface RequestFlowContent {
     track: string;
     another: string;
     support: string;
+    previous: string;
   };
   aside: {
     title: string;
@@ -179,6 +181,7 @@ export interface TrackContent {
     customer: string;
     staff: string;
     system: string;
+    statusChanged: string;
     attachments: string;
   };
   reply: {
@@ -665,6 +668,7 @@ export const requestFlowContent: Record<Locale, RequestFlowContent> = {
       track: "مشاهده وضعیت درخواست",
       another: "ثبت درخواست دیگر",
       support: "بازگشت به پشتیبانی",
+      previous: "درخواست قبلی‌ات با کد {code} ثبت شده است؛ این فرم برای یک درخواست تازه است.",
     },
     aside: {
       title: "پیش از شروع",
@@ -850,6 +854,7 @@ export const requestFlowContent: Record<Locale, RequestFlowContent> = {
       track: "Open tracking page",
       another: "Send another request",
       support: "Back to support",
+      previous: "Your previous request {code} is on file. This form starts a new one.",
     },
     aside: {
       title: "Before you start",
@@ -914,6 +919,7 @@ export const trackContent: Record<Locale, TrackContent> = {
       customer: "تو",
       staff: "پشتیبانی ماندگار",
       system: "پیام سیستم",
+      statusChanged: "وضعیت درخواست به «{status}» تغییر کرد",
       attachments: "پیوست‌ها",
     },
     reply: {
@@ -980,6 +986,7 @@ export const trackContent: Record<Locale, TrackContent> = {
       customer: "You",
       staff: "Mandegar support",
       system: "System message",
+      statusChanged: "Status changed to “{status}”",
       attachments: "Attachments",
     },
     reply: {

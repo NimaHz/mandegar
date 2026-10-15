@@ -9,9 +9,16 @@ interface MediaThumbProps {
   sizes: string;
   className?: string;
   fit?: "cover" | "contain";
+  unoptimized?: boolean;
 }
 
-export function MediaThumb({ media, sizes, className, fit = "cover" }: MediaThumbProps) {
+export function MediaThumb({
+  media,
+  sizes,
+  className,
+  fit = "cover",
+  unoptimized,
+}: MediaThumbProps) {
   if (media.kind === "image")
     return (
       <Image
@@ -19,6 +26,7 @@ export function MediaThumb({ media, sizes, className, fit = "cover" }: MediaThum
         alt={media.alt.fa}
         fill
         sizes={sizes}
+        unoptimized={unoptimized}
         className={cn(fit === "cover" ? "object-cover" : "object-contain", className)}
       />
     );

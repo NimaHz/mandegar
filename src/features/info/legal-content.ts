@@ -1,3 +1,4 @@
+import { contentDates } from "@/config/content-dates";
 import type { Locale } from "@/i18n/config";
 
 export interface LegalSection {
@@ -20,8 +21,6 @@ export interface LegalDocument {
   sections: LegalSection[];
 }
 
-const UPDATED_AT = "2026-10-15";
-
 export const termsContent: Record<Locale, LegalDocument> = {
   fa: {
     metaTitle: "قوانین و مقررات",
@@ -35,7 +34,7 @@ export const termsContent: Record<Locale, LegalDocument> = {
       "این متن یک الگوی اولیه است و پیش از انتشار باید توسط مشاور حقوقی ماندگار بازبینی و نهایی شود.",
     tocLabel: "فهرست بندها",
     updatedLabel: "آخرین به‌روزرسانی",
-    updatedAt: UPDATED_AT,
+    updatedAt: contentDates.terms,
     sections: [
       {
         id: "acceptance",
@@ -128,7 +127,7 @@ export const termsContent: Record<Locale, LegalDocument> = {
       "This is a draft template and must be reviewed and finalized by Mandegar's legal counsel before launch.",
     tocLabel: "Sections",
     updatedLabel: "Last updated",
-    updatedAt: UPDATED_AT,
+    updatedAt: contentDates.terms,
     sections: [
       {
         id: "acceptance",
@@ -227,7 +226,7 @@ export const privacyContent: Record<Locale, LegalDocument> = {
       "این متن یک الگوی اولیه است و پیش از انتشار باید توسط مشاور حقوقی ماندگار بازبینی و نهایی شود.",
     tocLabel: "فهرست بندها",
     updatedLabel: "آخرین به‌روزرسانی",
-    updatedAt: UPDATED_AT,
+    updatedAt: contentDates.privacy,
     sections: [
       {
         id: "summary",
@@ -326,7 +325,7 @@ export const privacyContent: Record<Locale, LegalDocument> = {
       "This is a draft template and must be reviewed and finalized by Mandegar's legal counsel before launch.",
     tocLabel: "Sections",
     updatedLabel: "Last updated",
-    updatedAt: UPDATED_AT,
+    updatedAt: contentDates.privacy,
     sections: [
       {
         id: "summary",

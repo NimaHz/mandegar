@@ -71,3 +71,10 @@ export const optionalText = <TSchema extends z.ZodType>(schema: TSchema) =>
   z.preprocess((value) => (value === "" || value === null ? undefined : value), schema.optional());
 
 export const emailSchema = z.email().trim().toLowerCase().max(120);
+
+export const phoneNumberSchema = z
+  .string()
+  .trim()
+  .min(4)
+  .max(30)
+  .regex(/^[+\d][\d\s-]*$/);

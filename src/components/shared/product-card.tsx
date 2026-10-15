@@ -24,7 +24,7 @@ interface ProductCardProps {
   className?: string;
 }
 
-export const PRODUCT_CARD_SIZES =
+const PRODUCT_CARD_SIZES =
   "(min-width: 1280px) 296px, (min-width: 1024px) 30vw, (min-width: 640px) 46vw, 92vw";
 
 export function ProductCard({
@@ -41,7 +41,7 @@ export function ProductCard({
   return (
     <article
       className={cn(
-        "group relative isolate flex h-full card-interactive flex-col overflow-hidden card shadow-card",
+        "group @container relative isolate flex h-full card-interactive flex-col overflow-hidden card shadow-card",
         className,
       )}
     >
@@ -103,8 +103,8 @@ export function ProductCard({
         </bdi>
         <p className="line-clamp-2 text-label leading-6 text-body">{product.tagline}</p>
 
-        <div className="mt-auto flex items-center gap-2 border-t border-line pt-3.5">
-          <span className="inline-flex min-w-0 items-center gap-1.5 text-xs font-semibold text-ink-soft">
+        <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-2.5 border-t border-line pt-3.5">
+          <span className="inline-flex min-w-0 items-center gap-1.5 text-xs font-semibold text-ink-soft @max-[19rem]:basis-full">
             <ShieldCheck className="size-4 shrink-0 text-success" strokeWidth={1.9} aria-hidden />
             <span className="truncate">
               {fill(card.warranty, { count: formatNumber(locale, product.warrantyMonths) })}

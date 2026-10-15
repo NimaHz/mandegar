@@ -10,9 +10,8 @@ import { getDictionary } from "@/i18n/get-dictionary";
 import { getLocale } from "@/i18n/get-locale";
 import { OG_HEIGHT, OG_WIDTH, ogImagePath } from "@/lib/seo/og/targets";
 import { themeBootScript } from "@/lib/theme";
+import { api } from "@/services";
 import { fontVariables } from "@/styles/fonts";
-
-export const dynamicParams = false;
 
 const siteVerification = (): Metadata["verification"] => {
   const google = process.env.GOOGLE_SITE_VERIFICATION;
@@ -31,11 +30,14 @@ export function generateStaticParams() {
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
-  const { site } = await getDictionary(locale);
+  const [{ site }, { seo }] = await Promise.all([
+    getDictionary(locale),
+    api.content.settings(locale),
+  ]);
   return {
     metadataBase: new URL(siteConfig.url),
-    title: { default: site.title, template: `%s | ${site.name}` },
-    description: site.description,
+    title: { default: seo.title, template: `%s | ${site.name}` },
+    description: seo.description,
     applicationName: site.name,
     creator: siteConfig.latinName,
     publisher: siteConfig.latinName,
@@ -46,8 +48,8 @@ export async function generateMetadata(): Promise<Metadata> {
         .filter((other) => other !== locale)
         .map((other) => localeMeta[other].ogLocale),
       siteName: site.name,
-      title: site.title,
-      description: site.description,
+      title: seo.title,
+      description: seo.description,
       images: [
         {
           url: ogImagePath(locale, { kind: "page", key: "home" }),
@@ -58,11 +60,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     twitter: { card: "summary_large_image" },
     robots: {
-      index: true,
-      follow: true,
       googleBot: {
-        index: true,
-        follow: true,
         "max-image-preview": "large",
         "max-snippet": -1,
         "max-video-preview": -1,

@@ -6,7 +6,6 @@ import { AfterSalesNote } from "@/features/info/components/after-sales-note";
 import { ContactChannels } from "@/features/info/components/contact-channels";
 import { ContactForm } from "@/features/info/components/contact-form";
 import { contactContent } from "@/features/info/content";
-import { loadContactSearchParams } from "@/features/info/search-params";
 import { getLocale } from "@/i18n/get-locale";
 import { routes } from "@/lib/routes";
 import { organizationPageGraph } from "@/lib/seo/graphs";
@@ -26,12 +25,9 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-export default async function ContactPage({ searchParams }: PageProps<"/[locale]/contact">) {
+export default async function ContactPage() {
   const locale = await getLocale();
-  const [{ department }, settings] = await Promise.all([
-    loadContactSearchParams(searchParams),
-    api.content.settings(locale),
-  ]);
+  const settings = await api.content.settings(locale);
   const content = contactContent[locale];
   const graph = await organizationPageGraph(locale, {
     path: routes.contact,
@@ -50,12 +46,7 @@ export default async function ContactPage({ searchParams }: PageProps<"/[locale]
           content={content.afterSales}
           className="lg:col-start-2 lg:row-start-1"
         />
-        <ContactForm
-          key={department}
-          content={content}
-          defaultDepartment={department}
-          className="lg:col-start-1 lg:row-span-2 lg:row-start-1"
-        />
+        <ContactForm content={content} className="lg:col-start-1 lg:row-span-2 lg:row-start-1" />
         <ContactChannels
           locale={locale}
           content={content}

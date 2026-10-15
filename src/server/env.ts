@@ -14,7 +14,7 @@ const serverEnvSchema = z.object({
   S3_BUCKET: blankAsUnset(z.string().min(1).optional()),
   S3_ACCESS_KEY_ID: blankAsUnset(z.string().min(1).optional()),
   S3_SECRET_ACCESS_KEY: blankAsUnset(z.string().min(1).optional()),
-  ALTCHA_COST: z.coerce.number().int().min(1).max(1_000_000).default(5000),
+  ALTCHA_COST: z.coerce.number().int().min(1).max(1_000_000).default(2000),
   SMS_DRIVER: z.enum(["console", "kavenegar", "none"]).default("console"),
   KAVENEGAR_API_KEY: blankAsUnset(z.string().min(1).optional()),
   KAVENEGAR_TEMPLATE_TICKET_RECEIVED: z.string().min(1).default("mandegar-ticket-received"),

@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function PostCardSkeleton() {
+function PostCardSkeleton() {
   return (
     <div className="flex flex-col overflow-hidden card">
       <Skeleton className="aspect-[16/10] rounded-none" />

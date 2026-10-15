@@ -1,10 +1,10 @@
 import { Elysia } from "elysia";
 
 import { getEnv } from "@/config/env";
+import { MB } from "@/lib/format";
 import { sign } from "@/server/lib/crypto";
 import { forbidden, HttpError, payloadTooLarge } from "@/server/lib/http-error";
 
-const MB = 1024 * 1024;
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 const bodyLimits: { pattern: RegExp; bytes: number }[] = [
@@ -52,6 +52,9 @@ export const clientIpOf = (request: Request) => {
 
 export const clientKeyOf = (ip: string | null) => sign(ip ?? "unknown", "client-ip").slice(0, 32);
 
+export const userAgentOf = (request: Request) =>
+  request.headers.get("user-agent")?.slice(0, 300) ?? null;
+
 export const security = new Elysia({ name: "security" })
   .onRequest(({ request, set }) => {
     set.headers["cache-control"] = "no-store";
@@ -65,7 +68,7 @@ export const security = new Elysia({ name: "security" })
     return {
       clientIp,
       clientKey: clientKeyOf(clientIp),
-      userAgent: request.headers.get("user-agent")?.slice(0, 300) ?? null,
+      userAgent: userAgentOf(request),
     };
   })
   .as("global");

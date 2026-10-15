@@ -16,6 +16,7 @@ import { WarrantyStrip } from "@/features/home/components/warranty-strip";
 import { WhyMandegar } from "@/features/home/components/why-mandegar";
 import { homeContent } from "@/features/home/content";
 import { localizeHref } from "@/features/home/links";
+import { fill } from "@/i18n/fill";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getLocale } from "@/i18n/get-locale";
 import { localizePath } from "@/i18n/paths";
@@ -77,7 +78,7 @@ export default async function HomePage() {
     <>
       <JsonLd data={graph} />
       <h1 className="sr-only">
-        {dictionary.site.name}، {dictionary.site.slogan}
+        {fill(content.heading, { name: dictionary.site.name, slogan: dictionary.site.slogan })}
       </h1>
       <HeroCarousel
         slides={slides.map((slide) => ({

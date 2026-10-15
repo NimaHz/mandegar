@@ -3,10 +3,10 @@ import { Clock, Mail, Phone, Siren } from "lucide-react";
 import { LogoMark } from "@/components/brand/logo-mark";
 import type { Locale } from "@/i18n/config";
 import { formatNumber } from "@/lib/format";
+import { phoneHref } from "@/lib/phone";
 import type { SiteSettings } from "@/types/content";
 
 import type { SupportHubContent } from "../../content";
-import { phoneHref } from "../../phone-href";
 
 interface ContactStripProps {
   locale: Locale;

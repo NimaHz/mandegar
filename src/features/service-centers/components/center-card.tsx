@@ -1,9 +1,10 @@
 import { Clock, MapPin, Navigation, Phone } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { phoneHref } from "@/features/support/phone-href";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
+import { formatList } from "@/lib/format";
+import { phoneHref } from "@/lib/phone";
 import type { ServiceCenter } from "@/types/content";
 
 import type { ServiceCentersContent } from "../content";
@@ -36,9 +37,7 @@ export function CenterCard({ locale, center, copy, headingLevel = "h3" }: Center
           <MapPin className="mt-1.5 size-4 shrink-0 text-primary" aria-hidden />
           <span>
             <span className="font-semibold text-ink">
-              {center.city}
-              {locale === "fa" ? "، " : ", "}
-              {center.provinceName}
+              {formatList(locale, [center.city, center.provinceName])}
             </span>
             <span className="block">{center.address}</span>
           </span>

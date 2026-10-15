@@ -16,7 +16,8 @@ import {
 } from "@/types/admin";
 
 import { orderByIds } from "../db/mappers";
-import { iso, paginate, searchColumns, sortedBy } from "./shared";
+import { iso } from "../db/mappers";
+import { paginate, searchColumns, sortedBy } from "./shared";
 
 const codeOrders: Record<AdminSort<"warrantyCodes">, SQL[]> = {
   "year-desc": [

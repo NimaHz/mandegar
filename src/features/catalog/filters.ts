@@ -6,7 +6,7 @@ import {
   type ProductsQuery,
 } from "@/types/catalog";
 
-import type { CatalogFilters } from "./search-params";
+import { type CatalogFilters, serializeCatalogSearchParams } from "./search-params";
 
 export type CatalogFilterKey = "q" | "category" | "brand" | "energy";
 
@@ -59,10 +59,13 @@ export const toProductsQuery = (
   page: Math.max(1, filters.page),
 });
 
-export const isFiltered = (filters: CatalogFilters) =>
-  Boolean(filters.q.trim() || filters.brand || filters.energy) ||
-  filters.sort !== "featured" ||
-  filters.page > 1;
+export const isRefined = (filters: CatalogFilters) =>
+  Boolean(filters.q.trim() || filters.brand || filters.energy) || filters.sort !== "featured";
+
+export const listingPath = (path: string, filters: CatalogFilters) =>
+  isRefined(filters)
+    ? path
+    : `${path}${serializeCatalogSearchParams({ page: filters.page > 1 ? filters.page : null })}`;
 
 export const facetsFromProducts = (
   products: { brand: { slug: string; name: string }; energyClass: string | null }[],

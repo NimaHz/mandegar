@@ -1,12 +1,8 @@
+import { isRecord } from "@/lib/guards";
 import type { TicketReceipt } from "@/types/support";
 
-import {
-  emptyRequest,
-  isRequestField,
-  type RequestStep,
-  requestSteps,
-  type RequestValues,
-} from "./schemas";
+import { type RequestStep, requestSteps } from "./constants";
+import { emptyRequest, isRequestField, type RequestValues } from "./schemas";
 
 const DRAFT_KEY = "mandegar:service-request:draft";
 const RECEIPT_KEY = "mandegar:service-request:receipt";
@@ -33,9 +29,6 @@ const write = (key: string, value: unknown) => {
     else sessionStorage.setItem(key, JSON.stringify(value));
   } catch {}
 };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
 
 const sanitizeValues = (input: unknown): RequestValues => {
   const values = { ...emptyRequest };

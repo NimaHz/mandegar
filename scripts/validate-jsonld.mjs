@@ -46,6 +46,13 @@ const required = {
   PropertyValue: ["name", "value"],
 };
 
+const stubRequired = {
+  Product: ["name", "url"],
+  Brand: ["name"],
+  TechArticle: ["headline", "url"],
+  BlogPosting: ["headline", "url"],
+};
+
 const decode = (text) =>
   text
     .replace(/&nbsp;/g, " ")
@@ -190,9 +197,10 @@ const checkGraph = (graph, text, report, pagePath) => {
     (node) => typeof node["@id"] === "string" && node["@id"].endsWith("#webpage"),
   ).length;
   walk(graph["@graph"], (node, path) => {
-    if (!node["@type"] || isExternalStub(node, path, pagePath)) return;
+    if (!node["@type"]) return;
+    const stub = isExternalStub(node, path, pagePath);
     for (const type of typesOf(node)) {
-      for (const key of required[type] ?? []) {
+      for (const key of (stub ? stubRequired[type] : undefined) ?? required[type] ?? []) {
         const value = node[key];
         if (
           value === undefined ||

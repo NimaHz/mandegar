@@ -52,6 +52,7 @@ export default async function ComparePage({ searchParams }: PageProps<"/[locale]
             icon={GitCompareArrows}
             title={page.emptyTitle}
             description={page.emptyDescription}
+            headingLevel="h2"
             className="mx-auto w-full max-w-2xl"
             action={
               <div className="mt-2 flex flex-col items-center gap-5">

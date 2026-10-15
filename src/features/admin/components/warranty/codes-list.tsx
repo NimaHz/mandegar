@@ -111,7 +111,7 @@ export function CodesList({
       header: copy.columns.product,
       cell: (code) => (
         <span className="flex min-w-0 flex-col">
-          <span className="truncate font-bold text-ink">{code.product.name.fa}</span>
+          <span className="line-clamp-2 font-bold text-ink">{code.product.name.fa}</span>
           <CodeText className="text-caption text-muted">{code.product.modelCode}</CodeText>
         </span>
       ),

@@ -137,9 +137,9 @@ export default async function GuidePage({ params }: PageProps<"/[locale]/guides/
 
       <div className="container-page pb-16 sm:pb-20">
         <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_21rem] lg:gap-10">
-          <div className="flex min-w-0 flex-col gap-10">
+          <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-10">
             {guide.video && (
-              <section aria-label={guide.title}>
+              <section aria-label={guide.title} className="max-lg:order-1">
                 <VideoPlayer
                   video={guide.video}
                   chapters={guide.chapters}
@@ -151,14 +151,19 @@ export default async function GuidePage({ params }: PageProps<"/[locale]/guides/
               </section>
             )}
             {guide.steps.length > 0 && (
-              <section aria-labelledby="guide-steps-title" className="flex flex-col gap-5">
+              <section
+                aria-labelledby="guide-steps-title"
+                className="flex flex-col gap-5 max-lg:order-3"
+              >
                 <h2 id="guide-steps-title" className="font-display text-2xl font-black text-ink">
                   {detail.steps.title}
                 </h2>
                 <GuideSteps slug={guide.slug} steps={guide.steps} copy={detail.steps} />
               </section>
             )}
-            <GuideTranscript locale={locale} guide={guide} copy={detail.transcript} />
+            <div className="max-lg:order-4">
+              <GuideTranscript locale={locale} guide={guide} copy={detail.transcript} />
+            </div>
           </div>
           <GuideAside locale={locale} guide={guide} phone={supportPhone} copy={detail} />
         </div>

@@ -1,7 +1,10 @@
 import "server-only";
 
+import { contentDates } from "@/config/content-dates";
 import { type Locale, locales } from "@/i18n/config";
 import { routes } from "@/lib/routes";
+import { aparatEmbedUrl } from "@/lib/video";
+import type { FaqGroup } from "@/types/content";
 
 import { latest, type SiteSnapshot } from "./snapshot";
 
@@ -35,8 +38,6 @@ export interface SitemapEntry {
   videos: Partial<Record<Locale, SitemapVideo>>;
 }
 
-const APARAT_EMBED = "https://www.aparat.com/video/video/embed/videohash";
-
 const entry = (
   path: string,
   lastModified: string | null,
@@ -54,20 +55,35 @@ export const buildSitemaps = (snapshot: SiteSnapshot): Record<SitemapName, Sitem
   const guidesModified = latest(...fa.guides.map((guide) => guide.updatedAt));
   const postsModified = latest(...fa.posts.map((post) => post.updatedAt));
   const brandsModified = latest(...fa.brands.map((brand) => brand.updatedAt));
+  const policiesModified = latest(...fa.policies.map((policy) => policy.updatedAt));
+  const centersModified = latest(...fa.serviceCenters.map((center) => center.updatedAt));
+  const settingsModified = fa.settings.updatedAt;
+  const faqsModified = (group?: FaqGroup) =>
+    latest(...fa.faqs.filter((faq) => !group || faq.group === group).map((faq) => faq.updatedAt));
 
   return {
     pages: [
-      entry(routes.home, latest(productsModified, postsModified, guidesModified)),
+      entry(
+        routes.home,
+        latest(
+          productsModified,
+          postsModified,
+          guidesModified,
+          brandsModified,
+          faqsModified("general"),
+          settingsModified,
+        ),
+      ),
       entry(routes.products, productsModified),
-      entry(routes.warranty, null),
-      entry(routes.support, null),
-      entry(routes.serviceRequest, null),
-      entry(routes.about, null),
-      entry(routes.contact, null),
-      entry(routes.faq, null),
-      entry(routes.glossary, null),
-      entry(routes.terms, null),
-      entry(routes.privacy, null),
+      entry(routes.warranty, latest(policiesModified, faqsModified("warranty"))),
+      entry(routes.support, latest(faqsModified("support"), settingsModified)),
+      entry(routes.serviceRequest, latest(productsModified, settingsModified)),
+      entry(routes.about, latest(settingsModified, brandsModified)),
+      entry(routes.contact, settingsModified),
+      entry(routes.faq, faqsModified()),
+      entry(routes.glossary, contentDates.glossary),
+      entry(routes.terms, contentDates.terms),
+      entry(routes.privacy, contentDates.privacy),
     ],
     categories: fa.categories.map((category) =>
       entry(routes.category(category.slug), category.updatedAt, {
@@ -109,10 +125,7 @@ export const buildSitemaps = (snapshot: SiteSnapshot): Record<SitemapName, Sitem
                 title: localized.title,
                 description: localized.summary,
                 contentUrl: video.kind === "upload" ? video.src : null,
-                playerUrl:
-                  video.kind === "aparat"
-                    ? `${APARAT_EMBED}/${encodeURIComponent(video.hash)}/vt/frame`
-                    : null,
+                playerUrl: video.kind === "aparat" ? aparatEmbedUrl(video.hash) : null,
                 durationSec: localized.durationSec,
                 publishedAt: localized.publishedAt ?? localized.updatedAt,
               };
@@ -135,6 +148,6 @@ export const buildSitemaps = (snapshot: SiteSnapshot): Record<SitemapName, Sitem
         images: author.avatar ? [author.avatar.src] : [],
       }),
     ),
-    "service-centers": [entry(routes.serviceCenters, null)],
+    "service-centers": [entry(routes.serviceCenters, centersModified)],
   };
 };

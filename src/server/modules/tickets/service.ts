@@ -4,6 +4,14 @@ import { and, count, eq, notInArray } from "drizzle-orm";
 import type { z } from "zod";
 
 import type { Locale } from "@/i18n/config";
+import { MB } from "@/lib/format";
+import {
+  mentionsGasSmell,
+  statusEventBody,
+  TICKET_ATTACHMENT_LIMIT,
+  TICKET_ATTACHMENT_MAX_BYTES,
+  ticketAttachmentTypes,
+} from "@/lib/tickets";
 import { createTrackingCode, formatTrackingCode, parseTrackingCode } from "@/lib/tracking-code";
 import { parseWarrantyCode } from "@/lib/warranty-code";
 import { hasPermission } from "@/server/auth/permissions";
@@ -12,8 +20,15 @@ import { products, ticketMessages, tickets, users, warrantyCodes } from "@/serve
 import { randomToken, sha256 } from "@/server/lib/crypto";
 import { isUniqueViolation } from "@/server/lib/db-errors";
 import { assertHuman, type HumanProof } from "@/server/lib/form-guard";
-import { conflict, notFound, orNotFound, ValidationFailure } from "@/server/lib/http-error";
-import { enforceRateLimit, isRateLimited, rateLimit } from "@/server/lib/rate-limit";
+import {
+  conflict,
+  notFound,
+  orNotFound,
+  payloadTooLarge,
+  tooManyRequests,
+  ValidationFailure,
+} from "@/server/lib/http-error";
+import { enforceRateLimit, reserveAttempts } from "@/server/lib/rate-limit";
 import { ticketDeadlines } from "@/server/lib/sla";
 import { ingestFile } from "@/server/modules/media/service";
 import { notify } from "@/server/notify";
@@ -27,15 +42,7 @@ import {
 } from "@/services/db/support";
 import type { PublicTicket, TicketReceipt, TicketStatus, TrackTicketInput } from "@/types/support";
 
-import {
-  mentionsGasSmell,
-  type staffMessageSchema,
-  TICKET_ATTACHMENT_LIMIT,
-  TICKET_ATTACHMENT_MAX_BYTES,
-  ticketAttachmentTypes,
-  type ticketFieldsSchema,
-  type ticketUpdateSchema,
-} from "./schema";
+import type { staffMessageSchema, ticketFieldsSchema, ticketUpdateSchema } from "./schema";
 
 type TicketFields = z.output<typeof ticketFieldsSchema>;
 
@@ -43,10 +50,16 @@ const OPEN_TICKETS_PER_PHONE = 3;
 const RESOLVED_STATUSES: TicketStatus[] = ["resolved", "closed", "rejected"];
 const TRACK_FAILURES = { limit: 20, windowSec: 600 };
 
-const ingestAttachments = async (files: File[], uploadedBy: string | null = null) => {
+const assertAttachments = (files: File[]) => {
   if (files.length > TICKET_ATTACHMENT_LIMIT) {
-    throw new ValidationFailure({ attachments: `At most ${TICKET_ATTACHMENT_LIMIT} files` });
+    throw payloadTooLarge(`At most ${TICKET_ATTACHMENT_LIMIT} attachments`);
   }
+  if (files.some((file) => file.size > TICKET_ATTACHMENT_MAX_BYTES)) {
+    throw payloadTooLarge(`Each attachment must be at most ${TICKET_ATTACHMENT_MAX_BYTES / MB} MB`);
+  }
+};
+
+const ingestAttachments = async (files: File[], uploadedBy: string | null = null) => {
   const ids: string[] = [];
   for (const file of files) {
     const row = await ingestFile(file, {
@@ -54,6 +67,7 @@ const ingestAttachments = async (files: File[], uploadedBy: string | null = null
       allowedMimes: ticketAttachmentTypes,
       limits: { image: TICKET_ATTACHMENT_MAX_BYTES, document: TICKET_ATTACHMENT_MAX_BYTES },
       uploadedBy,
+      scope: "ticket",
     });
     ids.push(row.id);
   }
@@ -122,6 +136,7 @@ export const createTicket = async (
   files: File[],
   clientKey: string,
 ): Promise<TicketReceipt> => {
+  assertAttachments(files);
   await assertHuman(proof);
   await enforceRateLimit(`ticket:${clientKey}`, 5, 3600);
   await assertPhoneCapacity(fields.phone);
@@ -185,15 +200,13 @@ export const trackTicket = async (
   input: TrackTicketInput,
   clientKey: string,
 ): Promise<PublicTicket> => {
-  const key = `ticket-track-fail:${clientKey}`;
-  if (await isRateLimited(key, TRACK_FAILURES.limit, TRACK_FAILURES.windowSec)) {
-    await enforceRateLimit(key, TRACK_FAILURES.limit, TRACK_FAILURES.windowSec);
-  }
+  const attempt = await reserveAttempts([
+    { key: `ticket-track-fail:${clientKey}`, ...TRACK_FAILURES },
+  ]);
+  if (!attempt.allowed) throw tooManyRequests(attempt.retryAfterSec);
   const ticket = await supportService.track(locale, input);
-  if (!ticket) {
-    await rateLimit(key, TRACK_FAILURES.limit, TRACK_FAILURES.windowSec);
-    throw notFound("Request not found");
-  }
+  if (!ticket) throw notFound("Request not found");
+  await attempt.release();
   return ticket;
 };
 
@@ -204,6 +217,7 @@ export const replyAsCustomer = async (
   files: File[],
   clientKey: string,
 ): Promise<PublicTicket> => {
+  assertAttachments(files);
   await enforceRateLimit(`ticket-reply:${clientKey}`, 20, 3600);
   const code = parseTrackingCode(trackingCode);
   const row = code ? await findTicketByToken(input.token) : undefined;
@@ -279,7 +293,7 @@ export const updateTicket = async (
         ticketId: id,
         authorType: "system",
         authorId: actor.id,
-        body: `status:${input.status}`,
+        body: statusEventBody(input.status),
       });
     }
   });
@@ -299,6 +313,7 @@ export const replyAsStaff = async (
   input: z.output<typeof staffMessageSchema>,
   files: File[],
 ) => {
+  assertAttachments(files);
   const before = await requireTicket(id);
   const attachmentMediaIds = await ingestAttachments(files, actor.id);
   const now = new Date();

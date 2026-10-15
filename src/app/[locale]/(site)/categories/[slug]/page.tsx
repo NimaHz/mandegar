@@ -14,20 +14,24 @@ import { FaqList } from "@/features/catalog/components/faq-list";
 import { FiltersSidebar } from "@/features/catalog/components/filters-sidebar";
 import { GuideHighlight } from "@/features/catalog/components/guide-highlight";
 import { catalogContent } from "@/features/catalog/content";
-import { facetsFromProducts, isFiltered, toProductsQuery } from "@/features/catalog/filters";
+import {
+  facetsFromProducts,
+  isRefined,
+  listingPath,
+  toProductsQuery,
+} from "@/features/catalog/filters";
 import { loadCatalogSearchParams } from "@/features/catalog/search-params";
 import { toTrayItems } from "@/features/compare/tray-items";
 import { fill } from "@/i18n/fill";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getLocale } from "@/i18n/get-locale";
 import { localizePath } from "@/i18n/paths";
+import { formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
 import { categoryChoiceFaqs } from "@/lib/seo/answers";
 import { categoryGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { api } from "@/services";
-
-export const revalidate = 3600;
 
 const FAQ_LIMIT = 6;
 
@@ -42,21 +46,26 @@ export async function generateMetadata({
 }: PageProps<"/[locale]/categories/[slug]">): Promise<Metadata> {
   const locale = await getLocale();
   const { slug } = await params;
-  const [category, filters] = await Promise.all([
+  const [category, filters, { ui }] = await Promise.all([
     api.catalog.category(locale, slug),
     loadCatalogSearchParams(searchParams),
+    getDictionary(locale),
   ]);
-  if (!category) return {};
+  if (!category) notFound();
+  const result = await api.catalog.products(locale, toProductsQuery(filters, category.slug));
+  if (filters.page > result.page) notFound();
+  const page =
+    filters.page > 1 ? fill(ui.paginationPage, { page: formatNumber(locale, filters.page) }) : null;
   return pageMetadata({
     locale,
-    path: routes.category(category.slug),
-    title: category.seo.title ?? category.name,
+    path: listingPath(routes.category(category.slug), filters),
+    title: [page, category.seo.title ?? category.name].filter(Boolean).join(" · "),
     description: category.seo.description ?? category.summary,
     image: category.image
       ? { url: category.image.src, width: category.image.width, height: category.image.height }
       : null,
     og: { kind: "category", slug: category.slug, updatedAt: category.updatedAt },
-    noindex: isFiltered(filters),
+    noindex: isRefined(filters),
   });
 }
 
@@ -76,23 +85,22 @@ export default async function CategoryPage({
   if (!category) notFound();
 
   const content = catalogContent[locale].category;
-  const [result, members] = await Promise.all([
+  const [result, members, insights] = await Promise.all([
     api.catalog.products(locale, toProductsQuery(filters, category.slug)),
     api.catalog.byCategory(locale, category.slug),
+    api.catalog.categoryInsights(locale, category.slug),
   ]);
-  const details = (
-    await Promise.all(members.map((product) => api.catalog.product(locale, product.slug)))
-  ).filter((detail) => detail !== null);
+  if (filters.page > result.page) notFound();
   const productFaqs = [
     ...new Map(
-      details
+      insights
         .slice(0, FAQ_LIMIT)
-        .flatMap((detail) => detail.faqs)
+        .flatMap((insight) => insight.faqs)
         .map((faq) => [faq.question, faq]),
     ).values(),
   ].slice(0, FAQ_LIMIT);
   const faqs = [
-    ...categoryChoiceFaqs(locale, category.name, details),
+    ...categoryChoiceFaqs(locale, category.name, insights),
     ...(productFaqs.length > 0 ? productFaqs : generalFaqs),
   ];
   const guide = guides.find((entry) =>
@@ -106,6 +114,7 @@ export default async function CategoryPage({
     { label: category.name },
   ];
   const graph = await categoryGraph(locale, {
+    path: listingPath(routes.category(category.slug), filters),
     category,
     products: result.items,
     breadcrumbs,

@@ -55,7 +55,7 @@ export function AboutStats({ locale, stats }: AboutStatsProps) {
               </dt>
               <dd
                 className={cn(
-                  "font-display text-[2.75rem] leading-none font-black tabular-nums sm:text-[3.5rem]",
+                  "font-display text-[2.75rem] leading-none font-black sm:text-[3.5rem]",
                   index === 0 ? "text-accent" : "text-white",
                 )}
               >

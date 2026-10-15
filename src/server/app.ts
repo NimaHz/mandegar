@@ -14,7 +14,7 @@ import { guideAdminRoutes } from "./modules/guides/routes";
 import { healthRoutes } from "./modules/health/routes";
 import { mediaAdminRoutes } from "./modules/media/routes";
 import { postAdminRoutes } from "./modules/posts/routes";
-import { productAdminRoutes } from "./modules/products/routes";
+import { productAdminRoutes, productRoutes } from "./modules/products/routes";
 import { searchRoutes } from "./modules/search/routes";
 import { serviceCenterAdminRoutes } from "./modules/service-centers/routes";
 import { settingsAdminRoutes } from "./modules/settings/routes";
@@ -35,6 +35,7 @@ export const app = new Elysia({ prefix: "/api", aot: false })
   .use(security)
   .use(healthRoutes)
   .use(searchRoutes)
+  .use(productRoutes)
   .use(warrantyRoutes)
   .use(ticketRoutes)
   .use(contactRoutes)

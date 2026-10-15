@@ -6,11 +6,10 @@ import { useId, useState } from "react";
 import { Select } from "@/components/ui/select";
 import type { Locale } from "@/i18n/config";
 import { cn } from "@/lib/cn";
-import { currentJalaliYear } from "@/lib/dates";
+import { currentJalaliYear, todayIsoDate } from "@/lib/dates";
 import { formatNumber } from "@/lib/format";
 
 import { isoToJalali, jalaliMonthLength, jalaliToIso } from "../../jalali";
-import { todayIso } from "../../schemas";
 
 interface PurchaseDateLabels {
   label: string;
@@ -131,7 +130,7 @@ export function PurchaseDateInput(props: PurchaseDateInputProps) {
           type="date"
           aria-label={labels.label}
           value={/^\d{4}-\d{2}-\d{2}$/.test(value) ? value : ""}
-          max={todayIso()}
+          max={todayIsoDate()}
           onChange={(event) => onChange(event.target.value)}
           aria-invalid={error ? true : undefined}
           className={cn(

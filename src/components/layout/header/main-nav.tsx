@@ -33,7 +33,7 @@ export function MainNav({ categories }: { categories: NavCategory[] }) {
   const indicatorId = useId();
   const productsActive =
     isNavActive(pathname, { href: routes.products }) ||
-    pathname.startsWith("/categories/") ||
+    pathname.startsWith(routes.category("")) ||
     isNavActive(pathname, { href: routes.compare });
   const primaryActive = primaryNav.some((item) => isNavActive(pathname, item));
   const supportActive = !primaryActive && supportNav.some((item) => isNavActive(pathname, item));

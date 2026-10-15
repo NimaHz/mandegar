@@ -125,6 +125,11 @@ offline and in CI.
 - API integration tests that call the Elysia app in-process against the database configured in
   `.env.local`, covering warranty lookup, tickets with ALTCHA, contact, rate limits and origin checks.
 
+The integration tests refuse to start unless `APP_ORIGIN` is `http://localhost:3000` and `NODE_ENV`
+is not `production`, so they never write to a production database. The accounts they create get
+random passwords, and any `@test.local` account an interrupted run leaves behind is removed by the
+next run.
+
 CI (`.github/workflows/ci.yml`) runs format check, lint and typecheck, then migrates and seeds a
 PostgreSQL 16 service, runs the tests, builds, and smoke-tests the standalone server.
 

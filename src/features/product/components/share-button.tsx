@@ -1,10 +1,11 @@
 "use client";
 
 import { Share2 } from "lucide-react";
-import { useSyncExternalStore } from "react";
 
 import { CopyButton } from "@/components/shared/copy-button";
 import { buttonVariants } from "@/components/ui/button";
+import { useCanShare } from "@/hooks/use-can-share";
+import { isAbortError } from "@/lib/errors";
 
 interface ShareButtonProps {
   url: string;
@@ -14,14 +15,8 @@ interface ShareButtonProps {
   copyLabel: string;
 }
 
-const subscribe = () => () => {};
-
-const canShare = () => typeof navigator.share === "function";
-
-const isAbort = (error: unknown) => error instanceof DOMException && error.name === "AbortError";
-
 export function ShareButton({ url, title, text, label, copyLabel }: ShareButtonProps) {
-  const supported = useSyncExternalStore(subscribe, canShare, () => false);
+  const supported = useCanShare();
 
   if (!supported) {
     return <CopyButton value={url} label={copyLabel} className="size-12 rounded-field" />;
@@ -31,7 +26,7 @@ export function ShareButton({ url, title, text, label, copyLabel }: ShareButtonP
     try {
       await navigator.share({ title, text, url });
     } catch (error) {
-      if (!isAbort(error)) await navigator.clipboard?.writeText(url).catch(() => undefined);
+      if (!isAbortError(error)) await navigator.clipboard?.writeText(url).catch(() => undefined);
     }
   };
 

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { pluralize } from "@/features/catalog/plural";
 import type { Locale } from "@/i18n/config";
+import { hostOf } from "@/lib/url";
 import type { BrandDetail } from "@/types/catalog";
 
 import { brandsContent } from "../content";
@@ -14,14 +15,6 @@ interface BrandHeroProps {
   locale: Locale;
   breadcrumbs: ReactNode;
 }
-
-const hostOf = (url: string) => {
-  try {
-    return new URL(url).host.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-};
 
 export function BrandHero({ brand, locale, breadcrumbs }: BrandHeroProps) {
   const content = brandsContent[locale].detail;
@@ -34,6 +27,7 @@ export function BrandHero({ brand, locale, breadcrumbs }: BrandHeroProps) {
           <BrandLogo
             brand={brand}
             sizes="160px"
+            priority
             className="size-28 shadow-lift ring-4 ring-surface sm:size-36"
           />
           <div className="flex min-w-0 flex-1 flex-col items-start gap-4">

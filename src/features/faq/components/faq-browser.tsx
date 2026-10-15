@@ -24,7 +24,7 @@ interface FaqBrowserProps {
   content: FaqContent;
 }
 
-export const faqAnchor = (group: FaqGroup) => `faq-${group}`;
+const faqAnchor = (group: FaqGroup) => `faq-${group}`;
 
 export function FaqBrowser({ sections, content }: FaqBrowserProps) {
   const locale = useLocale();

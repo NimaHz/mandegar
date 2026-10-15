@@ -6,9 +6,11 @@ import type { z } from "zod";
 import { routes } from "@/lib/routes";
 import { getDb } from "@/server/db/client";
 import { guides } from "@/server/db/schema";
+import { cacheTags } from "@/server/lib/cache-tags";
 import { guardDelete, guardWrite } from "@/server/lib/db-errors";
 import { notFound } from "@/server/lib/http-error";
-import { revalidatePages, revalidateRoutes } from "@/server/lib/revalidate";
+import { revalidateContent } from "@/server/lib/revalidate";
+import { assertLibraryMedia } from "@/server/modules/media/service";
 import { guidesAdmin } from "@/services/admin/guides";
 
 import type { guideInputSchema, guidePatchSchema } from "./schema";
@@ -28,14 +30,26 @@ const loadGuide = async (id: string) => {
 };
 
 const revalidateGuides = (rows: GuideRow[]) => {
-  revalidatePages([routes.guides, ...rows.map((row) => routes.guide(row.slug))]);
-  revalidateRoutes(["/products/[slug]", "/categories/[slug]"]);
+  revalidateContent(
+    [cacheTags.guides],
+    [routes.guides, ...rows.map((row) => routes.guide(row.slug))],
+  );
 };
+
+const assertGuideMedia = (input: z.output<typeof guidePatchSchema>) =>
+  assertLibraryMedia({
+    "video.mediaId": input.video?.kind === "upload" ? input.video.mediaId : null,
+    "video.posterMediaId": input.video?.posterMediaId,
+    ...Object.fromEntries(
+      (input.steps ?? []).map((step, index) => [`steps.${index}.mediaId`, step.mediaId]),
+    ),
+  });
 
 const publishedAtFor = (published: boolean | undefined, current: Date | null) =>
   published && !current ? new Date() : current;
 
 export const createGuide = async (input: z.output<typeof guideInputSchema>) => {
+  await assertGuideMedia(input);
   const [row] = await guardWrite(() =>
     getDb()
       .insert(guides)
@@ -49,6 +63,7 @@ export const createGuide = async (input: z.output<typeof guideInputSchema>) => {
 
 export const updateGuide = async (id: string, patch: z.output<typeof guidePatchSchema>) => {
   const before = await requireGuide(id);
+  await assertGuideMedia(patch);
   const [row] = await guardWrite(() =>
     getDb()
       .update(guides)

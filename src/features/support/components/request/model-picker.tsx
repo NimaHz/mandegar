@@ -5,13 +5,7 @@ import { type KeyboardEvent, useId, useRef, useState } from "react";
 
 import { cn } from "@/lib/cn";
 import { toSearchKey } from "@/lib/persian";
-
-export interface ModelOption {
-  slug: string;
-  name: string;
-  modelCode: string;
-  category: string;
-}
+import type { ModelOption } from "@/types/catalog";
 
 interface ModelPickerLabels {
   label: string;

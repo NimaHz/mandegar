@@ -6,9 +6,11 @@ import type { z } from "zod";
 import { routes } from "@/lib/routes";
 import { getDb } from "@/server/db/client";
 import { authors, posts } from "@/server/db/schema";
+import { cacheTags } from "@/server/lib/cache-tags";
 import { guardDelete, guardWrite } from "@/server/lib/db-errors";
 import { notFound, orNotFound } from "@/server/lib/http-error";
-import { revalidatePages } from "@/server/lib/revalidate";
+import { revalidateContent } from "@/server/lib/revalidate";
+import { assertLibraryMedia } from "@/server/modules/media/service";
 import { postsAdmin } from "@/services/admin/content";
 
 import type { postInputSchema, postPatchSchema } from "./schema";
@@ -31,12 +33,10 @@ const revalidatePosts = async (rows: PostRow[]) => {
       return author ? routes.author(author.slug) : null;
     }),
   );
-  revalidatePages([
-    routes.home,
-    routes.blog,
-    ...rows.map((row) => routes.post(row.slug)),
-    ...authorSlugs,
-  ]);
+  revalidateContent(
+    [cacheTags.posts],
+    [routes.home, routes.blog, ...rows.map((row) => routes.post(row.slug)), ...authorSlugs],
+  );
 };
 
 const publishedAtFor = (
@@ -49,6 +49,7 @@ const publishedAtFor = (
 };
 
 export const createPost = async (input: z.output<typeof postInputSchema>) => {
+  await assertLibraryMedia({ coverMediaId: input.coverMediaId });
   const [row] = await guardWrite(() =>
     getDb()
       .insert(posts)
@@ -62,6 +63,7 @@ export const createPost = async (input: z.output<typeof postInputSchema>) => {
 
 export const updatePost = async (id: string, patch: z.output<typeof postPatchSchema>) => {
   const before = await requirePost(id);
+  await assertLibraryMedia({ coverMediaId: patch.coverMediaId });
   const [row] = await guardWrite(() =>
     getDb()
       .update(posts)

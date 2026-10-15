@@ -1,6 +1,6 @@
 import { createPersistedStore } from "./create-persisted-store";
 
-export const RECENTLY_VIEWED_LIMIT = 8;
+const RECENTLY_VIEWED_LIMIT = 8;
 
 interface RecentlyViewedState {
   slugs: string[];

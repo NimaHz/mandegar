@@ -8,9 +8,9 @@ import { Select } from "@/components/ui/select";
 import { apiClient } from "@/lib/api-client";
 import type { AdminOption, AdminTicket } from "@/types/admin";
 import {
+  isTicketStatus,
   ticketPriorities,
   type TicketPriority,
-  type TicketStatus,
   ticketStatuses,
 } from "@/types/support";
 
@@ -22,8 +22,6 @@ import { PanelCard } from "../panel-card";
 const copy = adminContent.tickets.detail;
 const { statuses } = adminContent;
 
-const isStatus = (value: string): value is TicketStatus =>
-  ticketStatuses.some((status) => status === value);
 const isPriority = (value: string): value is TicketPriority =>
   ticketPriorities.some((priority) => priority === value);
 
@@ -64,11 +62,11 @@ export function TicketControls({
           options={ticketStatuses.map((value) => ({ value, label: statuses.ticket[value] }))}
           value={status}
           onChange={(event) => {
-            if (isStatus(event.target.value)) setStatus(event.target.value);
+            if (isTicketStatus(event.target.value)) setStatus(event.target.value);
           }}
         />
       </label>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-1">
         <label className={field}>
           {copy.priority}
           <Select

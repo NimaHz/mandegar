@@ -19,6 +19,7 @@ import { formatTrackingCode } from "@/lib/tracking-code";
 import { formatWarrantyCode } from "@/lib/warranty-code";
 import { getDb } from "@/server/db/client";
 import { ticketMessages, tickets } from "@/server/db/schema";
+import { staffAttachmentHref } from "@/server/modules/tickets/attachments";
 import {
   type AdminAttachment,
   type AdminSort,
@@ -30,7 +31,8 @@ import {
 import type { TicketStatus } from "@/types/support";
 
 import { mediaIndex, orderByIds } from "../db/mappers";
-import { collated, iso, isoOrNull, paginate, searchColumns, sortedBy, toMediaRef } from "./shared";
+import { iso, isoOrNull } from "../db/mappers";
+import { collated, paginate, searchColumns, sortedBy, toMediaRef } from "./shared";
 
 export const closedTicketStatuses: TicketStatus[] = ["resolved", "closed", "rejected"];
 
@@ -142,6 +144,7 @@ const messagesOf = async (ticketId: string) => {
         ? [
             {
               ...toMediaRef(file),
+              url: staffAttachmentHref(ticketId, id),
               name: file.originalName ?? file.storageKey.split("/").at(-1) ?? file.storageKey,
               size: file.size,
             },

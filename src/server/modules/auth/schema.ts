@@ -2,13 +2,13 @@ import { z } from "zod";
 
 import { emailSchema } from "@/server/lib/validation";
 
-export const passwordSchema = z
+const passwordSchema = z
   .string()
   .min(12)
   .max(200)
   .refine((value) => /[a-z]/i.test(value) && /\d/.test(value), "Use letters and digits");
 
-export const totpCodeSchema = z
+const totpCodeSchema = z
   .string()
   .trim()
   .regex(/^\d{6}$/);

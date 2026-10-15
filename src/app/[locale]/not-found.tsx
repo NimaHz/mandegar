@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Logo } from "@/components/brand/logo";
@@ -13,6 +14,11 @@ import { getLocale } from "@/i18n/get-locale";
 import { localizePath } from "@/i18n/paths";
 import { formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { common } = await getDictionary(await getLocale());
+  return { title: common.notFoundTitle };
+}
 
 export default async function NotFound() {
   const locale = await getLocale();

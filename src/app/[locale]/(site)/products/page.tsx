@@ -1,5 +1,6 @@
 import { Search } from "lucide-react";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import { PageHero } from "@/components/layout/page-hero";
 import { TransitionProvider } from "@/components/providers/transition-provider";
@@ -10,28 +11,87 @@ import { CatalogSearch } from "@/features/catalog/components/catalog-search";
 import { CatalogToolbar } from "@/features/catalog/components/catalog-toolbar";
 import { FiltersSidebar } from "@/features/catalog/components/filters-sidebar";
 import { catalogContent } from "@/features/catalog/content";
-import { isFiltered, toProductsQuery } from "@/features/catalog/filters";
-import { loadCatalogSearchParams } from "@/features/catalog/search-params";
+import { isRefined, listingPath, toProductsQuery } from "@/features/catalog/filters";
+import { type CatalogFilters, loadCatalogSearchParams } from "@/features/catalog/search-params";
 import { toTrayItems } from "@/features/compare/tray-items";
+import type { Locale } from "@/i18n/config";
+import { fill } from "@/i18n/fill";
+import { getDictionary } from "@/i18n/get-dictionary";
 import { getLocale } from "@/i18n/get-locale";
 import { localizePath } from "@/i18n/paths";
+import { formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
 import { productListGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
+import type { OgTarget } from "@/lib/seo/og/targets";
 import { api } from "@/services";
+import type { CategoryDetail } from "@/types/catalog";
+
+interface ListingView {
+  path: string;
+  title: string;
+  description: string;
+  name: string;
+  summary: string;
+  og?: OgTarget;
+  noindex: boolean;
+}
+
+const listingView = (
+  locale: Locale,
+  filters: CatalogFilters,
+  category: CategoryDetail | null,
+): ListingView => {
+  if (category) {
+    return {
+      path: routes.category(category.slug),
+      title: category.seo.title ?? category.name,
+      description: category.seo.description ?? category.summary,
+      name: category.name,
+      summary: category.summary,
+      og: { kind: "category", slug: category.slug, updatedAt: category.updatedAt },
+      noindex: true,
+    };
+  }
+  const { listing } = catalogContent[locale];
+  return {
+    path: filters.category ? routes.products : listingPath(routes.products, filters),
+    title: listing.metaTitle,
+    description: listing.metaDescription,
+    name: listing.metaTitle,
+    summary: listing.metaDescription,
+    noindex: Boolean(filters.category) || isRefined(filters),
+  };
+};
+
+const loadListing = async (locale: Locale, filters: CatalogFilters) => {
+  const [result, category] = await Promise.all([
+    api.catalog.products(locale, toProductsQuery(filters)),
+    filters.category ? api.catalog.category(locale, filters.category) : null,
+  ]);
+  if (filters.page > result.page) notFound();
+  const exact = category?.slug === filters.category ? category : null;
+  return { result, view: listingView(locale, filters, exact) };
+};
 
 export async function generateMetadata({
   searchParams,
 }: PageProps<"/[locale]/products">): Promise<Metadata> {
   const locale = await getLocale();
   const filters = await loadCatalogSearchParams(searchParams);
-  const { listing } = catalogContent[locale];
+  const [{ view }, { ui }] = await Promise.all([
+    loadListing(locale, filters),
+    getDictionary(locale),
+  ]);
+  const page =
+    filters.page > 1 ? fill(ui.paginationPage, { page: formatNumber(locale, filters.page) }) : null;
   return pageMetadata({
     locale,
-    path: filters.category ? routes.category(filters.category) : routes.products,
-    title: listing.metaTitle,
-    description: listing.metaDescription,
-    noindex: isFiltered(filters),
+    path: view.path,
+    title: [page, view.title].filter(Boolean).join(" · "),
+    description: view.description,
+    og: view.og,
+    noindex: view.noindex,
   });
 }
 
@@ -39,16 +99,16 @@ export default async function ProductsPage({ searchParams }: PageProps<"/[locale
   const locale = await getLocale();
   const filters = await loadCatalogSearchParams(searchParams);
   const { listing } = catalogContent[locale];
-  const [result, facets] = await Promise.all([
-    api.catalog.products(locale, toProductsQuery(filters)),
+  const [{ result, view }, facets] = await Promise.all([
+    loadListing(locale, filters),
     api.catalog.facets(locale),
   ]);
 
   const graph = await productListGraph(locale, {
-    path: routes.products,
-    name: listing.metaTitle,
-    description: listing.metaDescription,
-    listName: listing.metaTitle,
+    path: view.path,
+    name: view.name,
+    description: view.summary,
+    listName: view.name,
     products: result.items,
   });
 

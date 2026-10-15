@@ -1,13 +1,25 @@
-import { relations } from "drizzle-orm";
-import { bigserial, index, integer, jsonb, pgEnum, pgTable, text, uuid } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
+import {
+  bigserial,
+  index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 import type { JsonValue, SettingKey, SettingsValues } from "@/types/admin";
-import { mediaKinds, notificationStatuses } from "@/types/admin";
+import { mediaKinds, mediaScopes, notificationStatuses } from "@/types/admin";
 
 import { users } from "./auth";
 import { id, localized, timestamps, timestamptz } from "./columns";
 
 export const mediaKind = pgEnum("media_kind", mediaKinds);
+
+export const mediaScope = pgEnum("media_scope", mediaScopes);
 
 export const notificationStatus = pgEnum("notification_status", notificationStatuses);
 
@@ -16,19 +28,25 @@ export const media = pgTable(
   {
     id: id(),
     kind: mediaKind().notNull(),
+    scope: mediaScope().notNull().default("library"),
     storageKey: text().notNull().unique(),
     mime: text().notNull(),
     size: integer().notNull(),
     width: integer(),
     height: integer(),
     durationSec: integer(),
-    sha256: text().notNull().unique(),
+    sha256: text().notNull(),
     alt: localized().default({ fa: "", en: "" }),
     originalName: text(),
     uploadedBy: uuid().references(() => users.id, { onDelete: "set null" }),
     ...timestamps,
   },
-  (table) => [index("media_kind_created_idx").on(table.kind, table.createdAt)],
+  (table) => [
+    index("media_kind_created_idx").on(table.kind, table.createdAt),
+    uniqueIndex("media_library_sha256_idx")
+      .on(table.sha256)
+      .where(sql`scope = 'library'`),
+  ],
 );
 
 export const auditLogs = pgTable(

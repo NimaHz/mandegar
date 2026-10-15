@@ -3,6 +3,7 @@ import { createElement } from "react";
 import { LOGO_MARK_PATHS } from "@/components/brand/logo-mark";
 import { type Locale, localeMeta } from "@/i18n/config";
 
+import { ogPalette } from "./palette";
 import { OG_HEIGHT, OG_WIDTH } from "./targets";
 
 export interface OgCard {
@@ -16,21 +17,6 @@ export interface OgCard {
   image: string | null;
   host: string;
 }
-
-const palette = {
-  deep: "#0a3a44",
-  glow: "rgba(92, 195, 207, 0.30)",
-  fade: "rgba(10, 58, 68, 0)",
-  warm: "#f0b357",
-  cool: "#5cc3cf",
-  ink: "#ffffff",
-  soft: "rgba(234, 243, 244, 0.78)",
-  chip: "rgba(255, 255, 255, 0.10)",
-  chipLine: "rgba(255, 255, 255, 0.20)",
-  waveCool: "rgba(92, 195, 207, 0.10)",
-  waveWarm: "rgba(240, 179, 87, 0.12)",
-  card: "#f8fafa",
-} as const;
 
 const IMAGE_SIZE = 400;
 const IMAGE_PANEL = 470;
@@ -46,8 +32,8 @@ const titleSize = (title: string, compact: boolean) => {
 function Mark({ size }: { size: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 48 48">
-      <path d={LOGO_MARK_PATHS.warm} fill={palette.warm} />
-      <path d={LOGO_MARK_PATHS.cool} fill={palette.cool} />
+      <path d={LOGO_MARK_PATHS.warm} fill={ogPalette.warm} />
+      <path d={LOGO_MARK_PATHS.cool} fill={ogPalette.cool} />
     </svg>
   );
 }
@@ -62,11 +48,11 @@ function Wave() {
     >
       <path
         d="M0 78C200 46 400 46 600 74C800 102 1000 106 1200 70V140H0Z"
-        fill={palette.waveCool}
+        fill={ogPalette.waveCool}
       />
       <path
         d="M0 104C220 82 420 84 620 102C820 120 1020 122 1200 102V140H0Z"
-        fill={palette.waveWarm}
+        fill={ogPalette.waveWarm}
       />
     </svg>
   );
@@ -83,8 +69,8 @@ function Chip({ children, ltr = false }: { children: string; ltr?: boolean }) {
         letterSpacing: ltr ? 1 : 0,
         padding: "8px 20px",
         borderRadius: 14,
-        backgroundColor: palette.chip,
-        border: `2px solid ${palette.chipLine}`,
+        backgroundColor: ogPalette.chip,
+        border: `2px solid ${ogPalette.chipLine}`,
       }}
     >
       {children}
@@ -104,9 +90,9 @@ export function OgCardView({ card }: { card: OgCard }) {
         display: "flex",
         direction: dir,
         position: "relative",
-        backgroundColor: palette.deep,
-        backgroundImage: `radial-gradient(circle at ${corner}, ${palette.glow}, ${palette.fade} 62%)`,
-        color: palette.ink,
+        backgroundColor: ogPalette.deep,
+        backgroundImage: `radial-gradient(circle at ${corner}, ${ogPalette.glow}, ${ogPalette.fade} 62%)`,
+        color: ogPalette.ink,
         fontFamily: "Vazirmatn",
       }}
     >
@@ -125,7 +111,7 @@ export function OgCardView({ card }: { card: OgCard }) {
           <div style={{ display: "flex", fontSize: 36, fontWeight: 800 }}>{card.brand}</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ display: "flex", fontSize: 28, fontWeight: 500, color: palette.warm }}>
+          <div style={{ display: "flex", fontSize: 28, fontWeight: 500, color: ogPalette.warm }}>
             {card.kicker}
           </div>
           <div
@@ -145,7 +131,7 @@ export function OgCardView({ card }: { card: OgCard }) {
                 fontSize: 28,
                 fontWeight: 500,
                 lineHeight: 1.55,
-                color: palette.soft,
+                color: ogPalette.soft,
               }}
             >
               {card.subtitle}
@@ -160,7 +146,7 @@ export function OgCardView({ card }: { card: OgCard }) {
             ))}
           </div>
           {!compact && (
-            <div style={{ display: "flex", direction: "ltr", fontSize: 24, color: palette.soft }}>
+            <div style={{ display: "flex", direction: "ltr", fontSize: 24, color: ogPalette.soft }}>
               {card.host}
             </div>
           )}
@@ -183,8 +169,8 @@ export function OgCardView({ card }: { card: OgCard }) {
               height: IMAGE_SIZE,
               borderRadius: 40,
               overflow: "hidden",
-              backgroundColor: palette.card,
-              border: `4px solid ${palette.chipLine}`,
+              backgroundColor: ogPalette.card,
+              border: `4px solid ${ogPalette.chipLine}`,
             }}
           >
             {createElement("img", {

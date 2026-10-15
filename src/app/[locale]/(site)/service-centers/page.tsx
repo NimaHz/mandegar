@@ -31,8 +31,6 @@ import { pageMetadata } from "@/lib/seo/metadata";
 import { api } from "@/services";
 import type { ServiceCenter } from "@/types/content";
 
-export const revalidate = 3600;
-
 export async function generateMetadata({
   searchParams,
 }: PageProps<"/[locale]/service-centers">): Promise<Metadata> {

@@ -11,7 +11,7 @@ interface SpecTablesProps {
   labelHeader: string;
 }
 
-export const specValue = (locale: Locale, item: SpecItem) =>
+const specValue = (locale: Locale, item: SpecItem) =>
   item.numeric !== null ? formatNumber(locale, item.numeric) : item.value;
 
 export function SpecValue({ item, locale }: { item: SpecItem; locale: Locale }) {

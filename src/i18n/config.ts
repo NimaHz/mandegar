@@ -4,6 +4,8 @@ export type Locale = (typeof locales)[number];
 
 export const defaultLocale: Locale = "fa";
 
+export const localeHeader = "x-locale";
+
 export const localeMeta: Record<
   Locale,
   { dir: "rtl" | "ltr"; label: string; hreflang: string; ogLocale: string; intl: string }

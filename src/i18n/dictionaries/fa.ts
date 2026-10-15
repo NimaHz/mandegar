@@ -4,7 +4,6 @@ export const fa = {
   site: {
     name: "ماندگار",
     slogan: "کیفیتی که در خانه می‌ماند",
-    title: "ماندگار | لوازم خانگی بادوام",
     description:
       "ماندگار تولیدکننده کولر، بخاری، آبگرمکن و لوازم خانگی بادوام با گارانتی رسمی، راهنمای نصب و خدمات پس از فروش در سراسر ایران.",
   },
@@ -32,8 +31,6 @@ export const fa = {
   common: {
     skipToContent: "رفتن به محتوای اصلی",
     backHome: "بازگشت به خانه",
-    comingSoon: "به‌زودی",
-    switchLanguage: "تغییر زبان",
     notFoundTitle: "این صفحه پیدا نشد",
     notFoundDescription: "آدرس اشتباه است یا این صفحه دیگر وجود ندارد.",
     errorTitle: "مشکلی پیش آمد",
@@ -42,9 +39,6 @@ export const fa = {
     offlineTitle: "اتصال اینترنت برقرار نیست",
     offlineDescription:
       "صفحه‌هایی که قبلاً دیده‌ای در دسترس‌اند. بعد از وصل شدن، دوباره امتحان کن.",
-    viewAll: "مشاهده همه",
-    learnMore: "بیشتر بدانید",
-    readMore: "ادامه مطلب",
     search: "جستجو",
     searchPlaceholder: "جستجوی مدل، دسته یا راهنما",
     noResults: "نتیجه‌ای پیدا نشد",
@@ -69,6 +63,8 @@ export const fa = {
     carouselGoTo: "رفتن به اسلاید {current}",
     carouselPause: "توقف نمایش خودکار",
     carouselPlay: "پخش نمایش خودکار",
+    carouselRole: "اسلایدر",
+    carouselSlideRole: "اسلاید",
     paginationLabel: "صفحه‌بندی",
     paginationPrevious: "صفحه قبل",
     paginationNext: "صفحه بعد",
@@ -80,7 +76,6 @@ export const fa = {
     confirm: "مطمئنی؟",
     selectPlaceholder: "انتخاب کن",
     charCount: "{count} از {max} نویسه",
-    themeLabel: "حالت نمایش",
     themeLight: "روشن",
     themeDark: "تیره",
     themeSystem: "هماهنگ با دستگاه",
@@ -99,6 +94,7 @@ export const fa = {
     copyFailed: "کپی نشد، دوباره امتحان کن",
     themeCurrent: "حالت نمایش: {theme}",
     installAppHint: "سریع‌تر، تمام‌صفحه و همیشه در دسترس",
+    altchaIdle: "بررسی امنیتی با شروع پر کردن فرم انجام می‌شود",
     altchaVerifying: "در حال بررسی خودکار امنیتی",
     altchaVerified: "بررسی امنیتی انجام شد",
     altchaFailed: "بررسی امنیتی انجام نشد",

@@ -26,8 +26,6 @@ export const contactRequestSchema = contactSchema.extend({
   altcha: z.string().max(8000),
 });
 
-export type ContactInput = z.input<typeof contactSchema>;
-
 export const messagesQuerySchema = listQuerySchema.extend({
   status: optionalFilter(z.enum(contactStatuses)),
   department: optionalFilter(z.enum(contactDepartments)),

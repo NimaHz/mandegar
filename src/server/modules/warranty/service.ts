@@ -9,10 +9,11 @@ import { routes } from "@/lib/routes";
 import { createWarrantyCode } from "@/lib/warranty-code";
 import { getDb } from "@/server/db/client";
 import { products, warrantyCodes, warrantyPolicies } from "@/server/db/schema";
+import { cacheTags } from "@/server/lib/cache-tags";
 import { toCsv } from "@/server/lib/csv";
 import { guardDelete, guardWrite } from "@/server/lib/db-errors";
 import { conflict, notFound, orNotFound, ValidationFailure } from "@/server/lib/http-error";
-import { revalidatePages } from "@/server/lib/revalidate";
+import { revalidateContent } from "@/server/lib/revalidate";
 import { api } from "@/services";
 import { warrantyCodesAdmin, warrantyPoliciesAdmin } from "@/services/admin/warranty";
 import type { AdminWarrantyCodesQuery } from "@/types/admin";
@@ -34,7 +35,7 @@ export const lookupWarranty = (
 export const createWarrantyPolicy = async (input: z.output<typeof warrantyPolicyInputSchema>) => {
   const [row] = await guardWrite(() => getDb().insert(warrantyPolicies).values(input).returning());
   if (!row) throw new Error("Policy insert failed");
-  revalidatePages([routes.warranty]);
+  revalidateContent([cacheTags.warranty], [routes.warranty]);
   return orNotFound(await warrantyPoliciesAdmin.get(row.id));
 };
 
@@ -46,14 +47,14 @@ export const updateWarrantyPolicy = async (
   await guardWrite(() =>
     getDb().update(warrantyPolicies).set(patch).where(eq(warrantyPolicies.id, id)),
   );
-  revalidatePages([routes.warranty]);
+  revalidateContent([cacheTags.warranty], [routes.warranty]);
   return orNotFound(await warrantyPoliciesAdmin.get(id));
 };
 
 export const deleteWarrantyPolicy = async (id: string) => {
   orNotFound(await warrantyPoliciesAdmin.get(id), "Policy not found");
   await guardDelete(() => getDb().delete(warrantyPolicies).where(eq(warrantyPolicies.id, id)));
-  revalidatePages([routes.warranty]);
+  revalidateContent([cacheTags.warranty], [routes.warranty]);
   return { id };
 };
 

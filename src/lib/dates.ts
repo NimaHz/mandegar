@@ -23,6 +23,18 @@ export const formatDateTime = (locale: Locale, value: string | Date) =>
     minute: "2-digit",
   });
 
+export const todayIsoDate = (date = new Date()) => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((entry) => entry.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+};
+
 export const currentJalaliYear = (date = new Date()) =>
   Number(
     new Intl.DateTimeFormat("en-u-ca-persian", { timeZone: TIME_ZONE, year: "numeric" })

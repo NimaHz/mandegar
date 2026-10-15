@@ -5,26 +5,21 @@ import { type ChangeEvent, useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { fill } from "@/i18n/fill";
+import { MB } from "@/lib/format";
 import {
+  attachmentKey,
+  screenAttachments,
+  TICKET_ATTACHMENT_ACCEPT,
   TICKET_ATTACHMENT_LIMIT,
   TICKET_ATTACHMENT_MAX_BYTES,
-  ticketAttachmentTypes,
-} from "@/server/modules/tickets/schema";
+} from "@/lib/tickets";
 
 import { adminContent } from "../../content";
-import { faNumber, formatBytes } from "../../lib/format";
+import { faBytes, faNumber } from "../../lib/format";
 
 const copy = adminContent.tickets.composer;
-const ACCEPT = ticketAttachmentTypes.join(",");
 const FORMATS = "JPG · PNG · WEBP · PDF";
-const EXTENSIONS = /\.(jpe?g|png|webp|pdf)$/i;
-const MAX_MB = faNumber(TICKET_ATTACHMENT_MAX_BYTES / (1024 * 1024));
-
-const isAccepted = (file: File) =>
-  ticketAttachmentTypes.some((type) => type === file.type) ||
-  (file.type === "" && EXTENSIONS.test(file.name));
-
-const fileKey = (file: File) => `${file.name}-${file.size}-${file.lastModified}`;
+const MAX_MB = faNumber(TICKET_ATTACHMENT_MAX_BYTES / MB);
 
 export interface ReplyAttachmentsState {
   files: File[];
@@ -39,27 +34,16 @@ export function useReplyAttachments(): ReplyAttachmentsState {
   const [problems, setProblems] = useState<string[]>([]);
 
   const add = (incoming: File[]) => {
-    const issues: string[] = [];
-    const known = new Set(files.map(fileKey));
-    const accepted: File[] = [];
-    for (const file of incoming) {
-      if (known.has(fileKey(file))) continue;
-      if (!isAccepted(file)) {
-        issues.push(fill(copy.badType, { name: file.name }));
-        continue;
-      }
-      if (file.size > TICKET_ATTACHMENT_MAX_BYTES) {
-        issues.push(fill(copy.tooBig, { name: file.name, size: MAX_MB }));
-        continue;
-      }
-      if (files.length + accepted.length >= TICKET_ATTACHMENT_LIMIT) {
-        issues.push(fill(copy.tooMany, { count: faNumber(TICKET_ATTACHMENT_LIMIT) }));
-        break;
-      }
-      known.add(fileKey(file));
-      accepted.push(file);
-    }
-    setProblems(issues);
+    const { accepted, problems: found } = screenAttachments(files, incoming);
+    setProblems(
+      found.map((problem) =>
+        problem.kind === "type"
+          ? fill(copy.badType, { name: problem.name })
+          : problem.kind === "size"
+            ? fill(copy.tooBig, { name: problem.name, size: MAX_MB })
+            : fill(copy.tooMany, { count: faNumber(TICKET_ATTACHMENT_LIMIT) }),
+      ),
+    );
     if (accepted.length > 0) setFiles([...files, ...accepted]);
   };
 
@@ -134,7 +118,7 @@ export function ReplyAttachments({ attachments, disabled }: ReplyAttachmentsProp
           id={inputId}
           type="file"
           multiple
-          accept={ACCEPT}
+          accept={TICKET_ATTACHMENT_ACCEPT}
           tabIndex={-1}
           onChange={onInput}
           className="sr-only"
@@ -160,7 +144,7 @@ export function ReplyAttachments({ attachments, disabled }: ReplyAttachmentsProp
         <ul className="flex flex-wrap gap-2">
           {files.map((file) => (
             <li
-              key={fileKey(file)}
+              key={attachmentKey(file)}
               className="flex max-w-64 min-w-0 items-center gap-2.5 rounded-field border border-line bg-raised p-1.5 pe-1"
             >
               <span className="size-10 shrink-0 overflow-hidden rounded-control">
@@ -170,7 +154,7 @@ export function ReplyAttachments({ attachments, disabled }: ReplyAttachmentsProp
                 <span dir="auto" className="truncate text-label font-bold text-ink">
                   {file.name}
                 </span>
-                <span className="text-caption text-muted">{formatBytes(file.size)}</span>
+                <span className="text-caption text-muted">{faBytes(file.size)}</span>
               </span>
               <button
                 type="button"

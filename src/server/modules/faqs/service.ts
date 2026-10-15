@@ -6,21 +6,19 @@ import type { z } from "zod";
 import { routes } from "@/lib/routes";
 import { getDb } from "@/server/db/client";
 import { faqs } from "@/server/db/schema";
+import { cacheTags } from "@/server/lib/cache-tags";
 import { guardWrite } from "@/server/lib/db-errors";
 import { notFound, orNotFound } from "@/server/lib/http-error";
-import { revalidatePages } from "@/server/lib/revalidate";
+import { revalidateContent } from "@/server/lib/revalidate";
 import { faqsAdmin } from "@/services/admin/content";
 
 import type { faqInputSchema, faqPatchSchema } from "./schema";
 
 const revalidateFaqs = () =>
-  revalidatePages([
-    routes.home,
-    routes.faq,
-    routes.warranty,
-    routes.support,
-    routes.serviceRequest,
-  ]);
+  revalidateContent(
+    [cacheTags.faqs],
+    [routes.home, routes.faq, routes.warranty, routes.support, routes.serviceRequest],
+  );
 
 export const createFaq = async (input: z.output<typeof faqInputSchema>) => {
   const [row] = await guardWrite(() =>

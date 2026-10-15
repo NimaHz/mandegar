@@ -1,7 +1,7 @@
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { formatNumber } from "@/lib/format";
-import type { ProductDetail } from "@/types/catalog";
+import type { ProductDetail, ProductInsight } from "@/types/catalog";
 
 import { seoContent } from "./content";
 import type { QuestionEntry } from "./jsonld/faq";
@@ -28,7 +28,7 @@ export const productAnswer = (locale: Locale, product: ProductDetail) => {
   return fill(copy.productAnswerFact, { ...values, fact: `${label} ${fact.value}` });
 };
 
-const sharedFactLabel = (products: ProductDetail[]) => {
+const sharedFactLabel = (products: ProductInsight[]) => {
   const [first, ...rest] = products;
   return first?.keyFacts.find((fact) =>
     rest.every((product) => product.keyFacts.some((item) => item.label === fact.label)),
@@ -38,10 +38,11 @@ const sharedFactLabel = (products: ProductDetail[]) => {
 export const categoryChoiceFaqs = (
   locale: Locale,
   categoryName: string,
-  products: ProductDetail[],
+  products: ProductInsight[],
 ): QuestionEntry[] => {
   if (products.length < 2) return [];
   const copy = seoContent[locale];
+  const category = locale === "en" ? categoryName.toLowerCase() : categoryName;
   const months = products.map((product) => product.warrantyMonths);
   const min = Math.min(...months);
   const max = Math.max(...months);
@@ -56,14 +57,14 @@ export const categoryChoiceFaqs = (
   const choose: QuestionEntry[] = label
     ? [
         {
-          question: fill(copy.chooseQuestion, { category: categoryName }),
+          question: fill(copy.chooseQuestion, { category }),
           answer: fill(copy.chooseAnswer, {
             label: locale === "en" ? label.toLowerCase() : label,
             facts: joinList(
               locale,
               products.map((product) => {
                 const value = product.keyFacts.find((fact) => fact.label === label)?.value ?? "";
-                return `${product.modelCode}: ${value}`;
+                return fill(copy.chooseFact, { model: product.modelCode, value });
               }),
             ),
           }),
@@ -73,7 +74,7 @@ export const categoryChoiceFaqs = (
   return [
     ...choose,
     {
-      question: fill(copy.rangeQuestion, { category: categoryName }),
+      question: fill(copy.rangeQuestion, { category }),
       answer: fill(copy.rangeAnswer, {
         count: formatNumber(locale, products.length),
         models: joinList(

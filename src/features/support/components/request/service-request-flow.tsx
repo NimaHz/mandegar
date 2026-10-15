@@ -11,21 +11,26 @@ import {
 } from "lucide-react";
 import { AnimatePresence, m, type Variants } from "motion/react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useQueryStates } from "nuqs";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 
 import { EASE_OUT_EXPO } from "@/components/motion/easing";
+import { useAltcha } from "@/components/shared/use-altcha";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsClient } from "@/hooks/use-is-client";
 import { fill } from "@/i18n/fill";
 import { useLocale } from "@/i18n/locale-provider";
 import { localizePath } from "@/i18n/paths";
+import { type ApiFailure, fetchFormToken, type FormToken, postMultipart } from "@/lib/api-client";
 import { formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
+import { parseWarrantyCode } from "@/lib/warranty-code";
+import type { ModelOption } from "@/types/catalog";
 import type { TicketReceipt, TicketType } from "@/types/support";
 
-import { type ApiFailure, fetchFormToken, postForm } from "../../api";
+import { type RequestStep, requestSteps } from "../../constants";
 import type { RequestFlowContent } from "../../content";
 import { readDraft, readReceipt, writeDraft, writeReceipt } from "../../draft-storage";
 import {
@@ -35,16 +40,15 @@ import {
   isTicketPayloadValid,
   type RequestField,
   type RequestMessages,
-  type RequestStep,
-  requestSteps,
   type RequestValues,
   stepFields,
   stepOfField,
   toTicketFields,
 } from "../../schemas";
+import { requestSearchParams } from "../../search-params";
 import { ContactStep } from "./contact-step";
 import { DetailsStep } from "./details-step";
-import type { ModelOption } from "./model-picker";
+import { PreviousReceipt } from "./previous-receipt";
 import { ProductStep } from "./product-step";
 import { Receipt } from "./receipt";
 import { ReviewStep } from "./review-step";
@@ -52,21 +56,15 @@ import { StepHeading } from "./step-heading";
 import { StepIndicator } from "./step-indicator";
 import { TypeStep } from "./type-step";
 
-export interface RequestPrefill {
+interface RequestPrefill {
   code: string;
   product: string;
 }
 
 interface ServiceRequestFlowProps {
   models: ModelOption[];
-  prefill: RequestPrefill;
   copy: RequestFlowContent;
   types: Record<TicketType, { label: string; description: string }>;
-}
-
-interface FormToken {
-  token: string;
-  issuedAt: number;
 }
 
 const TOKEN_MIN_AGE_MS = 3_200;
@@ -100,36 +98,55 @@ const stepVariants: Variants = {
   }),
 };
 
-const initialState = (prefill: RequestPrefill) => {
-  const draft = readDraft();
-  const values: RequestValues = { ...(draft?.values ?? emptyRequest) };
+const withPrefill = (base: RequestValues, prefill: RequestPrefill): RequestValues => {
+  const values = { ...base };
   if (prefill.code) {
     values.warrantyCode = prefill.code;
     if (!values.type) values.type = "warranty-repair";
   }
   if (prefill.product) values.productSlug = prefill.product;
-  return { values, step: draft?.step ?? "type", furthest: draft?.furthest ?? 0 };
+  return values;
+};
+
+const initialState = (prefill: RequestPrefill) => {
+  const draft = readDraft();
+  return {
+    values: withPrefill(draft?.values ?? emptyRequest, prefill),
+    step: draft?.step ?? "type",
+    furthest: draft?.furthest ?? 0,
+  };
 };
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function RequestFlow({ models, prefill, copy, types }: ServiceRequestFlowProps) {
+const usePrefill = (models: ModelOption[]): RequestPrefill => {
+  const [{ code, product }] = useQueryStates(requestSearchParams);
+  const parsed = parseWarrantyCode(code);
+  return {
+    code: parsed.valid ? parsed.code : "",
+    product: models.some((model) => model.slug === product) ? product : "",
+  };
+};
+
+function RequestFlow({ models, copy, types }: ServiceRequestFlowProps) {
   const locale = useLocale();
+  const prefill = usePrefill(models);
   const [initial] = useState(() => initialState(prefill));
-  const [receipt, setReceipt] = useState<TicketReceipt | null>(() => readReceipt());
+  const prefilled = Boolean(prefill.code || prefill.product);
+  const [receipt, setReceipt] = useState(() => (prefilled ? null : readReceipt()));
+  const [previous, setPrevious] = useState(() => (prefilled ? readReceipt() : null));
   const [step, setStep] = useState<RequestStep>(initial.step);
   const [furthest, setFurthest] = useState(initial.furthest);
   const [direction, setDirection] = useState(1);
   const [interacted, setInteracted] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [filesError, setFilesError] = useState<string | undefined>(undefined);
-  const [altcha, setAltcha] = useState<string | null>(null);
-  const [altchaKey, setAltchaKey] = useState(0);
   const [submitError, setSubmitError] = useState<{ message: string; track?: boolean } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const tokenRef = useRef<FormToken | null>(null);
   const honeypotRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const altcha = useAltcha(receipt === null);
   const schemas = createStepSchemas(copy.errors);
   const form = useForm<RequestValues>({ defaultValues: initial.values });
   const index = requestSteps.indexOf(step);
@@ -279,7 +296,8 @@ function RequestFlow({ models, prefill, copy, types }: ServiceRequestFlowProps) 
       setSubmitError({ message: copy.submitErrors.validation });
       return;
     }
-    if (!altcha) {
+    const proof = altcha.payload;
+    if (!proof) {
       setSubmitError({ message: copy.submitErrors.altchaPending });
       return;
     }
@@ -290,26 +308,26 @@ function RequestFlow({ models, prefill, copy, types }: ServiceRequestFlowProps) 
     }
     data.append("website", honeypotRef.current?.value ?? "");
     data.append("formToken", await ensureToken());
-    data.append("altcha", altcha);
+    data.append("altcha", proof);
     data.append("locale", locale);
     for (const file of files) data.append("attachments", file);
-    const result = await postForm<TicketReceipt>("/api/tickets", data);
+    const result = await postMultipart<TicketReceipt>("/api/tickets", data);
     setSubmitting(false);
+    altcha.renew();
     if (result.ok) {
       writeDraft(null);
       writeReceipt(result.data);
       setFiles([]);
+      setPrevious(null);
       setReceipt(result.data);
       panelRef.current?.scrollIntoView({ block: "start" });
       return;
     }
-    setAltcha(null);
-    setAltchaKey((value) => value + 1);
     handleFailure(result);
   };
 
   const startOver = () => {
-    form.reset(emptyRequest);
+    form.reset(withPrefill(emptyRequest, prefill));
     setFiles([]);
     setFilesError(undefined);
     setFurthest(0);
@@ -342,6 +360,14 @@ function RequestFlow({ models, prefill, copy, types }: ServiceRequestFlowProps) 
             }}
             className="flex flex-col gap-7"
           >
+            {previous && (
+              <PreviousReceipt
+                locale={locale}
+                receipt={previous}
+                copy={copy.receipt}
+                onDismiss={() => setPrevious(null)}
+              />
+            )}
             <StepIndicator
               step={step}
               furthest={furthest}
@@ -402,8 +428,7 @@ function RequestFlow({ models, prefill, copy, types }: ServiceRequestFlowProps) 
                     typeLabels={typeLabels}
                     models={models}
                     files={files}
-                    altchaKey={altchaKey}
-                    onAltcha={setAltcha}
+                    altcha={altcha}
                     honeypotRef={honeypotRef}
                     onEdit={goTo}
                   />
@@ -517,5 +542,10 @@ function FlowPlaceholder() {
 
 export function ServiceRequestFlow(props: ServiceRequestFlowProps) {
   const isClient = useIsClient();
-  return isClient ? <RequestFlow {...props} /> : <FlowPlaceholder />;
+  if (!isClient) return <FlowPlaceholder />;
+  return (
+    <Suspense fallback={<FlowPlaceholder />}>
+      <RequestFlow {...props} />
+    </Suspense>
+  );
 }

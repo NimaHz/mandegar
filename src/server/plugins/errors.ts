@@ -34,6 +34,13 @@ const issuesOf = (error: unknown): IssueLike[] => {
     : [];
 };
 
+const isMalformedBody = (error: unknown) =>
+  error instanceof SyntaxError ||
+  (error instanceof TypeError && error.message.startsWith("Failed to parse body"));
+
+const isWrongContentType = (error: unknown) =>
+  error instanceof TypeError && error.message.startsWith("Content-Type was not one of");
+
 export const errors = new Elysia({ name: "errors" }).onError(
   { as: "global" },
   ({ code, error, set }) => {
@@ -54,9 +61,13 @@ export const errors = new Elysia({ name: "errors" }).onError(
       set.status = 404;
       return errorBody("NOT_FOUND", "Not found");
     }
-    if (code === "PARSE") {
+    if (code === "PARSE" || isMalformedBody(error)) {
       set.status = 400;
       return errorBody("BAD_REQUEST", "Malformed request body");
+    }
+    if (isWrongContentType(error)) {
+      set.status = 415;
+      return errorBody("UNSUPPORTED_MEDIA", "Content type is not supported");
     }
     if (code === "INVALID_FILE_TYPE") {
       set.status = 415;

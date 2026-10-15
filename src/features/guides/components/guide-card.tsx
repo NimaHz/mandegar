@@ -16,9 +16,10 @@ interface GuideCardProps {
   guide: GuideListItem;
   locale: Locale;
   copy: GuidesContent["card"];
+  priority?: boolean;
 }
 
-export function GuideCard({ guide, locale, copy }: GuideCardProps) {
+export function GuideCard({ guide, locale, copy, priority = false }: GuideCardProps) {
   return (
     <Link
       href={localizePath(locale, routes.guide(guide.slug))}
@@ -31,6 +32,8 @@ export function GuideCard({ guide, locale, copy }: GuideCardProps) {
             alt={guide.poster.alt}
             fill
             sizes="(min-width: 1280px) 26rem, (min-width: 768px) 45vw, 92vw"
+            loading={priority ? "eager" : "lazy"}
+            fetchPriority={priority ? "high" : "auto"}
             className="object-cover transition-transform duration-700 ease-(--ease-out-expo) group-hover:scale-[1.04]"
           />
         )}

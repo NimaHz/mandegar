@@ -5,9 +5,11 @@ import type { z } from "zod";
 
 import { getDb } from "@/server/db/client";
 import { categories } from "@/server/db/schema";
+import { cacheTags } from "@/server/lib/cache-tags";
 import { guardDelete, guardWrite } from "@/server/lib/db-errors";
 import { conflict, notFound, ValidationFailure } from "@/server/lib/http-error";
-import { revalidateSite } from "@/server/lib/revalidate";
+import { revalidateContent } from "@/server/lib/revalidate";
+import { assertLibraryMedia } from "@/server/modules/media/service";
 import { categoriesAdmin } from "@/services/admin/categories";
 
 import type { categoryInputSchema, categoryPatchSchema } from "./schema";
@@ -36,17 +38,19 @@ const assertParent = async (id: string | null, parentId: string | null | undefin
 
 export const createCategory = async (input: z.output<typeof categoryInputSchema>) => {
   await assertParent(null, input.parentId);
+  await assertLibraryMedia({ imageMediaId: input.imageMediaId });
   const [row] = await guardWrite(() => getDb().insert(categories).values(input).returning());
   if (!row) throw new Error("Category insert failed");
-  revalidateSite();
+  revalidateContent([cacheTags.catalog]);
   return loadCategory(row.id);
 };
 
 export const updateCategory = async (id: string, patch: z.output<typeof categoryPatchSchema>) => {
   await loadCategory(id);
   await assertParent(id, patch.parentId);
+  await assertLibraryMedia({ imageMediaId: patch.imageMediaId });
   await guardWrite(() => getDb().update(categories).set(patch).where(eq(categories.id, id)));
-  revalidateSite();
+  revalidateContent([cacheTags.catalog]);
   return loadCategory(id);
 };
 
@@ -56,6 +60,6 @@ export const deleteCategory = async (id: string) => {
     throw conflict("Category still has products or subcategories", "IN_USE");
   }
   await guardDelete(() => getDb().delete(categories).where(eq(categories.id, id)));
-  revalidateSite();
+  revalidateContent([cacheTags.catalog]);
   return { id };
 };

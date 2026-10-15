@@ -63,15 +63,12 @@ export interface ProductContent {
     seek: string;
     chapters: string;
     jumpTo: string;
-    playOnAparat: string;
-    aparatNote: string;
   };
   downloads: {
     eyebrow: string;
     title: string;
     download: string;
     kinds: Record<DownloadKind, string>;
-    units: { kb: string; mb: string };
   };
   warranty: {
     eyebrow: string;
@@ -89,7 +86,6 @@ export interface ProductContent {
   faq: { eyebrow: string; title: string; all: string };
   related: { eyebrow: string; title: string; all: string };
   recent: { eyebrow: string; title: string; clear: string };
-  service: { name: string; description: string; serviceType: string };
 }
 
 export const productContent: Record<Locale, ProductContent> = {
@@ -166,8 +162,6 @@ export const productContent: Record<Locale, ProductContent> = {
       seek: "زمان ویدیو",
       chapters: "بخش‌های ویدیو",
       jumpTo: "رفتن به {title}، {time}",
-      playOnAparat: "پخش ویدیو از آپارات",
-      aparatNote: "ویدیو پس از کلیک از آپارات بارگذاری می‌شود.",
     },
     downloads: {
       eyebrow: "دانلودها",
@@ -179,7 +173,6 @@ export const productContent: Record<Locale, ProductContent> = {
         "warranty-card": "کارت گارانتی",
         datasheet: "برگه مشخصات",
       },
-      units: { kb: "کیلوبایت", mb: "مگابایت" },
     },
     warranty: {
       eyebrow: "گارانتی",
@@ -201,12 +194,6 @@ export const productContent: Record<Locale, ProductContent> = {
     faq: { eyebrow: "پرسش‌ها", title: "سؤال‌های رایج درباره این مدل", all: "همه پرسش‌ها" },
     related: { eyebrow: "مدل‌های مرتبط", title: "شاید این‌ها را هم بپسندی", all: "همه محصولات" },
     recent: { eyebrow: "بازدیدهای اخیر", title: "مدل‌هایی که دیده‌ای", clear: "پاک کردن" },
-    service: {
-      name: "خدمات پس از فروش ماندگار",
-      description:
-        "نصب، تعمیر در دوره گارانتی و پس از آن، و تأمین قطعه اصلی توسط سرویس‌کاران مجاز ماندگار در سراسر ایران.",
-      serviceType: "نصب، تعمیر و تأمین قطعه لوازم خانگی",
-    },
   },
   en: {
     sectionNav: "Product page sections",
@@ -283,8 +270,6 @@ export const productContent: Record<Locale, ProductContent> = {
       seek: "Video position",
       chapters: "Video chapters",
       jumpTo: "Jump to {title}, {time}",
-      playOnAparat: "Play video from Aparat",
-      aparatNote: "The video loads from Aparat after you click.",
     },
     downloads: {
       eyebrow: "Downloads",
@@ -296,7 +281,6 @@ export const productContent: Record<Locale, ProductContent> = {
         "warranty-card": "Warranty card",
         datasheet: "Datasheet",
       },
-      units: { kb: "KB", mb: "MB" },
     },
     warranty: {
       eyebrow: "Warranty",
@@ -318,11 +302,5 @@ export const productContent: Record<Locale, ProductContent> = {
     faq: { eyebrow: "FAQ", title: "Common questions about this model", all: "All questions" },
     related: { eyebrow: "Related models", title: "You might also like", all: "All products" },
     recent: { eyebrow: "Recently viewed", title: "Models you've looked at", clear: "Clear" },
-    service: {
-      name: "Mandegar after-sales service",
-      description:
-        "Installation, in-warranty and out-of-warranty repair, and genuine spare parts from authorized Mandegar technicians across Iran.",
-      serviceType: "Home appliance installation, repair and spare parts",
-    },
   },
 };

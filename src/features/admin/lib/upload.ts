@@ -1,5 +1,3 @@
-"use client";
-
 import type { AdminMedia, MediaKind } from "@/types/admin";
 
 import { type AdminApiError, toApiError } from "./api-error";

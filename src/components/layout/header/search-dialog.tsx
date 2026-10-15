@@ -43,7 +43,7 @@ export function SearchDialog() {
   const listId = useId();
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
-  const { hits, loading, settled } = useSearchHits(query, locale);
+  const { hits, loading, settled, searchable } = useSearchHits(query, locale);
 
   useModal(dialogRef, isOpen, close);
 
@@ -137,18 +137,20 @@ export function SearchDialog() {
                   aria-autocomplete="list"
                   autoComplete="off"
                   enterKeyHint="search"
-                  className="h-15 min-w-0 flex-1 bg-transparent text-lead text-ink outline-none placeholder:text-subtle [&::-webkit-search-cancel-button]:hidden"
+                  className="h-15 min-w-0 flex-1 bg-transparent text-lead text-ink outline-none [&::-webkit-search-cancel-button]:hidden"
                 />
                 <button
                   type="button"
                   onClick={dismiss}
-                  className="rounded-md border border-line px-2 py-1 font-code text-caption text-muted transition-colors hover:text-ink"
+                  aria-keyshortcuts="Escape"
+                  className="rounded-md border border-line px-2 py-1 text-caption text-muted transition-colors hover:text-ink"
                 >
-                  Esc
+                  <span className="sr-only">{header.closeSearch}</span>
+                  <kbd className="font-code">Esc</kbd>
                 </button>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto p-2" data-lenis-prevent>
-                {!query.trim() && (
+                {!searchable && (
                   <div className="flex flex-col gap-3 p-2">
                     <p className="text-sm text-muted">{header.searchHint}</p>
                     <div className="flex flex-wrap gap-2">

@@ -11,6 +11,7 @@ import { useModal } from "@/hooks/use-modal";
 import { fill } from "@/i18n/fill";
 import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/cn";
+import { isRtl, swipeStep } from "@/lib/dom";
 import { formatNumber } from "@/lib/format";
 import type { ImageAsset } from "@/types/common";
 
@@ -25,7 +26,6 @@ interface ProductLightboxProps {
 }
 
 const ZOOM_SCALE = 2.4;
-const SWIPE_DISTANCE = 50;
 const TAP_DISTANCE = 8;
 
 interface ZoomState {
@@ -35,8 +35,6 @@ interface ZoomState {
 }
 
 const resting: ZoomState = { active: false, x: 50, y: 50 };
-
-const isRtl = (element: HTMLElement) => getComputedStyle(element).direction === "rtl";
 
 export function ProductLightbox({
   images,
@@ -87,10 +85,9 @@ export function ProductLightbox({
       setZoom((current) => (current.active ? resting : { active: true, ...originFrom(event) }));
       return;
     }
-    if (zoom.active || count < 2 || Math.abs(dx) < SWIPE_DISTANCE || Math.abs(dx) < Math.abs(dy))
-      return;
-    const towardStart = isRtl(event.currentTarget) ? dx > 0 : dx < 0;
-    goTo(index + (towardStart ? 1 : -1));
+    if (zoom.active || count < 2) return;
+    const direction = swipeStep(event.currentTarget, dx, dy);
+    if (direction) goTo(index + direction);
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {

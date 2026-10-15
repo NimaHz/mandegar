@@ -4,6 +4,7 @@ import Link from "next/link";
 import { LanguageSwitcher } from "@/components/shared/language-switcher";
 import type { Locale } from "@/i18n/config";
 import { localizePath } from "@/i18n/paths";
+import { phoneHref } from "@/lib/phone";
 import { routes } from "@/lib/routes";
 
 import { layoutContent } from "../content";
@@ -11,20 +12,21 @@ import { layoutContent } from "../content";
 interface TopBarProps {
   locale: Locale;
   phone: string | null;
+  hours: string;
 }
 
 const linkClass =
   "inline-flex items-center gap-1.5 text-white/80 transition-colors hover:text-white";
 
-export function TopBar({ locale, phone }: TopBarProps) {
+export function TopBar({ locale, phone, hours }: TopBarProps) {
   const { topBar } = layoutContent[locale];
 
   return (
     <div className="hidden bg-brand-deep text-label text-white/80 lg:block">
-      <div className="container-page flex h-10 items-center justify-between gap-6">
-        <div className="flex items-center gap-5">
+      <div className="container-page flex h-10 items-center justify-between gap-6 whitespace-nowrap">
+        <div className="flex min-w-0 items-center gap-5">
           {phone && (
-            <a href={`tel:${phone.replace(/\s/g, "")}`} className={linkClass}>
+            <a href={phoneHref(phone)} className={linkClass}>
               <Headset className="size-4 text-accent" aria-hidden />
               {topBar.support}
               <bdi dir="ltr" className="font-semibold text-white">
@@ -32,10 +34,12 @@ export function TopBar({ locale, phone }: TopBarProps) {
               </bdi>
             </a>
           )}
-          <span className="inline-flex items-center gap-1.5">
-            <Clock3 className="size-4" aria-hidden />
-            {topBar.hours}
-          </span>
+          {hours && (
+            <span className="inline-flex min-w-0 items-center gap-1.5" title={hours}>
+              <Clock3 className="size-4 shrink-0" aria-hidden />
+              <span className="truncate">{hours}</span>
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-5">
           <Link href={localizePath(locale, routes.warranty)} className={linkClass}>

@@ -23,6 +23,7 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { fill } from "@/i18n/fill";
 import { useDictionary, useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/cn";
+import { isRtl, swipeStep } from "@/lib/dom";
 import { formatNumber } from "@/lib/format";
 import type { HeroSlide } from "@/types/content";
 
@@ -39,7 +40,6 @@ interface HeroCarouselProps {
 }
 
 const AUTOPLAY_MS = 6500;
-const SWIPE_DISTANCE = 48;
 
 const textGroup: Variants = {
   hidden: {},
@@ -68,7 +68,17 @@ const useDocumentHidden = () =>
     () => false,
   );
 
-const isRtl = (element: HTMLElement) => getComputedStyle(element).direction === "rtl";
+const subscribeLoad = (onChange: () => void) => {
+  window.addEventListener("load", onChange);
+  return () => window.removeEventListener("load", onChange);
+};
+
+const usePageLoaded = () =>
+  useSyncExternalStore(
+    subscribeLoad,
+    () => document.readyState === "complete",
+    () => false,
+  );
 
 export function HeroCarousel({ slides, secondaryHref }: HeroCarouselProps) {
   const locale = useLocale();
@@ -76,11 +86,12 @@ export function HeroCarousel({ slides, secondaryHref }: HeroCarouselProps) {
   const content = homeContent[locale].hero;
   const count = slides.length;
   const [index, setIndex] = useState(0);
-  const [seen, setSeen] = useState<ReadonlySet<number>>(() => new Set([0, 1]));
+  const [seen, setSeen] = useState<ReadonlySet<number>>(() => new Set([0]));
   const [playing, setPlaying] = useState(true);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const hidden = useDocumentHidden();
+  const pageLoaded = usePageLoaded();
   const isClient = useIsClient();
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const [changed, setChanged] = useState(false);
@@ -147,11 +158,12 @@ export function HeroCarousel({ slides, secondaryHref }: HeroCarouselProps) {
     const start = pointerStart.current;
     pointerStart.current = null;
     if (!start || count < 2) return;
-    const dx = event.clientX - start.x;
-    const dy = event.clientY - start.y;
-    if (Math.abs(dx) < SWIPE_DISTANCE || Math.abs(dx) < Math.abs(dy)) return;
-    const towardStart = isRtl(event.currentTarget) ? dx > 0 : dx < 0;
-    step(towardStart ? 1 : -1);
+    const direction = swipeStep(
+      event.currentTarget,
+      event.clientX - start.x,
+      event.clientY - start.y,
+    );
+    if (direction) step(direction);
   };
 
   const onBlur = (event: FocusEvent<HTMLElement>) => {
@@ -161,6 +173,7 @@ export function HeroCarousel({ slides, secondaryHref }: HeroCarouselProps) {
   if (count === 0) return null;
 
   const active = slides[index] ?? slides[0];
+  const upcoming = (index + 1) % count;
   const total = formatNumber(locale, count);
   const dark = active?.tone === "dark";
   const pad = (value: number) => formatNumber(locale, value, { minimumIntegerDigits: 2 });
@@ -168,7 +181,7 @@ export function HeroCarousel({ slides, secondaryHref }: HeroCarouselProps) {
   return (
     <section
       role="region"
-      aria-roledescription="carousel"
+      aria-roledescription={ui.carouselRole}
       aria-label={content.label}
       tabIndex={0}
       onKeyDown={onKeyDown}
@@ -193,7 +206,7 @@ export function HeroCarousel({ slides, secondaryHref }: HeroCarouselProps) {
             <div
               key={slide.id}
               role="group"
-              aria-roledescription="slide"
+              aria-roledescription={ui.carouselSlideRole}
               aria-label={fill(ui.carouselSlide, {
                 current: formatNumber(locale, slideIndex + 1),
                 total,
@@ -214,7 +227,9 @@ export function HeroCarousel({ slides, secondaryHref }: HeroCarouselProps) {
                   reduceMotion && "scale-100 transition-none",
                 )}
               >
-                {seen.has(slideIndex) && <HeroImage slide={slide} priority={slideIndex === 0} />}
+                {(seen.has(slideIndex) || (pageLoaded && slideIndex === upcoming)) && (
+                  <HeroImage slide={slide} priority={slideIndex === 0} />
+                )}
               </div>
               <HeroOverlay tone={slide.tone} />
               {isActive && (

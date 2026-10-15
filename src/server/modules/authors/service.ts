@@ -6,19 +6,21 @@ import type { z } from "zod";
 import { routes } from "@/lib/routes";
 import { getDb } from "@/server/db/client";
 import { authors } from "@/server/db/schema";
+import { cacheTags } from "@/server/lib/cache-tags";
 import { guardDelete, guardWrite } from "@/server/lib/db-errors";
 import { notFound, orNotFound } from "@/server/lib/http-error";
-import { revalidatePages, revalidateRoutes } from "@/server/lib/revalidate";
+import { revalidateContent } from "@/server/lib/revalidate";
+import { assertLibraryMedia } from "@/server/modules/media/service";
 import { authorsAdmin } from "@/services/admin/content";
 
 import type { authorInputSchema, authorPatchSchema } from "./schema";
 
 const revalidateAuthor = (slugs: string[]) => {
-  revalidatePages([routes.blog, ...slugs.map((slug) => routes.author(slug))]);
-  revalidateRoutes(["/blog/[slug]"]);
+  revalidateContent([cacheTags.posts], [routes.blog, ...slugs.map((slug) => routes.author(slug))]);
 };
 
 export const createAuthor = async (input: z.output<typeof authorInputSchema>) => {
+  await assertLibraryMedia({ avatarMediaId: input.avatarMediaId });
   const [row] = await guardWrite(() => getDb().insert(authors).values(input).returning());
   if (!row) throw new Error("Author insert failed");
   revalidateAuthor([row.slug]);
@@ -27,6 +29,7 @@ export const createAuthor = async (input: z.output<typeof authorInputSchema>) =>
 
 export const updateAuthor = async (id: string, patch: z.output<typeof authorPatchSchema>) => {
   const before = orNotFound(await authorsAdmin.get(id), "Author not found");
+  await assertLibraryMedia({ avatarMediaId: patch.avatarMediaId });
   const [row] = await guardWrite(() =>
     getDb().update(authors).set(patch).where(eq(authors.id, id)).returning(),
   );

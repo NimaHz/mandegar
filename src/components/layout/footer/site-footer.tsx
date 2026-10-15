@@ -11,6 +11,7 @@ import { getDictionary } from "@/i18n/get-dictionary";
 import { localizePath } from "@/i18n/paths";
 import { currentJalaliYear } from "@/lib/dates";
 import { formatNumber } from "@/lib/format";
+import { phoneHref } from "@/lib/phone";
 import { routes } from "@/lib/routes";
 import { api } from "@/services";
 
@@ -99,7 +100,7 @@ export async function SiteFooter({ locale }: { locale: Locale }) {
                     <Phone className="size-4 shrink-0 text-primary" aria-hidden />
                     <span className="text-muted">{phone.label}</span>
                     <a
-                      href={`tel:${phone.value.replace(/\s/g, "")}`}
+                      href={phoneHref(phone.value)}
                       className="font-semibold text-ink hover:text-primary"
                     >
                       <bdi dir="ltr">{phone.value}</bdi>

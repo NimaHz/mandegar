@@ -3,7 +3,7 @@ import { useSyncExternalStore } from "react";
 import { useCompareStore } from "./compare";
 import { useRecentlyViewedStore } from "./recently-viewed";
 
-export const persistedStores = [useCompareStore, useRecentlyViewedStore] as const;
+const persistedStores = [useCompareStore, useRecentlyViewedStore] as const;
 
 export const rehydratePersistedStores = () =>
   Promise.all(persistedStores.map((store) => store.persist.rehydrate()));

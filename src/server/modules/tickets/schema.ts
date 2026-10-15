@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { normalizeFa } from "@/lib/persian";
+import { todayIsoDate } from "@/lib/dates";
 import {
   emailSchema,
   listQuerySchema,
@@ -15,20 +15,6 @@ import {
 import { adminSorts } from "@/types/admin";
 import { ticketPriorities, ticketStatuses, ticketTypes } from "@/types/support";
 
-export const TICKET_ATTACHMENT_LIMIT = 5;
-export const TICKET_ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
-export const ticketAttachmentTypes = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "application/pdf",
-] as const;
-
-const GAS_SMELL = /بو(ی)?\s*گاز|gas\s*(smell|leak)|smell(s|ing)?\s+(of\s+)?gas/i;
-
-export const mentionsGasSmell = (text: string) =>
-  GAS_SMELL.test(normalizeFa(text).replace(/‌/g, " "));
-
 export const ticketFieldsSchema = z.object({
   type: z.enum(ticketTypes),
   name: z.string().trim().min(2).max(80),
@@ -39,7 +25,9 @@ export const ticketFieldsSchema = z.object({
   address: z.string().trim().min(5).max(300),
   warrantyCode: optionalText(z.string().trim().max(24)),
   productSlug: optionalText(slugSchema),
-  purchaseDate: optionalText(z.iso.date()),
+  purchaseDate: optionalText(
+    z.iso.date().refine((value) => value <= todayIsoDate(), "Purchase date is in the future"),
+  ),
   subject: z.string().trim().min(3).max(120),
   description: z.string().trim().min(10).max(3000),
 });
@@ -97,4 +85,11 @@ export const staffMessageSchema = z.object({
     z.boolean(),
     z.enum(["true", "false"]).transform((value) => value === "true"),
   ]),
+});
+
+export const ticketAttachmentParamsSchema = z.object({ id: z.uuid(), mediaId: z.uuid() });
+
+export const ticketAttachmentLinkSchema = z.object({
+  expires: z.coerce.number().int().positive(),
+  signature: z.string().max(100),
 });

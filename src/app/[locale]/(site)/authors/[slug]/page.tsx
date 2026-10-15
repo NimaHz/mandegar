@@ -19,6 +19,8 @@ import { api } from "@/services";
 
 export const revalidate = 3600;
 
+const FIRST_ROW = 3;
+
 export async function generateStaticParams() {
   const slugs = await api.content.authorSlugs();
   return slugs.map((slug) => ({ slug }));
@@ -80,9 +82,9 @@ export default async function AuthorPage({ params }: PageProps<"/[locale]/author
             {fill(content.authorPosts, { name: author.name })}
           </h2>
           <RevealGroup className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {posts.map((post) => (
+            {posts.map((post, index) => (
               <RevealItem key={post.slug} className="min-w-0">
-                <PostCard post={post} locale={locale} />
+                <PostCard post={post} locale={locale} priority={index < FIRST_ROW} />
               </RevealItem>
             ))}
           </RevealGroup>

@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 
 import type { Locale } from "@/i18n/config";
-import { formatNumber } from "@/lib/format";
+import { formatBytes } from "@/lib/format";
 import type { DownloadKind, ProductDownload } from "@/types/catalog";
 
 import { productContent } from "../content";
@@ -30,11 +30,6 @@ const extensionOf = (mime: string, href: string) =>
 
 export function ProductDownloads({ downloads, locale }: ProductDownloadsProps) {
   const { downloads: content } = productContent[locale];
-
-  const formatSize = (bytes: number) =>
-    bytes >= 1024 * 1024
-      ? `${formatNumber(locale, bytes / (1024 * 1024), { maximumFractionDigits: 1 })} ${content.units.mb}`
-      : `${formatNumber(locale, Math.max(1, Math.round(bytes / 1024)))} ${content.units.kb}`;
 
   return (
     <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -58,7 +53,7 @@ export function ProductDownloads({ downloads, locale }: ProductDownloadsProps) {
                   <bdi dir="ltr" className="font-code">
                     {extensionOf(download.file.mime, download.file.href)}
                   </bdi>{" "}
-                  · {formatSize(download.file.size)}
+                  · {formatBytes(locale, download.file.size)}
                 </span>
               </span>
               <span

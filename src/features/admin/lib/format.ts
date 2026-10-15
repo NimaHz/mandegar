@@ -1,34 +1,18 @@
 import { fill } from "@/i18n/fill";
-import { formatNumber } from "@/lib/format";
+import { formatBytes, formatClock, formatNumber } from "@/lib/format";
 
 export const faNumber = (value: number) => formatNumber("fa", value);
 
-const UNITS = ["byte", "kilobyte", "megabyte", "gigabyte"] as const;
+export const faBytes = (bytes: number) => formatBytes("fa", bytes);
 
-export const formatBytes = (bytes: number) => {
-  const index = Math.min(
-    UNITS.length - 1,
-    Math.max(0, Math.floor(Math.log(Math.max(bytes, 1)) / Math.log(1024))),
-  );
-  const value = bytes / 1024 ** index;
-  return formatNumber("fa", value, {
-    style: "unit",
-    unit: UNITS[index],
-    unitDisplay: "long",
-    maximumFractionDigits: index === 0 ? 0 : 1,
-  });
-};
+export const CLOCK_PATTERN = /^(?:\d{1,2}:[0-5]\d|\d{1,3}):[0-5]\d$/;
 
-export const formatClock = (totalSec: number) => {
-  const safe = Math.max(0, Math.round(totalSec));
-  const minutes = Math.floor(safe / 60);
-  const seconds = safe % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-};
+export const clockValue = (totalSec: number) => formatClock("en", totalSec);
 
 export const parseClock = (value: string) => {
-  const match = /^(\d{1,3}):([0-5]\d)$/.exec(value.trim());
-  return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+  const clock = value.trim();
+  if (!CLOCK_PATTERN.test(clock)) return null;
+  return clock.split(":").reduce((total, part) => total * 60 + Number(part), 0);
 };
 
 const HOUR = 3_600_000;

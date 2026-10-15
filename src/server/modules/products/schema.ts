@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   iconSchema,
   listQuerySchema,
+  localeSchema,
   localizedSeoSchema,
   localizedText,
   optionalFilter,
@@ -117,4 +118,17 @@ export const productsQuerySchema = listQuerySchema.extend({
   sort: sortSchema(adminSorts.products),
 });
 
-export type ProductInput = z.input<typeof productInputSchema>;
+export const PRODUCT_LOOKUP_LIMIT = 12;
+
+export const productLookupQuerySchema = z.object({
+  slugs: z
+    .string()
+    .max(1200)
+    .catch("")
+    .transform((value) =>
+      [...new Set(value.split(",").map((slug) => slug.trim().toLowerCase()))]
+        .filter(Boolean)
+        .slice(0, PRODUCT_LOOKUP_LIMIT),
+    ),
+  locale: localeSchema,
+});

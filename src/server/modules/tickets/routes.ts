@@ -8,8 +8,11 @@ import { auth } from "@/server/plugins/auth";
 import { rateLimiter } from "@/server/plugins/rate-limit";
 import { ticketsAdmin } from "@/services/admin/tickets";
 
+import { serveCustomerAttachment, serveStaffAttachment } from "./attachments";
 import {
   staffMessageSchema,
+  ticketAttachmentLinkSchema,
+  ticketAttachmentParamsSchema,
   ticketFieldsSchema,
   ticketProofSchema,
   ticketReplySchema,
@@ -21,7 +24,7 @@ import { createTicket, replyAsCustomer, replyAsStaff, trackTicket, updateTicket 
 
 const text = (maxLength: number) => t.Optional(t.String({ maxLength }));
 
-const attachments = t.Optional(t.Files({ maxItems: 5, maxSize: "5m" }));
+const attachments = t.Optional(t.Files());
 
 const filesOf = (value: File | File[] | undefined) => (value ? [value].flat() : []);
 
@@ -65,6 +68,10 @@ export const ticketRoutes = new Elysia({ prefix: "/tickets" })
   .post("/track", ({ body, clientKey }) => trackTicket(body.locale, body, clientKey), {
     body: ticketTrackSchema,
   })
+  .get("/attachments/:id", ({ params, query }) => serveCustomerAttachment(params.id, query), {
+    params: idParamsSchema,
+    query: ticketAttachmentLinkSchema,
+  })
   .post(
     "/:trackingCode/messages",
     ({ body, params, clientKey }) => {
@@ -99,6 +106,11 @@ export const ticketAdminRoutes = new Elysia({ prefix: "/admin/tickets" })
     can: "tickets:read",
     params: idParamsSchema,
   })
+  .get(
+    "/:id/attachments/:mediaId",
+    ({ params }) => serveStaffAttachment(params.id, params.mediaId),
+    { can: "tickets:read", params: ticketAttachmentParamsSchema },
+  )
   .patch("/:id", ({ actor, params, body }) => updateTicket(actor, params.id, body), {
     can: "tickets:write",
     params: idParamsSchema,

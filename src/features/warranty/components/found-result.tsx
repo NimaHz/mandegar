@@ -38,13 +38,13 @@ const statusMeta: Record<
   WarrantyCodeStatus,
   { icon: LucideIcon; tone: "success" | "danger" | "warning"; tile: string }
 > = {
-  active: { icon: ShieldCheck, tone: "success", tile: "bg-success text-white" },
-  revoked: { icon: ShieldX, tone: "danger", tile: "bg-danger text-white" },
+  active: { icon: ShieldCheck, tone: "success", tile: "bg-success text-white dark:text-night" },
+  revoked: { icon: ShieldX, tone: "danger", tile: "bg-danger text-white dark:text-night" },
   recalled: { icon: ShieldAlert, tone: "warning", tile: "bg-warning text-white dark:text-night" },
 };
 
 const productionYearLabel = (locale: Locale, year: number) =>
-  `${formatNumber(locale, year, { useGrouping: false })} (${jalaliToGregorianYear(year)})`;
+  `${formatNumber(locale, year, { useGrouping: false })} (${formatNumber(locale, jalaliToGregorianYear(year), { useGrouping: false })})`;
 
 export function FoundResult({ match, locale, content, headingId }: FoundResultProps) {
   const { result } = content;
@@ -125,19 +125,20 @@ export function FoundResult({ match, locale, content, headingId }: FoundResultPr
         <div className="flex flex-col gap-5">
           <Link
             href={productHref}
-            className="group relative grid aspect-[4/3] place-items-center overflow-hidden rounded-card border border-line bg-sunken"
+            className="group relative block aspect-[4/3] overflow-hidden rounded-card border border-line bg-sunken"
           >
             {product.image ? (
               <Image
                 src={product.image.src}
                 alt={product.image.alt}
-                width={product.image.width}
-                height={product.image.height}
+                fill
                 sizes="(min-width: 1024px) 26rem, 90vw"
-                className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
               />
             ) : (
-              <Wrench className="size-12 text-subtle" aria-hidden />
+              <span className="grid size-full place-items-center">
+                <Wrench className="size-12 text-subtle" aria-hidden />
+              </span>
             )}
           </Link>
           <div className="flex flex-col gap-1">

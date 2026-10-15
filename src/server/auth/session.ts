@@ -1,11 +1,11 @@
 import "server-only";
 
 import type { Route } from "next";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
-import { adminRoutes } from "@/lib/routes";
+import { adminPathHeader, adminRoutes } from "@/lib/routes";
 import type { AdminIdentity, Permission } from "@/types/admin";
 
 import { sessionCookieName } from "./cookie";
@@ -23,9 +23,14 @@ export const getAdmin = cache(async (): Promise<AdminIdentity | null> => {
   return result ? toIdentity(result.user) : null;
 });
 
+const loginPath = async () => {
+  const path = (await headers()).get(adminPathHeader);
+  return path ? adminRoutes.loginFrom(path) : adminRoutes.login;
+};
+
 export const requireAdmin = async (permission?: Permission): Promise<AdminContext> => {
   const user = await getAdmin();
-  if (!user) redirect(adminRoutes.login as Route);
+  if (!user) redirect((await loginPath()) as Route);
   if (permission && user.mustChangePassword) redirect(adminRoutes.account as Route);
   if (permission && !user.permissions.includes(permission)) notFound();
   return { user, permissions: user.permissions };

@@ -22,7 +22,7 @@ export function Select({ options, placeholder, icon: Icon, className, ...props }
       )}
       <select
         className={cn(
-          "h-11 w-full appearance-none rounded-control border border-line-strong bg-raised pe-9 text-sm font-semibold text-ink transition-[border-color,box-shadow] duration-200 outline-none hover:border-ink/60 focus:border-primary focus:ring-3 focus:ring-primary/15",
+          "h-11 w-full appearance-none rounded-control border border-line-strong bg-raised pe-9 text-sm font-semibold text-ellipsis text-ink transition-[border-color,box-shadow] duration-200 outline-none hover:border-ink/60 focus:border-primary focus:ring-3 focus:ring-primary/15",
           Icon ? "ps-10" : "ps-3.5",
           className,
         )}

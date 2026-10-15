@@ -8,7 +8,7 @@ import {
   ilike,
   inArray,
   lte,
-  notInArray,
+  ne,
   or,
   type SQL,
   sql,
@@ -28,7 +28,9 @@ import type {
   CategoryDetail,
   CategorySummary,
   FacetCount,
+  ModelOption,
   ProductDetail,
+  ProductInsight,
   ProductListItem,
   ProductSort,
   ProductsQuery,
@@ -54,6 +56,8 @@ import {
 
 const PAGE_SIZE = 12;
 const COMPARE_LIMIT = 4;
+const CATEGORY_MEMBERS = 48;
+const LOOKUP_LIMIT = 12;
 
 const visibleProduct = and(
   eq(products.status, "published"),
@@ -82,9 +86,14 @@ const countProducts = async (where: SQL | undefined) => {
 
 const publishedFirst = sql`${products.publishedAt} desc nulls last`;
 
+const collatedName: Record<Locale, SQL> = {
+  fa: sql`(${products.name}->>'fa') collate "fa-x-icu"`,
+  en: sql`(${products.name}->>'en') collate "en-x-icu"`,
+};
+
 const sortOrders = (sort: ProductSort, locale: Locale): SQL[] => {
   if (sort === "newest") return [publishedFirst, desc(products.createdAt)];
-  if (sort === "name") return [sql`${products.name}->>${locale} asc`, asc(products.modelCode)];
+  if (sort === "name") return [asc(collatedName[locale]), asc(products.modelCode)];
   return [desc(products.featured), publishedFirst, asc(products.modelCode)];
 };
 
@@ -167,17 +176,14 @@ const publishedCategories = () =>
 
 type CategoryRow = Awaited<ReturnType<typeof publishedCategories>>[number];
 
-const categoryIdsFor = (rows: CategoryRow[], slug: string) => {
-  const root = rows.find((row) => row.slug === normalizeSlug(slug));
-  if (!root) return [];
-  return [root.id, ...rows.filter((row) => row.parentId === root.id).map((row) => row.id)];
+const inCategory = (slug: string) => {
+  const key = normalizeSlug(slug);
+  const root = getDb()
+    .select({ id: categories.id })
+    .from(categories)
+    .where(and(eq(categories.slug, key), eq(categories.published, true)));
+  return or(eq(categories.slug, key), inArray(categories.parentId, root));
 };
-
-const resolveCategoryIds = async (slug: string) =>
-  categoryIdsFor(await publishedCategories(), slug);
-
-const categoryCondition = (ids: string[]) =>
-  ids.length > 0 ? inArray(products.categoryId, ids) : sql`false`;
 
 const productCounts = async () => {
   const rows = await getDb()
@@ -350,28 +356,96 @@ const loadProduct = async (locale: Locale, slug: string) => {
 };
 
 const relatedProducts = async (locale: Locale, slug: string, limit: number) => {
-  const [source] = await getDb()
-    .select({ id: products.id, categoryId: products.categoryId, relatedIds: products.relatedIds })
+  if (limit === 0) return [];
+  const source = getDb()
+    .select({
+      sourceId: products.id,
+      sourceCategoryId: products.categoryId,
+      relatedIds: products.relatedIds,
+    })
     .from(products)
-    .where(eq(products.slug, normalizeSlug(slug)));
-  if (!source || limit === 0) return [];
-  const chosen = source.relatedIds.length
-    ? (await productScope(inArray(products.id, source.relatedIds))).map((row) => row.id)
-    : [];
-  const picked = source.relatedIds.filter((id) => chosen.includes(id)).slice(0, limit);
-  const fillers =
-    picked.length < limit
-      ? await productScope(
-          and(
-            eq(products.categoryId, source.categoryId),
-            notInArray(products.id, [source.id, ...picked]),
-          ),
-        )
-          .orderBy(desc(products.featured), publishedFirst)
-          .limit(limit - picked.length)
-      : [];
-  return hydrateList(locale, [...picked, ...fillers.map((row) => row.id)]);
+    .where(eq(products.slug, normalizeSlug(slug)))
+    .as("source");
+  const rows = await productScope(
+    and(
+      ne(products.id, source.sourceId),
+      or(
+        sql`${products.id} = any(${source.relatedIds})`,
+        eq(products.categoryId, source.sourceCategoryId),
+      ),
+    ),
+  )
+    .innerJoin(source, sql`true`)
+    .orderBy(
+      sql`array_position(${source.relatedIds}, ${products.id}) nulls last`,
+      desc(products.featured),
+      publishedFirst,
+    )
+    .limit(limit);
+  return hydrateList(
+    locale,
+    rows.map((row) => row.id),
+  );
 };
+
+const toInsight = (row: InsightRow, locale: Locale): ProductInsight => ({
+  slug: row.slug,
+  name: pick(row.name, locale),
+  modelCode: row.modelCode,
+  warrantyMonths: row.warrantyMonths,
+  keyFacts: row.keyFacts.map((fact) => ({
+    label: pick(fact.label, locale),
+    value: pick(fact.value, locale),
+  })),
+  faqs: row.faqs.map((faq) => ({
+    question: pick(faq.question, locale),
+    answer: pick(faq.answer, locale),
+  })),
+});
+
+const insightRows = (locale: Locale, slug: string) =>
+  getDb()
+    .select({
+      slug: products.slug,
+      name: products.name,
+      modelCode: products.modelCode,
+      warrantyMonths: products.warrantyMonths,
+      keyFacts: products.keyFacts,
+      faqs: products.faqs,
+    })
+    .from(products)
+    .innerJoin(categories, eq(categories.id, products.categoryId))
+    .innerJoin(brands, eq(brands.id, products.brandId))
+    .where(and(visibleProduct, inCategory(slug)))
+    .orderBy(...sortOrders("featured", locale))
+    .limit(CATEGORY_MEMBERS);
+
+type InsightRow = Awaited<ReturnType<typeof insightRows>>[number];
+
+const modelOptions = async (locale: Locale): Promise<ModelOption[]> => {
+  const rows = await getDb()
+    .select({
+      slug: products.slug,
+      name: products.name,
+      modelCode: products.modelCode,
+      category: categories.name,
+    })
+    .from(products)
+    .innerJoin(categories, eq(categories.id, products.categoryId))
+    .innerJoin(brands, eq(brands.id, products.brandId))
+    .where(visibleProduct);
+  return rows
+    .map((row) => ({
+      slug: row.slug,
+      name: pick(row.name, locale),
+      modelCode: row.modelCode,
+      category: pick(row.category, locale),
+    }))
+    .toSorted((left, right) => left.modelCode.localeCompare(right.modelCode));
+};
+
+export const compareSlugs = (slugs: readonly string[]) =>
+  [...new Set(slugs.map(normalizeSlug))].slice(0, COMPARE_LIMIT);
 
 const searchProducts = async (locale: Locale, key: string, limit: number) => {
   const rows = await productScope(matchesQuery(key))
@@ -481,24 +555,19 @@ export const catalogService: CatalogService = {
   },
   categorySlugs: async () => (await publishedCategories()).map((row) => row.slug),
   products: async (locale, query: ProductsQuery) => {
-    const categoryIds = query.category ? await resolveCategoryIds(query.category) : null;
     const where = and(
       matchesQuery(query.q),
-      categoryIds ? categoryCondition(categoryIds) : undefined,
+      query.category ? inCategory(query.category) : undefined,
       query.brand ? eq(brands.slug, normalizeSlug(query.brand)) : undefined,
       query.energy ? eq(products.energyClass, query.energy) : undefined,
     );
-    const total = await countProducts(where);
+    const page = clampPage(query.page);
+    const pageOf = (target: number) =>
+      listProducts(locale, where, query.sort, PAGE_SIZE, offsetOf(target, PAGE_SIZE));
+    const [total, items] = await Promise.all([countProducts(where), pageOf(page)]);
     const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
-    const page = Math.min(clampPage(query.page), pageCount);
-    const items = await listProducts(
-      locale,
-      where,
-      query.sort,
-      PAGE_SIZE,
-      offsetOf(page, PAGE_SIZE),
-    );
-    return toPaginated(items, total, page, PAGE_SIZE);
+    if (page <= pageCount) return toPaginated(items, total, page, PAGE_SIZE);
+    return toPaginated(await pageOf(pageCount), total, pageCount, PAGE_SIZE);
   },
   facets: async (locale) => {
     const [categoryRows, brandRows, counts] = await Promise.all([
@@ -531,18 +600,28 @@ export const catalogService: CatalogService = {
   byCategory: async (locale, categorySlug, limit) =>
     listProducts(
       locale,
-      categoryCondition(await resolveCategoryIds(categorySlug)),
+      inCategory(categorySlug),
       "featured",
-      clampLimit(limit, 48, 200),
+      clampLimit(limit, CATEGORY_MEMBERS, 200),
     ),
+  categoryInsights: async (locale, categorySlug) =>
+    (await insightRows(locale, categorySlug)).map((row) => toInsight(row, locale)),
+  models: modelOptions,
+  bySlugs: async (locale, slugs) => {
+    const unique = [...new Set(slugs.map(normalizeSlug))].slice(0, LOOKUP_LIMIT);
+    if (unique.length === 0) return [];
+    const rows = await productScope(inArray(products.slug, unique));
+    return hydrateList(
+      locale,
+      rows.map((row) => row.id),
+    );
+  },
   byBrand: async (locale, brandSlug) =>
     listProducts(locale, eq(brands.slug, normalizeSlug(brandSlug)), "featured", 200),
   product: loadProduct,
-  related: async (locale, product, limit) =>
-    relatedProducts(locale, product.slug, clampLimit(limit, 4, 12)),
+  related: async (locale, slug, limit) => relatedProducts(locale, slug, clampLimit(limit, 4, 12)),
   compare: async (locale, slugs) => {
-    const unique = [...new Set(slugs.map(normalizeSlug))].slice(0, COMPARE_LIMIT);
-    const details = await Promise.all(unique.map((slug) => loadProduct(locale, slug)));
+    const details = await Promise.all(compareSlugs(slugs).map((slug) => loadProduct(locale, slug)));
     return details.filter((detail): detail is ProductDetail => detail !== null);
   },
   productSlugs: async () => {

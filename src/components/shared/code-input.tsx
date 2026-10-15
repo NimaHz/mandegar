@@ -82,7 +82,7 @@ type Tone = "idle" | "progress" | "valid" | "warning" | "danger";
 const toneFor = (inspection: CodeInspection, reveal: boolean): Tone => {
   if (inspection.valid) return "valid";
   if (inspection.issue === "prefix") return "danger";
-  if (inspection.issue === "check") return "warning";
+  if (inspection.issue === "check") return reveal ? "danger" : "warning";
   if (inspection.issue === "length" && (reveal || inspection.code.length > inspection.expected))
     return "danger";
   if (inspection.issue === "empty") return reveal ? "danger" : "idle";
@@ -224,7 +224,7 @@ export function CodeInput({
           aria-invalid={tone === "danger" || undefined}
           aria-describedby={messageId}
           className={cn(
-            "w-full rounded-field border bg-raised ps-4 pe-12 font-code font-semibold tracking-[0.18em] text-ink uppercase shadow-field transition-[border-color,box-shadow] duration-200 outline-none placeholder:tracking-[0.18em] placeholder:text-subtle focus:ring-4",
+            "w-full rounded-field border bg-raised ps-4 pe-12 font-code font-semibold tracking-[0.18em] text-ink uppercase shadow-field transition-[border-color,box-shadow] duration-200 outline-none placeholder:tracking-[0.18em] focus:ring-4",
             size === "lg" ? "h-15 text-xl sm:h-16 sm:text-2xl" : "h-12 text-lg",
             tone === "valid" && "border-success focus:ring-success/15",
             tone === "warning" && "border-warning focus:ring-warning/15",

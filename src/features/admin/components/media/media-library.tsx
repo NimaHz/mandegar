@@ -16,7 +16,7 @@ import type { AdminMedia, MediaKind } from "@/types/admin";
 import type { Paginated } from "@/types/common";
 
 import { adminContent } from "../../content";
-import { faNumber, formatBytes } from "../../lib/format";
+import { faBytes, faNumber } from "../../lib/format";
 import { sortOptions } from "../../lib/options";
 import { acceptFor, uploadMedia } from "../../lib/upload";
 import { notifyError } from "../../lib/use-admin-mutation";
@@ -236,7 +236,7 @@ export function MediaLibrary({
                         {item.alt.fa || item.originalName || item.storageKey}
                       </span>
                       <span className="text-caption text-muted">
-                        {formatBytes(item.size)}
+                        {faBytes(item.size)}
                         {item.width && item.height
                           ? ` · ${faNumber(item.width)}×${faNumber(item.height)}`
                           : ""}

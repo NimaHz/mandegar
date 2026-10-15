@@ -36,31 +36,31 @@ How Mandegar is described to search engines, answer engines and LLM crawlers. Ev
 | `src/app/sitemap.xml/route.ts`, `src/app/sitemaps/[name]/route.ts` | Sitemap index and per-type sitemaps                                                                                                                                                              |
 | `src/app/robots.ts`                                                | robots.txt                                                                                                                                                                                       |
 | `src/lib/seo/llms.ts`, `src/app/llms.txt`, `src/app/llms-full.txt` | LLM-oriented summaries                                                                                                                                                                           |
-| `src/server/lib/indexnow.ts`                                       | IndexNow ping, called from `revalidatePages()` in `src/server/lib/revalidate.ts`                                                                                                                 |
+| `src/server/lib/indexnow.ts`                                       | IndexNow ping, called from `revalidateContent()` in `src/server/lib/revalidate.ts`                                                                                                               |
 | `scripts/validate-jsonld.mjs`                                      | Validator for JSON-LD, metadata and the SEO endpoints                                                                                                                                            |
 
 ## `@id` scheme
 
-| Node                         | `@id`                                                                      |
-| ---------------------------- | -------------------------------------------------------------------------- |
-| Organization                 | `${site}/#organization`                                                    |
-| Own brand (Mandegar)         | `${site}/#brand`                                                           |
-| Logo                         | `${site}/#logo`                                                            |
-| WebSite                      | `${home}#website` (`${site}/#website` for fa, `${site}/en#website` for en) |
-| Warranty service             | `${site}/#warranty-service`                                                |
-| After-sales service          | `${site}/#after-sales-service`                                             |
-| Any page                     | `${url}#webpage`                                                           |
-| Breadcrumb                   | `${url}#breadcrumb`                                                        |
-| Product                      | `${productUrl}#product`                                                    |
-| Partner brand                | `${brandUrl}#brand`                                                        |
-| Item list                    | `${url}#itemlist`                                                          |
-| FAQ block                    | `${url}#faq`                                                               |
-| Guide article, how-to, video | `${guideUrl}#article`, `#howto`, `#video`                                  |
-| Blog                         | `${blogUrl}#blog`                                                          |
-| Post                         | `${postUrl}#article`                                                       |
-| Author                       | `${authorUrl}#person`                                                      |
-| Service centre               | `${serviceCentersUrl}#center-${slug}`                                      |
-| Glossary                     | `${glossaryUrl}#glossary`                                                  |
+| Node                         | `@id`                                                                                                                                                                                |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Organization                 | `${site}/#organization`                                                                                                                                                              |
+| Own brand (Mandegar)         | `${site}/#brand`                                                                                                                                                                     |
+| Logo                         | `${site}/#logo`                                                                                                                                                                      |
+| WebSite                      | `${home}#website` (`${site}/#website` for fa, `${site}/en#website` for en)                                                                                                           |
+| Warranty service             | `${site}/#warranty-service`                                                                                                                                                          |
+| After-sales service          | `${site}/#after-sales-service`                                                                                                                                                       |
+| Any page                     | `${url}#webpage`                                                                                                                                                                     |
+| Breadcrumb                   | `${url}#breadcrumb`                                                                                                                                                                  |
+| Product                      | ItemPage, Product (specs and warranty as `additionalProperty` with UN/CEFACT `unitCode`, `isRelatedTo`, `subjectOf` the guide TechArticle), BreadcrumbList, FAQPage for product FAQs |
+| Partner brand                | `${brandUrl}#brand`                                                                                                                                                                  |
+| Item list                    | `${url}#itemlist`                                                                                                                                                                    |
+| FAQ block                    | `${url}#faq`                                                                                                                                                                         |
+| Guide article, how-to, video | `${guideUrl}#article`, `#howto`, `#video`                                                                                                                                            |
+| Blog                         | `${blogUrl}#blog`                                                                                                                                                                    |
+| Post                         | `${postUrl}#article`                                                                                                                                                                 |
+| Author                       | `${authorUrl}#person`                                                                                                                                                                |
+| Service centre               | `${serviceCentersUrl}#center-${slug}`                                                                                                                                                |
+| Glossary                     | `${glossaryUrl}#glossary`                                                                                                                                                            |
 
 `site` is `NEXT_PUBLIC_SITE_URL`. References to nodes that are not in the page graph are written as small inline definitions (type, name, url), so every reference resolves inside the page.
 
@@ -72,13 +72,13 @@ How Mandegar is described to search engines, answer engines and LLM crawlers. Ev
 | Products        | CollectionPage, ItemList                                                                                                                                                                      |
 | Category        | CollectionPage, ItemList, BreadcrumbList, FAQPage for the visible "how to choose" answers                                                                                                     |
 | Product         | ItemPage, Product (specs and warranty as `additionalProperty` with UN/CEFACT `unitCode`, `isRelatedTo`, `subjectOf` the guide), after-sales Service, BreadcrumbList, FAQPage for product FAQs |
-| Brands, brand   | CollectionPage, Brand, ItemList                                                                                                                                                               |
+| Brands, brand   | CollectionPage `about` the Brand (Mandegar points at the site-wide `/#brand`), ItemList                                                                                                       |
 | Compare         | none (`noindex`)                                                                                                                                                                              |
 | Warranty        | WebPage, warranty Service, FAQPage for warranty FAQs                                                                                                                                          |
 | Support         | WebPage, after-sales Service                                                                                                                                                                  |
 | Guides          | CollectionPage, ItemList                                                                                                                                                                      |
-| Guide           | WebPage, TechArticle, HowTo (steps, tools), VideoObject with `Clip` chapters when a video exists, BreadcrumbList                                                                              |
-| Service centres | CollectionPage, ItemList of LocalBusiness (service) and Store (dealer) with address, phone, geo, hours, `parentOrganization`                                                                  |
+| Guide           | WebPage, TechArticle, HowTo (steps, tools), VideoObject when a video exists (`Clip` chapters with `?t=` links for uploaded videos), BreadcrumbList                                            |
+| Service centres | CollectionPage, ItemList of LocalBusiness (service) and Store (dealer) with address, phone, geo, `openingHoursSpecification`, `parentOrganization`                                            |
 | Blog            | CollectionPage, Blog                                                                                                                                                                          |
 | Post            | WebPage, BlogPosting (author Person, publisher, dates, image, `about` the related products), BreadcrumbList                                                                                   |
 | Author          | ProfilePage, Person                                                                                                                                                                           |
@@ -89,10 +89,12 @@ How Mandegar is described to search engines, answer engines and LLM crawlers. Ev
 
 ## Metadata
 
-- `pageMetadata({ locale, path, title, description, og?, image?, type?, noindex? })`. Titles longer than 60 characters with the ` | ماندگار` suffix are emitted as absolute titles; descriptions are cut at 155 characters on a word boundary.
-- `noindex` pages: compare, track, offline, warranty results (`?code=`), filtered or sorted product and category listings, guides filtered by category, blog filtered by kind, and service centres filtered by province or kind. They keep `follow`. Blog pagination stays indexable with a self-referencing canonical.
+- `pageMetadata({ locale, path, title, description, og?, image?, type?, noindex? })`. Titles longer than 60 characters with the ` | ماندگار` suffix are emitted as absolute titles. Descriptions longer than 155 characters keep whole sentences when that fills most of the budget, otherwise they are cut on a word boundary. A blank title or description is left out, so the defaults from the admin SEO settings apply.
+- `noindex` pages: compare, track, offline, searched, filtered or sorted product and category listings (any `/products?category=`), guides filtered by category, blog filtered by kind, and service centres filtered by province or kind. They keep `follow` and point their canonical at the unfiltered listing. `/products?category=` points at the category page only when that published category exists, and its JSON-LD and OG image follow the same target.
+- Pagination of products, categories and the blog is indexable with a self-referencing canonical (`?page=N`). A page past the last one returns not found.
+- `notFound()` inside `[locale]` renders `[locale]/not-found.tsx`. Unmatched URLs render `global-not-found.tsx` in the visitor's locale, which the proxy passes in the `x-locale` request header. Both carry only the `noindex` robots tag that Next adds.
 - Warranty results (`?code=`) render no JSON-LD.
-- The root layout sets `metadataBase`, `applicationName`, `formatDetection`, icons, the manifest, `googleBot` snippet limits (`max-image-preview: large`, `max-snippet: -1`, `max-video-preview: -1`) and verification tags from `GOOGLE_SITE_VERIFICATION` and `BING_SITE_VERIFICATION` when they are set.
+- The root layout sets `metadataBase`, the default title and description from the admin SEO settings, `applicationName`, `formatDetection`, icons, the manifest, `googleBot` snippet limits (`max-image-preview: large`, `max-snippet: -1`, `max-video-preview: -1`) and verification tags from `GOOGLE_SITE_VERIFICATION` and `BING_SITE_VERIFICATION` when they are set.
 
 ## OG images
 
@@ -113,13 +115,13 @@ How Mandegar is described to search engines, answer engines and LLM crawlers. Ev
 ## Sitemaps
 
 - `/sitemap.xml` is an index of `/sitemaps/{pages,categories,products,brands,guides,posts,authors,service-centers}.xml`.
-- Each URL is listed once per locale with `xhtml:link` alternates for `fa-IR`, `en` and `x-default`. `lastmod` comes from `updatedAt` (listing pages use their newest item; static pages omit it).
+- Each URL is listed once per locale with `xhtml:link` alternates for `fa-IR`, `en` and `x-default`. `lastmod` comes from `updatedAt`: listing pages use their newest item; warranty, support, FAQ, contact, about, request and service-centre pages use their FAQs, warranty policies, settings or centres; terms, privacy and the glossary use `src/config/content-dates.ts`. Every URL and every index row carries one.
 - Products, categories, brands, guides, posts and authors carry `image:image`. Guides with a video carry `video:video` (thumbnail, title, description, `content_loc` for uploads or `player_loc` for Aparat, duration, publication date).
-- Everything is cached for an hour and revalidated by `revalidatePages()`/`revalidateSite()` after admin edits.
+- Everything is cached for an hour, and admin edits expire it through the cache tags in `revalidateContent()`.
 
 ## robots.txt
 
-Allows everything by default and names the search and AI crawlers explicitly (Googlebot, Bingbot, OAI-SearchBot, ChatGPT-User, GPTBot, Claude-SearchBot, Claude-User, ClaudeBot, PerplexityBot, Perplexity-User, Applebot, Applebot-Extended, Google-Extended, CCBot). Every group disallows `/admin`, `/api/`, `/w/`, track, compare and offline in both locales, and filter, sort, search, code and token parameters. Bytespider is blocked. The file lists the sitemap index and `Host`.
+Allows everything by default and names the search and AI crawlers explicitly (Googlebot, Bingbot, OAI-SearchBot, ChatGPT-User, GPTBot, Claude-SearchBot, Claude-User, ClaudeBot, PerplexityBot, Perplexity-User, Applebot, Applebot-Extended, Google-Extended, CCBot). Every group disallows only `/admin`, `/api/` and `/w/`. Utility, filtered and paginated pages stay crawlable so crawlers can read their `noindex` and canonical. Bytespider is blocked. The file lists the sitemap index and `Host`.
 
 ## llms.txt and llms-full.txt
 
@@ -140,7 +142,7 @@ node scripts/validate-jsonld.mjs /about /en/faq  # specific paths
 SITE_ORIGIN=https://mandegar.ir node scripts/validate-jsonld.mjs
 ```
 
-The script checks that each page has one JSON-LD block that parses, one `#webpage` node, resolvable `@id` references, required properties per type, absolute URLs, `+03:30` dates, ASCII digits and valid `inLanguage`; it spot-checks that names, headlines, questions, steps, list items and service centres appear in the visible text; and it checks the title and description length, canonical, `hreflang`, Open Graph and Twitter tags, that the OG image returns a PNG, and that `/sitemap.xml`, `/robots.txt`, `/llms.txt` and `/llms-full.txt` respond. It exits non-zero on any error.
+The script checks that each page has one JSON-LD block that parses, one `#webpage` node, resolvable `@id` references, required properties per type (typed references to other pages must carry a smaller stub set, and any other type its full set), absolute URLs, `+03:30` dates, ASCII digits and valid `inLanguage`; it spot-checks that names, headlines, questions, steps, list items and service centres appear in the visible text; and it checks the title and description length, canonical, `hreflang`, Open Graph and Twitter tags, that the OG image returns a PNG, and that `/sitemap.xml`, `/robots.txt`, `/llms.txt` and `/llms-full.txt` respond. It exits non-zero on any error.
 
 Also useful before launch: `xmllint --noout` on each sitemap, Google's Rich Results Test and the Schema Markup Validator on a product, a guide and a post, and URL inspection in Search Console and Bing Webmaster Tools.
 

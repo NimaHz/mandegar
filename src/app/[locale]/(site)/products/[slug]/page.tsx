@@ -31,7 +31,6 @@ import { api } from "@/services";
 export const revalidate = 3600;
 
 const RELATED_LIMIT = 8;
-const RECENT_CANDIDATES = 24;
 const TITLE_BUDGET = 48;
 
 export async function generateStaticParams() {
@@ -45,7 +44,7 @@ export async function generateMetadata({
   const locale = await getLocale();
   const { slug } = await params;
   const product = await api.catalog.product(locale, slug);
-  if (!product) return {};
+  if (!product) notFound();
   const image = product.image;
   const combined = `${product.name} – ${product.tagline}`;
   return pageMetadata({
@@ -66,12 +65,11 @@ export default async function ProductPage({ params }: PageProps<"/[locale]/produ
   const product = await api.catalog.product(locale, slug);
   if (!product) notFound();
 
-  const [dictionary, guide, policies, related, candidates] = await Promise.all([
+  const [dictionary, guide, policies, related] = await Promise.all([
     getDictionary(locale),
     product.guideSlug ? api.content.guide(locale, product.guideSlug) : Promise.resolve(null),
     api.warranty.policies(locale),
-    api.catalog.related(locale, product, RELATED_LIMIT),
-    api.catalog.latest(locale, RECENT_CANDIDATES),
+    api.catalog.related(locale, product.slug, RELATED_LIMIT),
   ]);
   const content = productContent[locale];
   const path = routes.product(product.slug);
@@ -87,10 +85,9 @@ export default async function ProductPage({ params }: PageProps<"/[locale]/produ
   const graph = await productGraph(locale, {
     product,
     related,
-    guide: guide ? { slug: guide.slug, title: guide.title, hasVideo: guide.video !== null } : null,
+    guide,
     breadcrumbs,
     faqTitle: content.faq.title,
-    service: content.service,
   });
   const sectionIds: ProductSectionId[] = [
     "overview",
@@ -199,16 +196,7 @@ export default async function ProductPage({ params }: PageProps<"/[locale]/produ
 
       <div className="border-t border-line bg-surface">
         <RelatedProducts products={related} locale={locale} />
-        <RecentlyViewed
-          current={product.slug}
-          candidates={candidates.map(({ slug: itemSlug, name, modelCode, image, category }) => ({
-            slug: itemSlug,
-            name,
-            modelCode,
-            image,
-            category: category.name,
-          }))}
-        />
+        <RecentlyViewed current={product.slug} />
       </div>
       <CompareTray products={toTrayItems([product, ...related])} />
     </>

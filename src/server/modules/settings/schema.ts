@@ -1,16 +1,19 @@
 import { z } from "zod";
 
-import { localizedText, optionalLocalizedText } from "@/server/lib/validation";
+import {
+  emailSchema,
+  localizedText,
+  optionalLocalizedText,
+  phoneNumberSchema,
+} from "@/server/lib/validation";
 
 const socialUrl = z
   .url({ protocol: /^https$/ })
   .max(300)
   .nullable();
 
-const labeledValue = z.object({
-  label: localizedText(60),
-  value: z.string().trim().min(1).max(120),
-});
+const labeled = <TValue extends z.ZodType>(value: TValue) =>
+  z.object({ label: localizedText(60), value });
 
 export const officeLocationSchema = z.object({
   lat: z.number().min(24).max(40),
@@ -18,8 +21,8 @@ export const officeLocationSchema = z.object({
 });
 
 export const contactSettingsSchema = z.object({
-  phones: z.array(labeledValue).max(10),
-  emails: z.array(labeledValue).max(10),
+  phones: z.array(labeled(phoneNumberSchema)).max(10),
+  emails: z.array(labeled(emailSchema)).max(10),
   address: localizedText(300),
   hours: localizedText(200),
   socials: z.object({

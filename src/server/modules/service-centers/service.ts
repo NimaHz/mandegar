@@ -6,15 +6,19 @@ import type { z } from "zod";
 import { routes } from "@/lib/routes";
 import { getDb } from "@/server/db/client";
 import { serviceCenters } from "@/server/db/schema";
+import { cacheTags } from "@/server/lib/cache-tags";
 import { guardWrite } from "@/server/lib/db-errors";
 import { notFound, orNotFound } from "@/server/lib/http-error";
-import { revalidatePages } from "@/server/lib/revalidate";
+import { revalidateContent } from "@/server/lib/revalidate";
 import { serviceCentersAdmin } from "@/services/admin/content";
 
 import type { serviceCenterInputSchema, serviceCenterPatchSchema } from "./schema";
 
 const revalidateCenters = () =>
-  revalidatePages([routes.serviceCenters, routes.support, routes.contact]);
+  revalidateContent(
+    [cacheTags.serviceCenters],
+    [routes.serviceCenters, routes.support, routes.contact],
+  );
 
 export const createServiceCenter = async (input: z.output<typeof serviceCenterInputSchema>) => {
   const [row] = await guardWrite(() =>

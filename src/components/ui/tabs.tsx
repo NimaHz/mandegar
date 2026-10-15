@@ -5,6 +5,7 @@ import { type KeyboardEvent, useId } from "react";
 
 import { springSnappy } from "@/components/motion/easing";
 import { cn } from "@/lib/cn";
+import { isRtl } from "@/lib/dom";
 
 interface TabItem<TValue extends string> {
   value: TValue;
@@ -23,8 +24,6 @@ interface TabsProps<TValue extends string> {
 
 export const tabId = (prefix: string, value: string) => `${prefix}-tab-${value}`;
 export const panelId = (prefix: string, value: string) => `${prefix}-panel-${value}`;
-
-const isRtl = (element: HTMLElement) => getComputedStyle(element).direction === "rtl";
 
 export function Tabs<TValue extends string>({
   items,

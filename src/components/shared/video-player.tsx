@@ -2,13 +2,13 @@
 
 import { Maximize, Minimize, Pause, Play, PlayCircle, Volume2, VolumeX } from "lucide-react";
 import Image from "next/image";
-import { type KeyboardEvent, useEffect, useEffectEvent, useRef, useState } from "react";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 
-import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/cn";
-import { formatNumber } from "@/lib/format";
+import { formatClock } from "@/lib/format";
+import { aparatEmbedUrl, START_TIME_PARAM } from "@/lib/video";
 import type { GuideChapter, GuideVideo } from "@/types/content";
 
 export interface VideoPlayerLabels {
@@ -21,8 +21,6 @@ export interface VideoPlayerLabels {
   seek: string;
   chapters: string;
   jumpTo: string;
-  playOnAparat: string;
-  aparatNote: string;
 }
 
 interface VideoPlayerProps {
@@ -36,22 +34,10 @@ interface VideoPlayerProps {
 }
 
 const SEEK_STEP = 5;
-const APARAT_EMBED = "https://www.aparat.com/video/video/embed/videohash";
 
-const formatClock = (locale: Locale, totalSeconds: number) => {
-  const safe = Math.max(0, Math.floor(totalSeconds));
-  const hours = Math.floor(safe / 3600);
-  const minutes = Math.floor((safe % 3600) / 60);
-  const seconds = safe % 60;
-  const pad = (value: number) => formatNumber(locale, value, { minimumIntegerDigits: 2 });
-  return hours > 0
-    ? `${formatNumber(locale, hours)}:${pad(minutes)}:${pad(seconds)}`
-    : `${formatNumber(locale, minutes)}:${pad(seconds)}`;
-};
-
-const parseHashTime = (hash: string) => {
-  const raw = /(?:^#|&)t=([0-9hms:.]+)/i.exec(hash)?.[1];
-  if (!raw) return null;
+const parseStartTime = (search: string) => {
+  const raw = new URLSearchParams(search).get(START_TIME_PARAM);
+  if (!raw || !/^[0-9hms:.]+$/i.test(raw)) return null;
   if (raw.includes(":")) {
     return raw
       .split(":")
@@ -172,39 +158,19 @@ function AparatPlayer({
   eager = false,
   className,
 }: VideoPlayerProps) {
-  const [loaded, setLoaded] = useState(false);
   if (video.kind !== "aparat") return null;
 
   return (
     <div className={cn("flex flex-col gap-4", className)}>
       <div className="relative aspect-video overflow-hidden rounded-card bg-night shadow-card">
-        {loaded ? (
-          <iframe
-            src={`${APARAT_EMBED}/${encodeURIComponent(video.hash)}/vt/frame`}
-            title={title}
-            allow="autoplay; fullscreen; picture-in-picture"
-            allowFullScreen
-            className="absolute inset-0 size-full border-0"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setLoaded(true)}
-            className="group absolute inset-0 grid place-items-center outline-none focus-visible:ring-4 focus-visible:ring-primary focus-visible:ring-inset"
-          >
-            <PosterImage video={video} title={title} eager={eager} />
-            <span
-              aria-hidden
-              className="absolute inset-0 bg-linear-to-t from-night/70 via-night/10 to-transparent"
-            />
-            <span className="relative">
-              <PlayBadge label={labels.playOnAparat} />
-            </span>
-            <span className="absolute inset-x-0 bottom-0 px-4 pb-3 text-center text-caption font-semibold text-white/80">
-              {labels.aparatNote}
-            </span>
-          </button>
-        )}
+        <iframe
+          src={aparatEmbedUrl(video.hash)}
+          title={title}
+          loading={eager ? "eager" : "lazy"}
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+          className="absolute inset-0 size-full border-0"
+        />
       </div>
       <ChapterList chapters={chapters} activeIndex={-1} labels={labels} />
     </div>
@@ -238,21 +204,16 @@ function NativePlayer({
     setCurrent(element.currentTime);
   };
 
-  const syncFromHash = () => {
-    const seconds = parseHashTime(window.location.hash);
+  const syncFromUrl = () => {
+    const seconds = parseStartTime(window.location.search);
     if (seconds === null) return;
     seekTo(seconds);
     setStarted(true);
   };
 
-  const onHashChange = useEffectEvent(syncFromHash);
-
   useEffect(() => {
     const element = videoRef.current;
     if (element && element.readyState >= 1) element.dispatchEvent(new Event("loadedmetadata"));
-    const listener = () => onHashChange();
-    window.addEventListener("hashchange", listener);
-    return () => window.removeEventListener("hashchange", listener);
   }, []);
 
   useEffect(() => {
@@ -285,7 +246,9 @@ function NativePlayer({
     seekTo(chapter.startSec);
     setStarted(true);
     void videoRef.current?.play().catch(() => setPlaying(false));
-    window.history.replaceState(null, "", `#t=${chapter.startSec}`);
+    const url = new URL(window.location.href);
+    url.searchParams.set(START_TIME_PARAM, String(chapter.startSec));
+    window.history.replaceState(null, "", url);
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -336,7 +299,7 @@ function NativePlayer({
             if (Number.isFinite(event.currentTarget.duration)) {
               setDuration(event.currentTarget.duration);
             }
-            syncFromHash();
+            syncFromUrl();
           }}
           onVolumeChange={(event) => setMuted(event.currentTarget.muted)}
           className="absolute inset-0 size-full object-contain"
@@ -345,7 +308,10 @@ function NativePlayer({
         {!started && (
           <button
             type="button"
-            onClick={toggle}
+            onClick={() => {
+              shellRef.current?.focus();
+              toggle();
+            }}
             className="group absolute inset-0 grid place-items-center outline-none focus-visible:ring-4 focus-visible:ring-primary focus-visible:ring-inset"
           >
             <PosterImage video={video} title={title} eager={eager} />

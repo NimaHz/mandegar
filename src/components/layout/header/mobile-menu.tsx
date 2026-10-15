@@ -34,6 +34,8 @@ interface MobileMenuProps {
   socials: { platform: SocialPlatform; href: string; label: string }[];
 }
 
+const exploreNav = primaryNav.filter(({ href }) => !supportNav.some((item) => item.href === href));
+
 const rowClass = (active: boolean) =>
   cn(
     "flex h-12 items-center gap-3 rounded-field px-3 text-lead transition-colors",
@@ -173,7 +175,7 @@ export function MobileMenu({ categories, socials }: MobileMenuProps) {
                   </Link>
                 </div>
                 <MenuSection title={mobileMenu.support} items={supportNav} />
-                <MenuSection title={mobileMenu.explore} items={primaryNav} />
+                <MenuSection title={mobileMenu.explore} items={exploreNav} />
               </nav>
 
               <div className="flex flex-col gap-2">
@@ -183,7 +185,7 @@ export function MobileMenu({ categories, socials }: MobileMenuProps) {
                 </div>
                 <div className="flex items-center justify-between rounded-field border border-line bg-surface py-1.5 ps-4 pe-1.5">
                   <span className="text-sm font-semibold text-ink">{ui.languageLabel}</span>
-                  <LanguageSwitcher />
+                  <LanguageSwitcher onNavigate={closeMenu} />
                 </div>
                 <InstallAppButton />
               </div>

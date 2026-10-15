@@ -5,7 +5,7 @@ export const OG_WIDTH = 1200;
 export const OG_HEIGHT = 630;
 const OG_VERSION = "1";
 
-export const ogEntityKinds = ["product", "category", "brand", "guide", "post", "author"] as const;
+const ogEntityKinds = ["product", "category", "brand", "guide", "post", "author"] as const;
 export type OgEntityKind = (typeof ogEntityKinds)[number];
 
 export const ogPages = {

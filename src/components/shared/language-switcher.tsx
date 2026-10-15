@@ -1,8 +1,6 @@
 "use client";
 
 import { Languages } from "lucide-react";
-import type { Route } from "next";
-import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
@@ -16,6 +14,7 @@ type LanguageSwitcherTone = "default" | "inverse";
 interface LanguageSwitcherProps {
   tone?: LanguageSwitcherTone;
   className?: string;
+  onNavigate?: () => void;
 }
 
 const toneClass: Record<LanguageSwitcherTone, string> = {
@@ -27,19 +26,21 @@ function SwitcherLink({
   query,
   tone = "default",
   className,
+  onNavigate,
 }: LanguageSwitcherProps & { query: string }) {
   const locale = useLocale();
   const pathname = usePathname();
   const target = locales.find((other) => other !== locale) ?? locale;
   const { label, hreflang, dir } = localeMeta[target];
   const path = localizePath(target, stripLocalePrefix(pathname));
-  const href = (query ? `${path}?${query}` : path) as Route;
+  const href = query ? `${path}?${query}` : path;
 
   return (
-    <Link
+    <a
       href={href}
       hrefLang={hreflang}
       lang={hreflang}
+      onClick={onNavigate}
       className={cn(
         "inline-flex shrink-0 items-center gap-1.5 font-semibold transition-colors",
         toneClass[tone],
@@ -48,7 +49,7 @@ function SwitcherLink({
     >
       <Languages className="size-4" aria-hidden />
       <span dir={dir}>{label}</span>
-    </Link>
+    </a>
   );
 }
 

@@ -1,5 +1,3 @@
-"use client";
-
 import type { LucideIcon } from "lucide-react";
 import {
   CalendarClock,
@@ -25,12 +23,13 @@ import { cn } from "@/lib/cn";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { provinceName } from "@/lib/provinces";
 import { adminRoutes } from "@/lib/routes";
+import { parseStatusEvent } from "@/lib/tickets";
 import type { AdminOption, AdminTicket, AdminTicketMessage } from "@/types/admin";
-import { type TicketStatus, ticketStatuses } from "@/types/support";
+import type { TicketStatus } from "@/types/support";
 
 import { warrantyStatusTone } from "../../config";
 import { adminContent } from "../../content";
-import { formatBytes } from "../../lib/format";
+import { faBytes } from "../../lib/format";
 import { StatusBadge } from "../data/status-badge";
 import { CodeText } from "../data/thumb-cell";
 import { MediaThumb } from "../media/media-thumb";
@@ -50,11 +49,8 @@ interface TicketDetailProps {
   now: number;
 }
 
-const statusEvent = (message: AdminTicketMessage) => {
-  if (message.authorType !== "system" || !message.body.startsWith("status:")) return null;
-  const value = message.body.slice("status:".length);
-  return ticketStatuses.find((status) => status === value) ?? null;
-};
+const statusEvent = (message: AdminTicketMessage) =>
+  message.authorType === "system" ? parseStatusEvent(message.body) : null;
 
 function Attachments({ message }: { message: AdminTicketMessage }) {
   if (message.attachments.length === 0) return null;
@@ -74,7 +70,7 @@ function Attachments({ message }: { message: AdminTicketMessage }) {
                 aria-label={`${copy.openAttachment}: ${file.name}`}
                 className="relative flex size-20 overflow-hidden rounded-control border border-line bg-sunken transition-[border-color,box-shadow] hover:border-primary focus-visible:ring-3 focus-visible:ring-primary/25"
               >
-                <MediaThumb media={file} sizes="5rem" />
+                <MediaThumb media={file} sizes="5rem" unoptimized />
               </a>
             </li>
           ))}
@@ -97,7 +93,7 @@ function Attachments({ message }: { message: AdminTicketMessage }) {
                   <span dir="auto" className="truncate text-label font-bold">
                     {file.name}
                   </span>
-                  <span className="text-2xs text-muted">{formatBytes(file.size)}</span>
+                  <span className="text-2xs text-muted">{faBytes(file.size)}</span>
                 </span>
               </a>
             </li>

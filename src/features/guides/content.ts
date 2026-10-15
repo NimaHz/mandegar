@@ -72,8 +72,6 @@ export const guidesContent: Record<Locale, GuidesContent> = {
         seek: "جابه‌جایی در ویدیو",
         chapters: "بخش‌های ویدیو",
         jumpTo: "رفتن به «{title}» در {time}",
-        playOnAparat: "پخش از آپارات",
-        aparatNote: "با زدن دکمه پخش، ویدیو از سایت آپارات بارگذاری می‌شود.",
       },
       tools: "ابزار لازم",
       safety: "پیش از شروع، ایمنی",
@@ -106,7 +104,7 @@ export const guidesContent: Record<Locale, GuidesContent> = {
     meta: {
       title: "Installation guides",
       description:
-        "Video and step-by-step instructions for installing Mandegar coolers, heaters, water heaters and kitchen appliances, with the tools and safety notes you need.",
+        "Step-by-step videos for installing Mandegar coolers, heaters, water heaters and kitchen appliances, with the tools you need and key safety notes.",
     },
     hero: {
       eyebrow: "Install it right, keep it longer",
@@ -139,8 +137,6 @@ export const guidesContent: Record<Locale, GuidesContent> = {
         seek: "Seek",
         chapters: "Chapters",
         jumpTo: "Jump to “{title}” at {time}",
-        playOnAparat: "Play on Aparat",
-        aparatNote: "Pressing play loads the video from aparat.com.",
       },
       tools: "Tools you'll need",
       safety: "Safety first",

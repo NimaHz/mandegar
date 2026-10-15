@@ -18,7 +18,12 @@ import { getDb } from "@/server/db/client";
 import { users } from "@/server/db/schema";
 import { sha256 } from "@/server/lib/crypto";
 import { conflict, tooManyRequests, unauthorized } from "@/server/lib/http-error";
-import { isRateLimited, rateLimit } from "@/server/lib/rate-limit";
+import {
+  claimOnce,
+  countAttempt,
+  type RateLimitRule,
+  reserveAttempts,
+} from "@/server/lib/rate-limit";
 import { recordAudit } from "@/server/plugins/audit";
 import { type AdminActor } from "@/server/plugins/auth";
 import type { AdminIdentity, AdminSession } from "@/types/admin";
@@ -26,12 +31,25 @@ import type { AdminIdentity, AdminSession } from "@/types/admin";
 import type { changePasswordSchema, loginSchema, totpDisableSchema } from "./schema";
 
 const LOCKOUT_WINDOW_SEC = 900;
+const DAY_SEC = 86_400;
+const THROTTLE_STEP_MS = 500;
+const THROTTLE_MAX_MS = 5_000;
 
-const lockouts = (email: string, clientKey: string) => [
-  { key: `login-email:${sha256(email)}`, limit: 5, windowSec: LOCKOUT_WINDOW_SEC },
-  { key: `login-email-day:${sha256(email)}`, limit: 20, windowSec: 86_400 },
+const strictLimits = (emailKey: string, clientKey: string): RateLimitRule[] => [
+  { key: `login-pair:${emailKey}:${clientKey}`, limit: 5, windowSec: LOCKOUT_WINDOW_SEC },
+  { key: `login-pair-day:${emailKey}:${clientKey}`, limit: 20, windowSec: DAY_SEC },
   { key: `login-ip:${clientKey}`, limit: 30, windowSec: LOCKOUT_WINDOW_SEC },
 ];
+
+const emailLimits = (emailKey: string): RateLimitRule[] => [
+  { key: `login-email:${emailKey}`, limit: 5, windowSec: LOCKOUT_WINDOW_SEC },
+  { key: `login-email-day:${emailKey}`, limit: 20, windowSec: DAY_SEC },
+];
+
+const throttleDelay = (excess: number) =>
+  Math.min(THROTTLE_MAX_MS, THROTTLE_STEP_MS * 2 ** (excess - 1));
+
+const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 const invalidCredentials = () => unauthorized("Invalid email or password", "INVALID_CREDENTIALS");
 
@@ -57,28 +75,54 @@ const auditAuth = (
     userAgent: actor.userAgent,
   });
 
+const alertThrottled = (emailKey: string, userId: string, attempts: number, meta: SessionMeta) =>
+  claimOnce(`login-alert:${emailKey}`, LOCKOUT_WINDOW_SEC)
+    .then((first) =>
+      first
+        ? recordAudit({
+            actorId: null,
+            action: "login.throttled",
+            entity: "auth",
+            entityId: userId,
+            diff: { attempts },
+            ip: meta.ip,
+            userAgent: meta.userAgent,
+          })
+        : undefined,
+    )
+    .catch((error: unknown) => console.error(error));
+
 export const login = async (
   input: z.output<typeof loginSchema>,
   meta: SessionMeta & { clientKey: string; previousToken: string | undefined },
 ): Promise<{ result: LoginResult; token: string | null }> => {
-  const rules = lockouts(input.email, meta.clientKey);
-  const locked = await Promise.all(
-    rules.map((rule) => isRateLimited(rule.key, rule.limit, rule.windowSec)),
-  );
-  if (locked.some(Boolean)) throw tooManyRequests(LOCKOUT_WINDOW_SEC);
-  const fail = async () => {
-    await Promise.all(rules.map((rule) => rateLimit(rule.key, rule.limit, rule.windowSec)));
-    return invalidCredentials();
-  };
-  const [user] = await getDb().select().from(users).where(eq(users.email, input.email));
+  const emailKey = sha256(input.email);
+  const strict = await reserveAttempts(strictLimits(emailKey, meta.clientKey));
+  if (!strict.allowed) throw tooManyRequests(strict.retryAfterSec);
+  const [attempts, [user]] = await Promise.all([
+    Promise.all(emailLimits(emailKey).map(countAttempt)),
+    getDb().select().from(users).where(eq(users.email, input.email)),
+  ]);
+  const release = () =>
+    Promise.all([strict.release(), ...attempts.map((attempt) => attempt.release())]);
+  const excess = Math.max(...attempts.map((attempt) => attempt.excess));
+  if (excess > 0) {
+    const count = Math.max(...attempts.map((attempt) => attempt.count));
+    if (user) void alertThrottled(emailKey, user.id, count, meta);
+    await pause(throttleDelay(excess));
+  }
   const passwordOk = user
     ? await verifyPassword(user.passwordHash, input.password)
     : await burnPasswordCheck(input.password);
-  if (!user || !user.active || !passwordOk) throw await fail();
+  if (!user || !user.active || !passwordOk) throw invalidCredentials();
   if (user.totpEnabled) {
-    if (!input.totp) return { result: { status: "totp-required" }, token: null };
-    if (!(await verifyTotp(user.id, user.totpSecret, input.totp))) throw await fail();
+    if (!input.totp) {
+      await release();
+      return { result: { status: "totp-required" }, token: null };
+    }
+    if (!(await verifyTotp(user.id, user.totpSecret, input.totp))) throw invalidCredentials();
   }
+  await release();
   if (meta.previousToken) await revokeSession(sessionIdOf(meta.previousToken));
   const token = await createSession(user.id, meta);
   await getDb().update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, user.id));

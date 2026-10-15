@@ -4,6 +4,7 @@ import { m, useReducedMotion, useSpring, useTransform } from "motion/react";
 import { useEffect } from "react";
 
 import { useLocale } from "@/i18n/locale-provider";
+import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
 
 interface NumberTickerProps {
@@ -26,8 +27,11 @@ export function NumberTicker({ value, from = value, format, className }: NumberT
   }, [spring, value, reduceMotion]);
 
   return (
-    <span className={className}>
-      <m.span aria-hidden className="tabular-nums">
+    <span className={cn("inline-grid", className)}>
+      <span aria-hidden className="invisible col-start-1 row-start-1">
+        {display(value)}
+      </span>
+      <m.span aria-hidden className="col-start-1 row-start-1">
         {text}
       </m.span>
       <span className="sr-only">{display(value)}</span>

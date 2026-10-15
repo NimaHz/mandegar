@@ -16,7 +16,7 @@ const aparatHash = z
   .max(64)
   .regex(/^[A-Za-z0-9_-]+$/);
 
-export const guideVideoSchema = z
+const guideVideoSchema = z
   .discriminatedUnion("kind", [
     z.object({ kind: z.literal("upload"), mediaId: z.uuid(), posterMediaId: z.uuid().nullable() }),
     z.object({ kind: z.literal("aparat"), hash: aparatHash, posterMediaId: z.uuid().nullable() }),

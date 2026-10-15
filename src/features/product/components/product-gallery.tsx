@@ -7,6 +7,7 @@ import { type KeyboardEvent, type PointerEvent, useRef, useState } from "react";
 import { fill } from "@/i18n/fill";
 import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/cn";
+import { isRtl, swipeStep } from "@/lib/dom";
 import { formatNumber } from "@/lib/format";
 import type { ImageAsset } from "@/types/common";
 
@@ -16,10 +17,6 @@ import { ProductLightbox } from "./product-lightbox";
 interface ProductGalleryProps {
   images: ImageAsset[];
 }
-
-const SWIPE_DISTANCE = 40;
-
-const isRtlElement = (element: HTMLElement) => getComputedStyle(element).direction === "rtl";
 
 export function ProductGallery({ images }: ProductGalleryProps) {
   const locale = useLocale();
@@ -37,7 +34,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (count < 2 || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) return;
     event.preventDefault();
-    const forward = event.key === (isRtlElement(event.currentTarget) ? "ArrowLeft" : "ArrowRight");
+    const forward = event.key === (isRtl(event.currentTarget) ? "ArrowLeft" : "ArrowRight");
     const next = (index + (forward ? 1 : -1) + count) % count;
     setIndex(next);
     event.currentTarget
@@ -54,11 +51,10 @@ export function ProductGallery({ images }: ProductGalleryProps) {
     const start = pointerStart.current;
     pointerStart.current = null;
     if (start === null || count < 2) return;
-    const dx = event.clientX - start;
-    if (Math.abs(dx) < SWIPE_DISTANCE) return;
+    const direction = swipeStep(event.currentTarget, event.clientX - start);
+    if (!direction) return;
     swiped.current = true;
-    const towardStart = isRtlElement(event.currentTarget) ? dx > 0 : dx < 0;
-    goTo(index + (towardStart ? 1 : -1));
+    goTo(index + direction);
   };
 
   if (!active) {

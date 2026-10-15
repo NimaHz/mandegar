@@ -2,8 +2,8 @@
 
 import { ArrowLeft, LoaderCircle, LockKeyhole, ScanLine } from "lucide-react";
 import type { Route } from "next";
-import { useRouter } from "next/navigation";
-import { type FormEvent, useRef, useState, useTransition } from "react";
+import { useQueryStates } from "nuqs";
+import { type FormEvent, Suspense, useRef, useState } from "react";
 
 import {
   CodeInput,
@@ -12,7 +12,11 @@ import {
   inspectCode,
 } from "@/components/shared/code-input";
 import { Button } from "@/components/ui/button";
-import { formatWarrantyCode } from "@/lib/warranty-code";
+import { useLocale } from "@/i18n/locale-provider";
+import { formatWarrantyCode, parseWarrantyCode } from "@/lib/warranty-code";
+
+import { useWarrantyLookupStore } from "../lookup-store";
+import { warrantySearchParams } from "../search-params";
 
 interface WarrantyFormCopy {
   submit: string;
@@ -23,26 +27,29 @@ interface WarrantyFormCopy {
 
 interface WarrantyFormProps {
   action: Route;
-  defaultCode: string;
-  serverIssue: CodeIssue | null;
   messages: CodeInputMessages;
   copy: WarrantyFormCopy;
 }
 
-export function WarrantyForm({
-  action,
-  defaultCode,
-  serverIssue,
-  messages,
-  copy,
-}: WarrantyFormProps) {
-  const router = useRouter();
+interface CodeFormProps extends WarrantyFormProps {
+  defaultCode: string;
+  onCode?: (code: string) => void;
+}
+
+const issueOf = (code: string): CodeIssue | null => {
+  if (!code) return null;
+  const parsed = parseWarrantyCode(code);
+  return parsed.valid ? null : parsed.reason;
+};
+
+function CodeForm({ action, defaultCode, onCode, messages, copy }: CodeFormProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [pending, startTransition] = useTransition();
-  const [reveal, setReveal] = useState(serverIssue !== null);
-  const [issue, setIssue] = useState(serverIssue);
+  const pending = useWarrantyLookupStore((state) => state.loading);
+  const [reveal, setReveal] = useState(issueOf(defaultCode) !== null);
+  const [issue, setIssue] = useState(() => issueOf(defaultCode));
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    if (!onCode) return;
     event.preventDefault();
     const inspection = inspectCode("warranty", inputRef.current?.value ?? "");
     setReveal(true);
@@ -50,8 +57,7 @@ export function WarrantyForm({
       inputRef.current?.focus();
       return;
     }
-    const href = `${action}?code=${formatWarrantyCode(inspection.code)}` as Route;
-    startTransition(() => router.push(href, { scroll: false }));
+    onCode(inspection.code);
   };
 
   return (
@@ -103,5 +109,29 @@ export function WarrantyForm({
         </span>
       </div>
     </form>
+  );
+}
+
+function QueryCodeForm(props: WarrantyFormProps) {
+  const locale = useLocale();
+  const check = useWarrantyLookupStore((state) => state.check);
+  const [{ code }, setParams] = useQueryStates(warrantySearchParams, {
+    history: "push",
+    scroll: false,
+  });
+
+  const submitCode = (next: string) => {
+    void setParams({ code: formatWarrantyCode(next) });
+    void check(locale, next, true);
+  };
+
+  return <CodeForm key={code} {...props} defaultCode={code} onCode={submitCode} />;
+}
+
+export function WarrantyForm(props: WarrantyFormProps) {
+  return (
+    <Suspense fallback={<CodeForm {...props} defaultCode="" />}>
+      <QueryCodeForm {...props} />
+    </Suspense>
   );
 }

@@ -1,15 +1,14 @@
-import { type Locale, localeMeta } from "@/i18n/config";
+import type { Locale } from "@/i18n/config";
 import { routes } from "@/lib/routes";
 import type { ProductDetail, ProductListItem, SpecItem } from "@/types/catalog";
 
 import { absoluteUrl, localeUrl } from "../urls";
-import { brandId, guideArticleId, guideVideoId, productId, ref, siteIds, webPageId } from "./ids";
+import { brandId, guideArticleId, productId, ref, siteIds, webPageId } from "./ids";
 import type { JsonLdNode } from "./types";
 
 export interface ProductGuideRef {
   slug: string;
   title: string;
-  hasVideo: boolean;
 }
 
 export interface WarrantyLabels {
@@ -45,20 +44,12 @@ const productStub = (
   url: localeUrl(locale, routes.product(item.slug)),
 });
 
-const guideRefs = (locale: Locale, guide: ProductGuideRef): JsonLdNode[] => {
-  const url = localeUrl(locale, routes.guide(guide.slug));
-  const article: JsonLdNode = {
-    "@type": "TechArticle",
-    "@id": guideArticleId(locale, guide.slug),
-    headline: guide.title,
-    url,
-  };
-  if (!guide.hasVideo) return [article];
-  return [
-    article,
-    { "@type": "VideoObject", "@id": guideVideoId(locale, guide.slug), name: guide.title, url },
-  ];
-};
+const guideStub = (locale: Locale, guide: ProductGuideRef): JsonLdNode => ({
+  "@type": "TechArticle",
+  "@id": guideArticleId(locale, guide.slug),
+  headline: guide.title,
+  url: localeUrl(locale, routes.guide(guide.slug)),
+});
 
 export const productNode = ({
   locale,
@@ -93,7 +84,6 @@ export const productNode = ({
     manufacturer: product.brand.isOwn ? ref(siteIds.organization) : null,
     image: images.map((image) => absoluteUrl(image.src)),
     releaseDate: product.releaseYear ? String(product.releaseYear) : null,
-    inLanguage: localeMeta[locale].hreflang,
     mainEntityOfPage: ref(webPageId(url)),
     additionalProperty: [
       ...product.specs.flatMap((group) => group.items.map(specProperty)),
@@ -107,6 +97,6 @@ export const productNode = ({
       },
     ],
     isRelatedTo: related.map((item) => productStub(locale, item)),
-    subjectOf: guide ? guideRefs(locale, guide) : null,
+    subjectOf: guide ? guideStub(locale, guide) : null,
   };
 };

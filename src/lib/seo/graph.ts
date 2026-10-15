@@ -10,7 +10,7 @@ import { buildGraph } from "./jsonld/graph";
 import { organizationNode, ownBrandNode, websiteNode } from "./jsonld/organization";
 import type { JsonLdGraph, MaybeNode } from "./jsonld/types";
 
-export const getSiteNodes = cache(async (locale: Locale) => {
+const getSiteNodes = cache(async (locale: Locale) => {
   const [settings, { site }] = await Promise.all([
     api.content.settings(locale),
     getDictionary(locale),

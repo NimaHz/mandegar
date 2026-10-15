@@ -3,18 +3,20 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AtSign, LoaderCircle, Mail, Send, Smartphone, Type, UserRound } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
-import { useEffect, useId, useRef, useState } from "react";
+import { useQueryStates } from "nuqs";
+import { Suspense, useEffect, useId, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
 import { EASE_OUT_EXPO } from "@/components/motion/easing";
 import { SuccessMark } from "@/components/motion/success-mark";
 import { AltchaWidget } from "@/components/shared/altcha-widget";
+import { useAltcha } from "@/components/shared/use-altcha";
 import { Button } from "@/components/ui/button";
 import { CharCount } from "@/components/ui/char-count";
 import { Field, TextAreaField } from "@/components/ui/field";
 import { Select } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, apiResult, fetchFormToken, type FormToken } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { normalizeMobile } from "@/lib/persian";
 import { type ContactDepartment, contactDepartments } from "@/types/support";
@@ -29,15 +31,15 @@ import {
   contactSchema,
   isContactField,
 } from "../schemas";
+import { contactSearchParams } from "../search-params";
 
 interface ContactFormProps {
   content: ContactContent;
-  defaultDepartment: ContactDepartment;
   className?: string;
 }
 
-interface ApiErrorBody {
-  error?: { code?: string; fields?: Record<string, string> };
+interface DepartmentFormProps extends ContactFormProps {
+  defaultDepartment: ContactDepartment;
 }
 
 const fade = {
@@ -47,19 +49,14 @@ const fade = {
   transition: { duration: 0.4, ease: EASE_OUT_EXPO },
 };
 
-const fetchFormToken = async () => {
-  const { data } = await apiClient.api.tickets["form-token"].get();
-  return data?.token ?? "";
-};
-
-export function ContactForm({ content, defaultDepartment, className }: ContactFormProps) {
+function DepartmentForm({ content, defaultDepartment, className }: DepartmentFormProps) {
   const departmentId = useId();
   const honeypotRef = useRef<HTMLInputElement>(null);
   const [sent, setSent] = useState(false);
-  const [formToken, setFormToken] = useState("");
-  const [altcha, setAltcha] = useState<string | null>(null);
-  const [altchaKey, setAltchaKey] = useState(0);
+  const [formToken, setFormToken] = useState<FormToken | null>(null);
+  const [engaged, setEngaged] = useState(false);
   const [altchaMissing, setAltchaMissing] = useState(false);
+  const altcha = useAltcha(engaged);
 
   const defaults: ContactFormValues = {
     department: defaultDepartment,
@@ -94,8 +91,8 @@ export function ContactForm({ content, defaultDepartment, className }: ContactFo
   }, []);
 
   const renewProof = () => {
-    setAltcha(null);
-    setAltchaKey((key) => key + 1);
+    setAltchaMissing(false);
+    altcha.renew();
     void fetchFormToken().then(setFormToken);
   };
 
@@ -105,28 +102,30 @@ export function ContactForm({ content, defaultDepartment, className }: ContactFo
   };
 
   const onSubmit = async (values: ContactFormOutput) => {
-    if (!altcha) {
+    const proof = altcha.payload;
+    if (!proof) {
       setAltchaMissing(true);
       return;
     }
-    const { error } = await apiClient.api.contact.post({
-      ...values,
-      website: honeypotRef.current?.value ?? "",
-      formToken: formToken || (await fetchFormToken()),
-      altcha,
-    });
+    const result = await apiResult(
+      apiClient.api.contact.post({
+        ...values,
+        website: honeypotRef.current?.value ?? "",
+        formToken: (formToken ?? (await fetchFormToken()))?.token ?? "",
+        altcha: proof,
+      }),
+    );
     renewProof();
 
-    if (!error) {
+    if (result.ok) {
       setSent(true);
       reset(defaults);
       return;
     }
 
-    const response = error.value as ApiErrorBody | undefined;
-    const code = response?.error?.code;
+    const { code } = result;
     if (code === "VALIDATION") {
-      for (const field of Object.keys(response?.error?.fields ?? {})) {
+      for (const field of Object.keys(result.fields)) {
         if (isContactField(field)) setError(field, { type: "server" });
       }
       toast({ tone: "danger", title: content.toasts.invalid });
@@ -153,7 +152,6 @@ export function ContactForm({ content, defaultDepartment, className }: ContactFo
   };
 
   const messageValue = useWatch({ control, name: "body" });
-  const phoneField = register("phone");
   const departmentError = errorFor("department");
 
   return (
@@ -185,6 +183,7 @@ export function ContactForm({ content, defaultDepartment, className }: ContactFo
             noValidate
             aria-labelledby="contact-form-title"
             onSubmit={(event) => void handleSubmit(onSubmit)(event)}
+            onFocus={() => setEngaged(true)}
             {...fade}
             className="relative grid grid-cols-1 gap-5 sm:grid-cols-2"
           >
@@ -237,11 +236,9 @@ export function ContactForm({ content, defaultDepartment, className }: ContactFo
               placeholder={content.fields.phonePlaceholder}
               error={errorFor("phone")}
               className="rtl:ps-3.5 rtl:pe-10 rtl:text-right"
-              {...phoneField}
-              onBlur={(event) => {
-                void phoneField.onBlur(event);
-                onPhoneBlur(event.target.value);
-              }}
+              {...register("phone", {
+                onBlur: (event: { target: { value: string } }) => onPhoneBlur(event.target.value),
+              })}
             />
             <Field
               label={content.fields.email}
@@ -287,14 +284,8 @@ export function ContactForm({ content, defaultDepartment, className }: ContactFo
             </div>
 
             <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <AltchaWidget
-                key={altchaKey}
-                onChange={(payload) => {
-                  setAltcha(payload);
-                  if (payload) setAltchaMissing(false);
-                }}
-              />
-              {altchaMissing && (
+              <AltchaWidget state={altcha} />
+              {altchaMissing && !altcha.payload && (
                 <p role="alert" className="text-xs font-semibold text-danger">
                   {content.errors.altcha}
                 </p>
@@ -319,5 +310,18 @@ export function ContactForm({ content, defaultDepartment, className }: ContactFo
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function QueryDepartmentForm(props: ContactFormProps) {
+  const [{ department }] = useQueryStates(contactSearchParams);
+  return <DepartmentForm key={department} {...props} defaultDepartment={department} />;
+}
+
+export function ContactForm(props: ContactFormProps) {
+  return (
+    <Suspense fallback={<DepartmentForm {...props} defaultDepartment="general" />}>
+      <QueryDepartmentForm {...props} />
+    </Suspense>
   );
 }

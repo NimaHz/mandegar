@@ -16,10 +16,16 @@ export const mediaAdminRoutes = new Elysia({ prefix: "/admin/media" })
     can: "media:read",
     params: idParamsSchema,
   })
-  .get("/:id/usages", ({ params }) => mediaAdmin.usages(params.id), {
-    can: "media:read",
-    params: idParamsSchema,
-  })
+  .get(
+    "/:id/usages",
+    async ({ params, actor }) => {
+      orNotFound(await mediaAdmin.get(params.id));
+      return mediaAdmin.usages(params.id, {
+        ticketLabels: actor.permissions.includes("tickets:read"),
+      });
+    },
+    { can: "media:read", params: idParamsSchema },
+  )
   .post(
     "/",
     ({ body, actor }) => {
@@ -30,7 +36,7 @@ export const mediaAdminRoutes = new Elysia({ prefix: "/admin/media" })
       can: "media:write",
       type: "multipart/form-data",
       body: t.Object({
-        file: t.File({ maxSize: "200m" }),
+        file: t.File(),
         altFa: t.Optional(t.String({ maxLength: 400 })),
         altEn: t.Optional(t.String({ maxLength: 400 })),
       }),

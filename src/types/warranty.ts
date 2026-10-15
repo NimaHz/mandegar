@@ -32,4 +32,5 @@ export type WarrantyLookup =
 
 export interface WarrantyPolicySummary extends WarrantyCoverage {
   name: string;
+  updatedAt: string;
 }

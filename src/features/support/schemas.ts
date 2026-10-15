@@ -1,30 +1,13 @@
 import { z } from "zod";
 
+import { todayIsoDate } from "@/lib/dates";
 import { normalizeMobile } from "@/lib/persian";
 import { isProvinceCode } from "@/lib/provinces";
 import { parseWarrantyCode } from "@/lib/warranty-code";
-import {
-  mentionsGasSmell,
-  TICKET_ATTACHMENT_LIMIT,
-  TICKET_ATTACHMENT_MAX_BYTES,
-  ticketAttachmentTypes,
-  type TicketFieldsInput,
-  ticketFieldsSchema,
-} from "@/server/modules/tickets/schema";
+import { type TicketFieldsInput, ticketFieldsSchema } from "@/server/modules/tickets/schema";
 import { type TicketType, ticketTypes } from "@/types/support";
 
-export {
-  mentionsGasSmell,
-  TICKET_ATTACHMENT_LIMIT,
-  TICKET_ATTACHMENT_MAX_BYTES,
-  ticketAttachmentTypes,
-};
-
-export const REPLY_ATTACHMENT_LIMIT = 3;
-
-export const requestSteps = ["type", "product", "details", "contact", "review"] as const;
-
-export type RequestStep = (typeof requestSteps)[number];
+import { type RequestStep, requestSteps } from "./constants";
 
 export interface RequestValues {
   type: TicketType | "";
@@ -95,10 +78,8 @@ const needsProduct = (type: string) => PRODUCT_TYPES.includes(type);
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-export const todayIso = () => new Date().toISOString().slice(0, 10);
-
 const isPastIsoDate = (value: string) =>
-  ISO_DATE.test(value) && !Number.isNaN(Date.parse(value)) && value <= todayIso();
+  ISO_DATE.test(value) && !Number.isNaN(Date.parse(value)) && value <= todayIsoDate();
 
 const text = (min: number, max: number, short: string, long = short) =>
   z.string().trim().min(min, short).max(max, long);
@@ -144,8 +125,6 @@ export const createStepSchemas = (messages: RequestMessages) => ({
   }),
   review: z.looseObject({}),
 });
-
-export type StepSchemas = ReturnType<typeof createStepSchemas>;
 
 export const toTicketFields = (values: RequestValues): TicketFieldsInput => ({
   type: values.type === "" ? "technical" : values.type,

@@ -34,6 +34,22 @@ export type ContentStatus = (typeof contentStatuses)[number];
 export const mediaKinds = ["image", "video", "document"] as const;
 export type MediaKind = (typeof mediaKinds)[number];
 
+export const mediaScopes = ["library", "ticket"] as const;
+export type MediaScope = (typeof mediaScopes)[number];
+
+export const mediaUsageEntities = [
+  "brand",
+  "category",
+  "product",
+  "product-download",
+  "guide",
+  "slide",
+  "author",
+  "post",
+  "ticket",
+] as const;
+export type MediaUsageEntity = (typeof mediaUsageEntities)[number];
+
 export const warrantyCodeStatuses = [
   "active",
   "revoked",
@@ -214,7 +230,7 @@ export interface AdminMedia extends AdminMediaRef {
 }
 
 export interface AdminMediaUsage {
-  entity: string;
+  entity: MediaUsageEntity;
   id: string;
   label: string;
 }

@@ -3,11 +3,13 @@ import { inArray } from "drizzle-orm";
 import type { Locale } from "@/i18n/config";
 import { routes } from "@/lib/routes";
 import { getDb } from "@/server/db/client";
-import { media } from "@/server/db/schema";
+import { type guides, media } from "@/server/db/schema";
 import type { LocalizedSeo } from "@/types/admin";
 import type { DocumentAsset, ImageAsset, LocalizedText, SeoFields } from "@/types/common";
 
 export type MediaRow = typeof media.$inferSelect;
+
+type GuideMedia = Pick<typeof guides.$inferSelect, "video" | "steps">;
 
 export const pick = (text: LocalizedText | null | undefined, locale: Locale) =>
   text ? text[locale] || text[locale === "fa" ? "en" : "fa"] : "";
@@ -68,3 +70,9 @@ export const orderByIds = <TItem extends { id: string }>(
     return item ? [item] : [];
   });
 };
+
+export const guideMediaIds = (row: GuideMedia) => [
+  row.video?.posterMediaId,
+  row.video?.kind === "upload" ? row.video.mediaId : null,
+  ...row.steps.map((step) => step.mediaId),
+];

@@ -21,19 +21,31 @@ export const ticketStatuses = [
 ] as const;
 export type TicketStatus = (typeof ticketStatuses)[number];
 
+export const isTicketStatus = (value: string): value is TicketStatus =>
+  ticketStatuses.some((status) => status === value);
+
 export const ticketPriorities = ["low", "normal", "high", "urgent"] as const;
 export type TicketPriority = (typeof ticketPriorities)[number];
 
 export const contactDepartments = ["general", "sales", "support", "partnership", "export"] as const;
 export type ContactDepartment = (typeof contactDepartments)[number];
 
-export interface PublicTicketMessage {
+export interface PublicTicketPost {
   id: string;
-  author: "customer" | "staff" | "system";
+  author: "customer" | "staff";
   body: string;
   attachments: { href: string; name: string; mime: string }[];
   createdAt: string;
 }
+
+export interface PublicTicketStatusChange {
+  id: string;
+  author: "system";
+  status: TicketStatus;
+  createdAt: string;
+}
+
+export type PublicTicketMessage = PublicTicketPost | PublicTicketStatusChange;
 
 export interface PublicTicket {
   trackingCode: string;

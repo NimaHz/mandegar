@@ -20,7 +20,7 @@ import { adminRoutes } from "@/lib/routes";
 import type { AdminAuditLog, AdminIdentity, DashboardStats } from "@/types/admin";
 
 import { adminContent } from "../../content";
-import { faNumber, formatBytes } from "../../lib/format";
+import { faBytes, faNumber } from "../../lib/format";
 import { auditActionLabel, auditEntityLabel } from "../audit/audit-labels";
 import { CodeText } from "../data/thumb-cell";
 import { CardLink, PanelCard } from "../panel-card";
@@ -85,7 +85,7 @@ export function AdminDashboard({ user, stats, audit, now }: AdminDashboardProps)
     { label: copy.catalogRows.drafts, value: faNumber(stats.products.draft) },
     { label: copy.catalogRows.archived, value: faNumber(stats.products.archived) },
     { label: copy.catalogRows.media, value: faNumber(stats.media.count) },
-    { label: copy.catalogRows.storage, value: formatBytes(stats.media.bytes) },
+    { label: copy.catalogRows.storage, value: faBytes(stats.media.bytes) },
   ];
 
   return (

@@ -116,6 +116,7 @@ interface CollectionGraphInput extends PageText {
   listName: string;
   entries: ItemListEntry[];
   breadcrumbs?: BreadcrumbEntry[];
+  about?: JsonLdRef;
   nodes?: MaybeNode[];
 }
 
@@ -142,6 +143,7 @@ export const productListGraph = (
 export const categoryGraph = (
   locale: Locale,
   input: {
+    path: string;
     category: CategoryDetail;
     products: ProductListItem[];
     breadcrumbs: BreadcrumbEntry[];
@@ -150,9 +152,9 @@ export const categoryGraph = (
   },
 ) => {
   const { category } = input;
-  const url = localeUrl(locale, routes.category(category.slug));
+  const url = localeUrl(locale, input.path);
   return productListGraph(locale, {
-    path: routes.category(category.slug),
+    path: input.path,
     name: category.name,
     description: category.summary,
     listName: category.name,
@@ -170,7 +172,6 @@ export const productGraph = (
     guide: ProductGuideRef | null;
     breadcrumbs: BreadcrumbEntry[];
     faqTitle: string;
-    service?: ServiceText;
   },
 ) => {
   const { product } = input;
@@ -193,13 +194,6 @@ export const productGraph = (
         guide: input.guide,
         warranty: { name: copy.warrantyName, unit: copy.monthUnit },
       }),
-      serviceNode({
-        id: siteIds.afterSalesService,
-        locale,
-        ...(input.service ?? copy.afterSales),
-        url: localeUrl(locale, routes.support),
-        isRelatedTo: [ref(productId(locale, product.slug))],
-      }),
       faqSectionNode(locale, url, input.faqTitle, product.faqs),
     ],
   });
@@ -218,16 +212,19 @@ const brandNode = (locale: Locale, brand: BrandDetail): JsonLdNode => ({
 export const brandGraph = (
   locale: Locale,
   input: { brand: BrandDetail; products: ProductListItem[]; breadcrumbs: BreadcrumbEntry[] },
-) =>
-  productListGraph(locale, {
-    path: routes.brand(input.brand.slug),
-    name: input.brand.name,
-    description: plainText(input.brand.description),
-    listName: input.brand.name,
+) => {
+  const { brand } = input;
+  return productListGraph(locale, {
+    path: routes.brand(brand.slug),
+    name: brand.name,
+    description: plainText(brand.description),
+    listName: brand.name,
     products: input.products,
     breadcrumbs: input.breadcrumbs,
-    nodes: [brandNode(locale, input.brand)],
+    about: ref(brandId(locale, brand)),
+    nodes: [brand.isOwn ? null : brandNode(locale, brand)],
   });
+};
 
 export const brandsGraph = (
   locale: Locale,
@@ -264,7 +261,7 @@ export const serviceGraph = (
     breadcrumbs: input.breadcrumbs,
     mainEntity: ref(id),
     nodes: [
-      serviceNode({ ...input.service, id, locale, url }),
+      serviceNode({ ...input.service, id, url }),
       input.faqs ? faqSectionNode(locale, url, input.faqTitle ?? input.name, input.faqs) : null,
     ],
   });
@@ -394,11 +391,11 @@ const postStub = (locale: Locale, post: PostListItem): JsonLdNode => ({
 
 export const blogGraph = (
   locale: Locale,
-  input: PageText & { posts: PostListItem[]; breadcrumbs?: BreadcrumbEntry[] },
+  input: PageText & { path: string; posts: PostListItem[]; breadcrumbs?: BreadcrumbEntry[] },
 ) => {
   const url = localeUrl(locale, routes.blog);
   return webPageGraph(locale, {
-    path: routes.blog,
+    path: input.path,
     type: "CollectionPage",
     name: input.name,
     description: input.description,

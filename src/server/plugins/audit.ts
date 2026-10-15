@@ -59,13 +59,18 @@ const describeRoute = (method: string, route: string) => {
   return { entity, action: rest.length > 0 ? rest.join(".") : verbOf(method) };
 };
 
-const responseId = (response: unknown) =>
-  typeof response === "object" &&
-  response !== null &&
-  "id" in response &&
-  typeof response.id === "string"
-    ? response.id
+const idOf = (value: unknown) =>
+  typeof value === "object" && value !== null && "id" in value && typeof value.id === "string"
+    ? value.id
     : null;
+
+const responseId = (response: unknown) =>
+  idOf(response) ??
+  (typeof response === "object" && response !== null
+    ? (Object.values(response)
+        .map(idOf)
+        .find((id) => id !== null) ?? null)
+    : null);
 
 export const recordAudit = async (entry: AuditEntry) => {
   await getDb()

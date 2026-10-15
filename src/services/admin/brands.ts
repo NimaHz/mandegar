@@ -7,7 +7,8 @@ import { brands, products } from "@/server/db/schema";
 import type { AdminBrand, AdminListQuery, AdminOption } from "@/types/admin";
 
 import { orderByIds } from "../db/mappers";
-import { iso, paginate, searchColumns, toMediaRefOrNull } from "./shared";
+import { iso } from "../db/mappers";
+import { paginate, searchColumns, toMediaRefOrNull } from "./shared";
 
 const hydrate = async (ids: string[]): Promise<AdminBrand[]> => {
   if (ids.length === 0) return [];

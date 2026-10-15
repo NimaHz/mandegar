@@ -1,9 +1,8 @@
 "use client";
 
-import { m, type Variants } from "motion/react";
-import type { ReactNode } from "react";
+import { type CSSProperties, type ReactNode, useEffect, useRef } from "react";
 
-import { EASE_OUT_EXPO } from "./easing";
+import { cn } from "@/lib/cn";
 
 interface RevealProps {
   children: ReactNode;
@@ -11,50 +10,78 @@ interface RevealProps {
   delay?: number;
 }
 
-const VIEWPORT = { once: true, margin: "0px 0px -10% 0px" } as const;
+const STAGGER_MS = 50;
+
+const revealSelf =
+  "motion-safe:data-[reveal=pending]:translate-y-3.5 motion-safe:data-[reveal=pending]:opacity-0 data-[reveal=shown]:transition-[opacity,translate] data-[reveal=shown]:delay-(--reveal-delay) data-[reveal=shown]:duration-700 data-[reveal=shown]:ease-(--ease-out-expo)";
+
+const revealItem =
+  "motion-safe:group-data-[reveal=pending]/reveal:translate-y-3.5 motion-safe:group-data-[reveal=pending]/reveal:opacity-0 group-data-[reveal=shown]/reveal:transition-[opacity,translate] group-data-[reveal=shown]/reveal:delay-(--reveal-delay) group-data-[reveal=shown]/reveal:duration-600 group-data-[reveal=shown]/reveal:ease-(--ease-out-expo)";
+
+let observer: IntersectionObserver | undefined;
+
+const revealObserver = () => {
+  observer ??= new IntersectionObserver(
+    (entries, current) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        current.unobserve(entry.target);
+        entry.target.setAttribute("data-reveal", "shown");
+      }
+    },
+    { rootMargin: "0px 0px -10% 0px" },
+  );
+  return observer;
+};
+
+const staggerItems = (group: HTMLElement) => {
+  Array.from(group.children).forEach((child, index) => {
+    if (child instanceof HTMLElement) {
+      child.style.setProperty("--reveal-delay", `${index * STAGGER_MS}ms`);
+    }
+  });
+};
+
+function useReveal(onPending?: (element: HTMLElement) => void) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element || element.getBoundingClientRect().top < window.innerHeight) return;
+    element.dataset.reveal = "pending";
+    onPending?.(element);
+    const io = revealObserver();
+    io.observe(element);
+    return () => io.unobserve(element);
+  }, [onPending]);
+
+  return ref;
+}
 
 export function Reveal({ children, className, delay = 0 }: RevealProps) {
+  const ref = useReveal();
+
   return (
-    <m.div
-      className={className}
-      initial={{ opacity: 0, y: 14 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={VIEWPORT}
-      transition={{ duration: 0.7, ease: EASE_OUT_EXPO, delay }}
+    <div
+      ref={ref}
+      className={cn(revealSelf, className)}
+      style={delay ? ({ "--reveal-delay": `${delay}s` } as CSSProperties) : undefined}
     >
       {children}
-    </m.div>
+    </div>
   );
 }
 
-const groupVariants: Variants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.05 } },
-};
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 14 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: EASE_OUT_EXPO } },
-};
-
 export function RevealGroup({ children, className }: Omit<RevealProps, "delay">) {
+  const ref = useReveal(staggerItems);
+
   return (
-    <m.div
-      className={className}
-      variants={groupVariants}
-      initial="hidden"
-      whileInView="visible"
-      viewport={VIEWPORT}
-    >
+    <div ref={ref} className={cn("group/reveal", className)}>
       {children}
-    </m.div>
+    </div>
   );
 }
 
 export function RevealItem({ children, className }: Omit<RevealProps, "delay">) {
-  return (
-    <m.div className={className} variants={itemVariants}>
-      {children}
-    </m.div>
-  );
+  return <div className={cn(revealItem, className)}>{children}</div>;
 }

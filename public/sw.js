@@ -1,4 +1,4 @@
-const VERSION = "mandegar-v1";
+const VERSION = "mandegar-v2";
 const PRECACHE = `${VERSION}-precache`;
 const PAGES = `${VERSION}-pages`;
 const STATIC = `${VERSION}-static`;
@@ -16,6 +16,7 @@ const PRECACHE_URLS = [
 const NETWORK_TIMEOUT_MS = 3000;
 const LIMITS = { [PAGES]: 40, [STATIC]: 300, [MEDIA]: 200 };
 const BYPASS = /^\/(?:api|admin)(?:\/|$)/;
+const UNSTORABLE = /(?:^|,)\s*(?:no-store|private)\b/i;
 const STATIC_REFERENCE = /\/_next\/static\/[^"'\\\s)]+/g;
 
 const trim = async (name) => {
@@ -32,6 +33,11 @@ const store = async (name, request, response) => {
 };
 
 const cacheable = (response) => response.ok && response.type === "basic";
+
+const storablePage = (url, response) =>
+  !url.search &&
+  cacheable(response) &&
+  !UNSTORABLE.test(response.headers.get("cache-control") ?? "");
 
 const precacheOfflineAssets = async (cache) => {
   const pages = await Promise.all(
@@ -79,7 +85,7 @@ const navigate = async (event, url) => {
   event.waitUntil(
     network
       .then((response) =>
-        cacheable(response) ? store(PAGES, request, response.clone()) : undefined,
+        storablePage(url, response) ? store(PAGES, request, response.clone()) : undefined,
       )
       .catch(() => undefined),
   );

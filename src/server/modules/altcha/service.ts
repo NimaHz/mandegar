@@ -10,6 +10,8 @@ import { claimOnce } from "@/server/lib/rate-limit";
 
 const ALGORITHM = "PBKDF2/SHA-256";
 const EXPIRES_MS = 10 * 60 * 1000;
+const COUNTER_MIN = 300;
+const COUNTER_MAX = 1_500;
 const REPLAY_WINDOW_SEC = 60 * 60;
 const MAX_PAYLOAD_LENGTH = 8_000;
 
@@ -41,7 +43,7 @@ export const issueChallenge = (): Promise<Challenge> =>
   createChallenge({
     algorithm: ALGORITHM,
     cost: getServerEnv().ALTCHA_COST,
-    counter: randomInt(10_000, 5_000),
+    counter: randomInt(COUNTER_MAX, COUNTER_MIN),
     deriveKey,
     expiresAt: new Date(Date.now() + EXPIRES_MS),
     ...secrets(),

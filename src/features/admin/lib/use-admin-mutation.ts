@@ -43,7 +43,9 @@ export function useAdminMutation() {
       if (!result || result.error || result.data === null) {
         const error = toApiError(result?.error ?? null, headerOf(result?.headers, "retry-after"));
         if (error.code === "UNAUTHORIZED") {
-          router.replace(adminRoutes.login as Route);
+          router.replace(
+            adminRoutes.loginFrom(`${window.location.pathname}${window.location.search}`) as Route,
+          );
           return null;
         }
         if (error.code === "PASSWORD_CHANGE_REQUIRED") router.push(adminRoutes.account);

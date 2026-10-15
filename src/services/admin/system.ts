@@ -26,7 +26,8 @@ import type {
 } from "@/types/admin";
 
 import { readSettings } from "../db/content";
-import { iso, isoOrNull, paginate, searchColumns } from "./shared";
+import { iso, isoOrNull } from "../db/mappers";
+import { paginate, searchColumns } from "./shared";
 import { breachingTickets, closedTicketStatuses, ticketsAdmin } from "./tickets";
 
 const toUser = ({

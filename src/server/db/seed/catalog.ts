@@ -21,7 +21,7 @@ import {
   productSeeds,
 } from "./catalog-data";
 import { policySeeds } from "./content-data";
-import { fromExcluded, seedId, t, updatableKeys } from "./helpers";
+import { fromExcluded, idsBySlug, seedId, t, updatableKeys } from "./helpers";
 
 export type IdMap = Map<string, string>;
 
@@ -41,9 +41,6 @@ const logoShapes: Record<
 
 const logoSvg = (seed: BrandSeed) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">${logoShapes[seed.logo.shape](seed.logo.primary, seed.logo.secondary)}</svg>`;
-
-const idsBySlug = (rows: { id: string; slug: string }[]): IdMap =>
-  new Map(rows.map((row) => [row.slug, row.id]));
 
 const required = (map: IdMap, key: string) => {
   const value = map.get(key);
@@ -84,6 +81,7 @@ export const seedBrands = async () => {
       website: seed.website,
       isOwn: seed.isOwn,
       sortOrder: seed.sortOrder,
+      seo: seed.metaDescription ? { title: t("", ""), description: seed.metaDescription } : null,
       published: true,
     });
   }
@@ -110,7 +108,10 @@ export const seedCategories = async (photos: IdMap, guideIds: IdMap) => {
     defaultGuideId: guideIds.get(seed.slug) ?? null,
     specTemplate: seed.specTemplate,
     seo: {
-      title: t(`${seed.name.fa} ماندگار`, `Mandegar ${seed.name.en.toLowerCase()}`),
+      title: t(
+        `${seed.name.fa}: مدل‌ها، مشخصات و راهنمای نصب`,
+        `${seed.name.en}: models, specs and guides`,
+      ),
       description: seed.summary,
     },
     sortOrder: index,

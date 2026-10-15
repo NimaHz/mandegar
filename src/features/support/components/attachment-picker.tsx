@@ -3,13 +3,17 @@
 import { FileText, ImagePlus, Paperclip, X } from "lucide-react";
 import { type ChangeEvent, type DragEvent, useId, useState } from "react";
 
-import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/cn";
-import { formatNumber } from "@/lib/format";
-
-import { TICKET_ATTACHMENT_MAX_BYTES, ticketAttachmentTypes } from "../schemas";
+import { formatBytes, formatNumber, MB } from "@/lib/format";
+import {
+  attachmentKey,
+  screenAttachments,
+  TICKET_ATTACHMENT_ACCEPT,
+  TICKET_ATTACHMENT_LIMIT,
+  TICKET_ATTACHMENT_MAX_BYTES,
+} from "@/lib/tickets";
 
 export interface AttachmentLabels {
   label: string;
@@ -28,25 +32,9 @@ export interface AttachmentLabels {
 interface AttachmentPickerProps {
   files: File[];
   onChange: (files: File[]) => void;
-  max: number;
   labels: AttachmentLabels;
   error?: string | undefined;
 }
-
-const MB = 1024 * 1024;
-const ACCEPT = ticketAttachmentTypes.join(",");
-const EXTENSIONS = /\.(jpe?g|png|webp|pdf)$/i;
-
-const isAccepted = (file: File) =>
-  (ticketAttachmentTypes as readonly string[]).includes(file.type) ||
-  (file.type === "" && EXTENSIONS.test(file.name));
-
-const fileKey = (file: File) => `${file.name}-${file.size}-${file.lastModified}`;
-
-const formatSize = (locale: Locale, bytes: number) =>
-  bytes >= MB
-    ? `${formatNumber(locale, bytes / MB, { maximumFractionDigits: 1 })} MB`
-    : `${formatNumber(locale, Math.max(1, bytes / 1024), { maximumFractionDigits: 0 })} KB`;
 
 function Preview({ file }: { file: File }) {
   if (!file.type.startsWith("image/")) {
@@ -70,37 +58,27 @@ function Preview({ file }: { file: File }) {
   );
 }
 
-export function AttachmentPicker({ files, onChange, max, labels, error }: AttachmentPickerProps) {
+export function AttachmentPicker({ files, onChange, labels, error }: AttachmentPickerProps) {
   const locale = useLocale();
   const inputId = useId();
   const messageId = `${inputId}-message`;
   const [dragging, setDragging] = useState(false);
   const [problems, setProblems] = useState<string[]>([]);
   const size = formatNumber(locale, TICKET_ATTACHMENT_MAX_BYTES / MB);
-  const full = files.length >= max;
+  const limit = formatNumber(locale, TICKET_ATTACHMENT_LIMIT);
+  const full = files.length >= TICKET_ATTACHMENT_LIMIT;
 
   const add = (incoming: File[]) => {
-    const issues: string[] = [];
-    const known = new Set(files.map(fileKey));
-    const accepted: File[] = [];
-    for (const file of incoming) {
-      if (known.has(fileKey(file))) continue;
-      if (!isAccepted(file)) {
-        issues.push(fill(labels.badType, { name: file.name }));
-        continue;
-      }
-      if (file.size > TICKET_ATTACHMENT_MAX_BYTES) {
-        issues.push(fill(labels.tooBig, { name: file.name, size }));
-        continue;
-      }
-      if (files.length + accepted.length >= max) {
-        issues.push(fill(labels.tooMany, { count: formatNumber(locale, max) }));
-        break;
-      }
-      known.add(fileKey(file));
-      accepted.push(file);
-    }
-    setProblems(issues);
+    const { accepted, problems: found } = screenAttachments(files, incoming);
+    setProblems(
+      found.map((problem) =>
+        problem.kind === "type"
+          ? fill(labels.badType, { name: problem.name })
+          : problem.kind === "size"
+            ? fill(labels.tooBig, { name: problem.name, size })
+            : fill(labels.tooMany, { count: limit }),
+      ),
+    );
     if (accepted.length > 0) onChange([...files, ...accepted]);
   };
 
@@ -127,7 +105,7 @@ export function AttachmentPicker({ files, onChange, max, labels, error }: Attach
         <span className="text-caption font-semibold text-muted tabular-nums">
           {fill(labels.count, {
             count: formatNumber(locale, files.length),
-            max: formatNumber(locale, max),
+            max: limit,
           })}
         </span>
       </div>
@@ -156,13 +134,13 @@ export function AttachmentPicker({ files, onChange, max, labels, error }: Attach
           <span className="text-primary underline underline-offset-4">{labels.browse}</span>
         </span>
         <span className="text-caption text-muted">
-          {fill(labels.rules, { count: formatNumber(locale, max), size })}
+          {fill(labels.rules, { count: limit, size })}
         </span>
         <input
           id={inputId}
           type="file"
           multiple
-          accept={ACCEPT}
+          accept={TICKET_ATTACHMENT_ACCEPT}
           disabled={full}
           onChange={onInput}
           aria-describedby={messageId}
@@ -174,7 +152,7 @@ export function AttachmentPicker({ files, onChange, max, labels, error }: Attach
         <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {files.map((file) => (
             <li
-              key={fileKey(file)}
+              key={attachmentKey(file)}
               className="flex items-center gap-3 rounded-field border border-line bg-raised p-2 pe-1.5"
             >
               <span className="size-12 shrink-0 overflow-hidden rounded-control">
@@ -184,9 +162,7 @@ export function AttachmentPicker({ files, onChange, max, labels, error }: Attach
                 <span className="truncate text-sm font-semibold text-ink" dir="auto">
                   {file.name}
                 </span>
-                <span className="text-caption text-muted">
-                  <bdi dir="ltr">{formatSize(locale, file.size)}</bdi>
-                </span>
+                <span className="text-caption text-muted">{formatBytes(locale, file.size)}</span>
               </span>
               <button
                 type="button"

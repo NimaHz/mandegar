@@ -1,4 +1,6 @@
 const TEHRAN_OFFSET_MINUTES = 210;
+const KEEP_RATIO = 0.6;
+const SENTENCE_END = /[.!?؟](?=\s)/g;
 
 export const tehranIso = (value: string | Date) => {
   const shifted = new Date(new Date(value).getTime() + TEHRAN_OFFSET_MINUTES * 60_000);
@@ -29,5 +31,13 @@ export const truncate = (text: string, max: number) => {
   if (text.length <= max) return text;
   const cut = text.slice(0, max - 1);
   const boundary = cut.lastIndexOf(" ");
-  return `${(boundary > max * 0.6 ? cut.slice(0, boundary) : cut).trimEnd()}…`;
+  return `${(boundary > max * KEEP_RATIO ? cut.slice(0, boundary) : cut).trimEnd()}…`;
+};
+
+export const summarize = (text: string, max: number) => {
+  if (text.length <= max) return text;
+  const end = [...text.matchAll(SENTENCE_END)]
+    .map((match) => match.index + 1)
+    .findLast((index) => index <= max);
+  return end !== undefined && end > max * KEEP_RATIO ? text.slice(0, end) : truncate(text, max);
 };

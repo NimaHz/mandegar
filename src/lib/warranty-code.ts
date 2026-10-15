@@ -9,7 +9,7 @@ import {
 
 export const WARRANTY_CODE_LENGTH = 9;
 export const SERIAL_CODE_LENGTH = 12;
-export const JALALI_YEAR_BASE = 1400;
+const JALALI_YEAR_BASE = 1400;
 
 export type WarrantyCodeKind = "batch" | "unit";
 
@@ -17,7 +17,7 @@ export type ParsedWarrantyCode =
   | { valid: true; code: string; kind: WarrantyCodeKind; productionYear: number }
   | { valid: false; code: string; reason: "empty" | "length" | "prefix" | "check" };
 
-export const yearSymbol = (jalaliYear: number) => {
+const yearSymbol = (jalaliYear: number) => {
   const symbol = CODE_ALPHABET[jalaliYear - JALALI_YEAR_BASE];
   if (!symbol) throw new RangeError(`Unsupported production year ${jalaliYear}`);
   return symbol;

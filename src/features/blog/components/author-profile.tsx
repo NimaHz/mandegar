@@ -4,6 +4,7 @@ import { LogoMark } from "@/components/brand/logo-mark";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { formatNumber } from "@/lib/format";
+import { hostOf } from "@/lib/url";
 import type { AuthorDetail } from "@/types/content";
 
 import { blogContent } from "../content";
@@ -14,14 +15,6 @@ interface AuthorProfileProps {
   locale: Locale;
   postCount: number;
 }
-
-const hostOf = (href: string) => {
-  try {
-    return new URL(href).hostname.replace(/^www\./, "");
-  } catch {
-    return href;
-  }
-};
 
 export function AuthorProfile({ author, locale, postCount }: AuthorProfileProps) {
   const content = blogContent[locale];

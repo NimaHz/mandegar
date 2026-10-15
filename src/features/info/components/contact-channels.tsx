@@ -7,6 +7,7 @@ import { CopyButton } from "@/components/shared/copy-button";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { cn } from "@/lib/cn";
+import { phoneHref } from "@/lib/phone";
 import type { SiteSettings } from "@/types/content";
 
 import type { ContactContent } from "../content";
@@ -56,7 +57,7 @@ export function ContactChannels({ locale, content, settings, className }: Contac
               {settings.phones.map((phone) => (
                 <li key={phone.value} className={rowClass}>
                   <a
-                    href={`tel:${phone.value.replace(/[^\d+]/g, "")}`}
+                    href={phoneHref(phone.value)}
                     aria-label={fill(channels.call, { label: phone.label })}
                     className="flex min-w-0 flex-1 flex-col transition-colors hover:text-primary"
                   >

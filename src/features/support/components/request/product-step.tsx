@@ -7,14 +7,15 @@ import { Controller, useFormContext, useWatch } from "react-hook-form";
 import { CodeInput, type CodeInspection, inspectCode } from "@/components/shared/code-input";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
+import { apiClient, apiResult } from "@/lib/api-client";
 import { jalaliToGregorianYear } from "@/lib/dates";
 import { formatNumber } from "@/lib/format";
-import type { WarrantyLookup, WarrantyMatch } from "@/types/warranty";
+import type { ModelOption } from "@/types/catalog";
+import type { WarrantyMatch } from "@/types/warranty";
 
-import { postJson } from "../../api";
 import type { RequestFlowContent } from "../../content";
 import type { RequestValues } from "../../schemas";
-import { type ModelOption, ModelPicker } from "./model-picker";
+import { ModelPicker } from "./model-picker";
 import { PurchaseDateInput } from "./purchase-date-input";
 
 type LookupState =
@@ -33,7 +34,7 @@ const lookupCode = async (
   locale: Locale,
   code: string,
 ): Promise<Extract<LookupState, { status: "found" | "miss" }>> => {
-  const result = await postJson<WarrantyLookup>("/api/warranty/lookup", { code, locale });
+  const result = await apiResult(apiClient.api.warranty.lookup.post({ code, locale }));
   return result.ok && result.data.status === "found"
     ? { status: "found", code, match: result.data.match }
     : { status: "miss", code };
@@ -109,7 +110,7 @@ export function ProductStep({ locale, models, copy }: ProductStepProps) {
             role="status"
             className="flex items-center gap-3 rounded-field border border-success/30 bg-success-soft/60 p-3"
           >
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-success text-white">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-success text-white dark:text-night">
               <BadgeCheck className="size-5" aria-hidden />
             </span>
             <span className="flex min-w-0 flex-col">

@@ -5,7 +5,7 @@ import { type Locale, localeMeta, locales } from "@/i18n/config";
 import { languageAlternates, localizePath } from "@/i18n/paths";
 
 import { OG_HEIGHT, OG_WIDTH, ogImagePath, ogPageKey, type OgTarget } from "./og/targets";
-import { truncate } from "./text";
+import { summarize, truncate } from "./text";
 
 export { absoluteUrl } from "./urls";
 
@@ -33,7 +33,7 @@ const pageTitle = (locale: Locale, title: string): Metadata["title"] => {
   return { absolute: truncate(title, TITLE_MAX) };
 };
 
-export const noindexRobots: Metadata["robots"] = {
+const noindexRobots: Metadata["robots"] = {
   index: false,
   follow: true,
   googleBot: { index: false, follow: true },
@@ -54,27 +54,29 @@ export const pageMetadata = ({
   noindex = false,
 }: PageMetadataInput): Metadata => {
   const url = localizePath(locale, path);
-  const summary = truncate(description, DESCRIPTION_MAX);
+  const heading = title.trim();
+  const summary = summarize(description.trim(), DESCRIPTION_MAX);
+  const alt = heading || siteConfig.name[locale];
+  const text = { ...(heading && { title: heading }), ...(summary && { description: summary }) };
   const card = {
     url: ogImagePath(locale, og ?? { kind: "page", key: ogPageKey(path) }),
     width: OG_WIDTH,
     height: OG_HEIGHT,
-    alt: title,
+    alt,
     type: "image/png",
   };
   const extra = image
-    ? [{ url: image.url, width: image.width, height: image.height, alt: image.alt ?? title }]
+    ? [{ url: image.url, width: image.width, height: image.height, alt: image.alt ?? alt }]
     : [];
 
   return {
-    title: pageTitle(locale, title),
-    description: summary,
+    ...(heading && { title: pageTitle(locale, heading) }),
+    ...(summary && { description: summary }),
     alternates: { canonical: url, languages: languageAlternates(path) },
     openGraph: {
       type,
       url,
-      title,
-      description: summary,
+      ...text,
       siteName: siteConfig.name[locale],
       locale: localeMeta[locale].ogLocale,
       alternateLocale: locales
@@ -90,9 +92,8 @@ export const pageMetadata = ({
     },
     twitter: {
       card: "summary_large_image",
-      title,
-      description: summary,
-      images: [{ url: card.url, alt: title }],
+      ...text,
+      images: [{ url: card.url, alt }],
     },
     ...(noindex && { robots: noindexRobots }),
   };

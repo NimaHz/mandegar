@@ -25,6 +25,7 @@ export interface Faq {
   group: FaqGroup;
   question: string;
   answer: string;
+  updatedAt: string;
 }
 
 export type GuideVideo =
@@ -111,6 +112,7 @@ export interface ServiceCenter {
   lat: number | null;
   lng: number | null;
   categories: { slug: string; name: string }[];
+  updatedAt: string;
 }
 
 export interface ServiceCentersQuery {
@@ -148,4 +150,6 @@ export interface SiteSettings {
     registrationNo: string | null;
     foundingYear: number | null;
   };
+  seo: { title: string; description: string };
+  updatedAt: string | null;
 }

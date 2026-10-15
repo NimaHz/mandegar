@@ -3,14 +3,11 @@
 import { Check, GitCompareArrows } from "lucide-react";
 
 import { IconSwap } from "@/components/motion/icon-swap";
-import { toast } from "@/components/ui/toast";
 import { compareContent } from "@/features/compare/content";
-import { compareHref } from "@/features/compare/href";
 import { fill } from "@/i18n/fill";
 import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/cn";
-import { formatNumber } from "@/lib/format";
-import { COMPARE_LIMIT, useCompareStore, useIsCompared, useIsCompareFull } from "@/stores/compare";
+import { useCompareStore, useIsCompared } from "@/stores/compare";
 import { useStoresHydrated } from "@/stores/hydration";
 
 interface CompareToggleProps {
@@ -41,26 +38,8 @@ export function CompareToggle({ slug, name, variant = "chip", className }: Compa
   const hydrated = useStoresHydrated();
   const toggle = useCompareStore((state) => state.toggle);
   const compared = useIsCompared(slug);
-  const full = useIsCompareFull();
   const pressed = hydrated && compared;
   const style = variants[variant];
-
-  const onClick = () => {
-    if (!compared && full) {
-      toast({
-        tone: "info",
-        id: "compare-full",
-        title: copy.fullTitle,
-        description: fill(copy.fullDescription, { count: formatNumber(locale, COMPARE_LIMIT) }),
-        action: {
-          label: copy.fullAction,
-          href: compareHref(locale, useCompareStore.getState().slugs),
-        },
-      });
-      return;
-    }
-    toggle(slug);
-  };
 
   return (
     <button
@@ -68,7 +47,7 @@ export function CompareToggle({ slug, name, variant = "chip", className }: Compa
       aria-pressed={pressed}
       aria-label={fill(copy.label, { name })}
       disabled={!hydrated}
-      onClick={onClick}
+      onClick={() => toggle(slug)}
       className={cn(
         "inline-flex shrink-0 items-center justify-center font-bold whitespace-nowrap transition-[background-color,border-color,color,scale] duration-200 select-none active:scale-[0.97]",
         style.base,

@@ -50,7 +50,6 @@ export interface CatalogContent {
     productsTitle: string;
     productsDescription: string;
     guideEyebrow: string;
-    guideTitle: string;
     guideCta: string;
     guideSteps: string;
     guideMinutes: string;
@@ -116,7 +115,6 @@ export const catalogContent: Record<Locale, CatalogContent> = {
       productsTitle: "مدل‌های {name}",
       productsDescription: "برند و رده انرژی را انتخاب کن تا مدل‌ها دقیق‌تر شوند.",
       guideEyebrow: "راهنمای نصب",
-      guideTitle: "قبل از نصب، این راهنما را ببین",
       guideCta: "دیدن راهنمای کامل",
       guideSteps: "{count} مرحله",
       guideMinutes: "{count} دقیقه",
@@ -181,7 +179,6 @@ export const catalogContent: Record<Locale, CatalogContent> = {
       productsTitle: "{name} models",
       productsDescription: "Filter by brand and energy class to narrow the list.",
       guideEyebrow: "Installation guide",
-      guideTitle: "Watch this before you install",
       guideCta: "Open the full guide",
       guideSteps: "{count} steps",
       guideMinutes: "{count} min",

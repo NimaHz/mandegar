@@ -24,6 +24,7 @@ export interface BrandSeed {
   slug: BrandSlug;
   name: LocalizedText;
   description: LocalizedText;
+  metaDescription?: LocalizedText;
   website: string | null;
   isOwn: boolean;
   sortOrder: number;
@@ -69,6 +70,10 @@ export const brandSeeds: BrandSeed[] = [
     description: t(
       "ماندگار تولیدکننده ایرانی کولر آبی، بخاری، آبگرمکن و لوازم خانگی است. از سال ۱۳۷۲ محصولاتی ساده، بادوام و قابل‌تعمیر می‌سازیم و پشت هر دستگاه، شبکه‌ای از نمایندگی‌ها و سرویس‌کاران مجاز در سراسر کشور ایستاده است.",
       "Mandegar is an Iranian maker of evaporative coolers, heaters, water heaters and home appliances. Since 1993 we have built simple, durable, repairable products, backed by a nationwide network of authorized dealers and service technicians.",
+    ),
+    metaDescription: t(
+      "کولر آبی، بخاری گازی و برقی، آبگرمکن و پنکه ماندگار؛ ساخت ایران از سال ۱۳۷۲ با گارانتی رسمی و شبکه خدمات پس از فروش در سراسر کشور.",
+      "Mandegar evaporative coolers, gas and electric heaters, water heaters and fans, made in Iran since 1993 with an official warranty and nationwide service.",
     ),
     website: null,
     isOwn: true,
@@ -426,10 +431,10 @@ export const categorySeeds: CategorySeed[] = [
         ),
       ),
       faq(
-        t("این کولر برای چه متراژی مناسب است؟", "What size of home is this cooler suitable for?"),
+        t("کدام کولر برای متراژ خانه من مناسب است؟", "Which cooler suits the size of my home?"),
         t(
-          "متراژ پیشنهادی در جدول مشخصات آمده است. برای خانه‌های رو به جنوب یا طبقه آخر، یک مدل بزرگ‌تر انتخاب کنید.",
-          "The recommended area is listed in the specifications. For south-facing homes or top-floor flats, choose one size up.",
+          "MC-3500 برای فضای تا ۶۰ متر مربع، MC-4500 تا ۹۰ متر مربع و MC-7000 تا ۱۵۰ متر مربع مناسب است. برای خانه‌های رو به جنوب یا طبقه آخر، یک مدل بزرگ‌تر انتخاب کنید.",
+          "The MC-3500 cools up to 60 m², the MC-4500 up to 90 m² and the MC-7000 up to 150 m². For south-facing homes or top-floor flats, choose one size up.",
         ),
       ),
     ],
@@ -679,8 +684,8 @@ export const categorySeeds: CategorySeed[] = [
     policy: "care",
     name: t("لوازم آشپزخانه", "Kitchen appliances"),
     summary: t(
-      "اجاق گاز، مایکروفر و لوازم کوچک آشپزخانه از ماندگار و برندهای همکار.",
-      "Gas hobs, microwaves and small kitchen appliances from Mandegar and partner brands.",
+      "اجاق گاز، مایکروفر و توستر از ماندگار و برندهای همکار مثل جنرال، با گارانتی رسمی، راهنمای نصب و خدمات پس از فروش ماندگار در سراسر ایران.",
+      "Gas hobs, microwaves and toasters from Mandegar and partner brands such as General, with an official warranty and Mandegar after-sales service.",
     ),
     description: t(
       "در این دسته، اجاق‌های گاز ماندگار در کنار مایکروفر و لوازم کوچک برندهای همکار عرضه می‌شوند. همه محصولات با گارانتی و قطعات یدکی ماندگار پشتیبانی می‌شوند.",
@@ -723,8 +728,8 @@ export const categorySeeds: CategorySeed[] = [
     policy: "care",
     name: t("پنکه", "Fans"),
     summary: t(
-      "پنکه‌های ایستاده، رومیزی و دیواری با موتور مسی و صدای کم.",
-      "Stand, desk and wall fans with copper motors and low noise.",
+      "پنکه‌های ایستاده، رومیزی و دیواری ماندگار و جنرال با موتور مسی، تا سه سرعت و صدای کم؛ برای خنکای کم‌هزینه هر اتاق، به‌تنهایی یا در کنار کولر.",
+      "Stand, desk and wall fans from Mandegar and General with copper motors, up to three speeds and low noise, for low-cost cooling in any room.",
     ),
     description: t(
       "پنکه‌های این دسته با موتور تمام‌مس، پره‌های متعادل‌شده و گردش افقی، جریان هوای آرامی را در تمام اتاق پخش می‌کنند. برای شب‌های تابستان و فضاهایی که کولر ندارند، انتخابی کم‌مصرف هستند.",

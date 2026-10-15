@@ -1,5 +1,6 @@
 import { fill } from "@/i18n/fill";
 import { formatNumber } from "@/lib/format";
+import { isRecord } from "@/lib/guards";
 
 import { adminContent } from "../content";
 
@@ -16,9 +17,6 @@ export interface EdenFailure {
 }
 
 const errorMessages: Record<string, string> = adminContent.errors;
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
 
 const stringFields = (value: unknown) =>
   isRecord(value)

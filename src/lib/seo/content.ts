@@ -15,6 +15,7 @@ interface SeoContent {
   listLast: string;
   chooseQuestion: string;
   chooseAnswer: string;
+  chooseFact: string;
   rangeQuestion: string;
   rangeAnswer: string;
   warrantySame: string;
@@ -41,6 +42,7 @@ export const seoContent: Record<Locale, SeoContent> = {
     listLast: " و ",
     chooseQuestion: "چطور از میان مدل‌های {category} انتخاب کنم؟",
     chooseAnswer: "{label} مدل‌ها را با نیاز خود مقایسه کنید: {facts}.",
+    chooseFact: "{model} با {value}",
     rangeQuestion: "چه مدل‌هایی در دسته {category} وجود دارد؟",
     rangeAnswer: "{count} مدل: {models}. {warranty}",
     warrantySame: "همه این مدل‌ها {months} ماه گارانتی رسمی دارند.",
@@ -68,9 +70,10 @@ export const seoContent: Record<Locale, SeoContent> = {
       "{name} is a {brand} model in the {category} category, with {fact} and an official {months}-month warranty.",
     listJoin: ", ",
     listLast: " and ",
-    chooseQuestion: "How do I choose a model in {category}?",
+    chooseQuestion: "How do I choose between these {category}?",
     chooseAnswer: "Compare the {label} of each model with your needs: {facts}.",
-    rangeQuestion: "Which models are in {category}?",
+    chooseFact: "{model}: {value}",
+    rangeQuestion: "Which {category} are available?",
     rangeAnswer: "{count} models: {models}. {warranty}",
     warrantySame: "All of them carry an official {months}-month warranty.",
     warrantyRange: "Their official warranty runs from {min} to {max} months.",

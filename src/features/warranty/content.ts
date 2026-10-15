@@ -14,7 +14,7 @@ interface LabelStep {
 }
 
 export interface WarrantyContent {
-  meta: { title: string; description: string; resultTitle: string };
+  meta: { title: string; description: string };
   hero: { eyebrow: string; title: string; description: string };
   form: { submit: string; pending: string; trust: string; scanHint: string };
   code: CodeInputMessages;
@@ -112,7 +112,6 @@ export const warrantyContent: Record<Locale, WarrantyContent> = {
       title: "استعلام گارانتی",
       description:
         "با کد ۹ کاراکتری روی برچسب دستگاه، وضعیت، مدت و پوشش گارانتی محصولات ماندگار را در چند ثانیه ببین.",
-      resultTitle: "نتیجه استعلام گارانتی",
     },
     hero: {
       eyebrow: "گارانتی رسمی ماندگار",
@@ -236,7 +235,6 @@ export const warrantyContent: Record<Locale, WarrantyContent> = {
       title: "Warranty check",
       description:
         "Check the status, length and coverage of your Mandegar warranty in seconds with the 9-character code on the appliance label.",
-      resultTitle: "Warranty check result",
     },
     hero: {
       eyebrow: "Official Mandegar warranty",
@@ -332,7 +330,7 @@ export const warrantyContent: Record<Locale, WarrantyContent> = {
         rows: [
           { label: "Voltage", value: "220–240 V" },
           { label: "Power", value: "250 W" },
-          { label: "Made in", value: "2026" },
+          { label: "Production year", value: "2026" },
         ],
         codeCaption: "Warranty code",
         scanCaption: "Scan me",

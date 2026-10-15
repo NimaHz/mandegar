@@ -4,8 +4,10 @@ import type {
   BrandSummary,
   CategoryDetail,
   CategorySummary,
+  ModelOption,
   ProductDetail,
   ProductFacets,
+  ProductInsight,
   ProductListItem,
   ProductsQuery,
   SearchHit,
@@ -38,9 +40,12 @@ export interface CatalogService {
   featured: (locale: Locale, limit: number) => Promise<ProductListItem[]>;
   latest: (locale: Locale, limit: number) => Promise<ProductListItem[]>;
   byCategory: (locale: Locale, categorySlug: string, limit?: number) => Promise<ProductListItem[]>;
+  categoryInsights: (locale: Locale, categorySlug: string) => Promise<ProductInsight[]>;
+  models: (locale: Locale) => Promise<ModelOption[]>;
+  bySlugs: (locale: Locale, slugs: string[]) => Promise<ProductListItem[]>;
   byBrand: (locale: Locale, brandSlug: string) => Promise<ProductListItem[]>;
   product: (locale: Locale, slug: string) => Promise<ProductDetail | null>;
-  related: (locale: Locale, product: ProductDetail, limit?: number) => Promise<ProductListItem[]>;
+  related: (locale: Locale, slug: string, limit?: number) => Promise<ProductListItem[]>;
   compare: (locale: Locale, slugs: string[]) => Promise<ProductDetail[]>;
   productSlugs: () => Promise<string[]>;
   brands: (locale: Locale) => Promise<BrandSummary[]>;

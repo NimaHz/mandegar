@@ -1,13 +1,13 @@
 import type { z } from "zod";
 
 import { fill } from "@/i18n/fill";
-import { formatNumber } from "@/lib/format";
 
 import { adminContent } from "../content";
+import { faNumber } from "./format";
 
 const copy = adminContent.validation;
 
-const amount = (value: number | bigint) => formatNumber("fa", Number(value));
+const amount = (value: number | bigint) => faNumber(Number(value));
 
 const sizeMessage = (issue: z.core.$ZodRawIssue) => {
   if (issue.code === "too_small") {
@@ -34,7 +34,7 @@ const formatMessage = (format: string) => {
   return copy.invalid;
 };
 
-export const adminErrorMap: z.core.$ZodErrorMap = (issue) => {
+const adminErrorMap: z.core.$ZodErrorMap = (issue) => {
   if (issue.code === "too_small" || issue.code === "too_big") return sizeMessage(issue);
   if (issue.code === "invalid_format") return formatMessage(issue.format);
   if (issue.code === "invalid_value") return copy.choice;

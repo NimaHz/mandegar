@@ -1,16 +1,12 @@
 "use client";
 
 import { Check, Link2, Share2 } from "lucide-react";
-import { useSyncExternalStore } from "react";
 
 import { IconSwap } from "@/components/motion/icon-swap";
 import { useCopy } from "@/components/shared/copy-button";
 import { Button } from "@/components/ui/button";
+import { useCanShare } from "@/hooks/use-can-share";
 import { cn } from "@/lib/cn";
-
-const subscribe = () => () => undefined;
-
-const canShare = () => typeof navigator.share === "function";
 
 interface PostShareProps {
   title: string;
@@ -19,7 +15,7 @@ interface PostShareProps {
 }
 
 export function PostShare({ title, labels, className }: PostShareProps) {
-  const nativeShare = useSyncExternalStore(subscribe, canShare, () => false);
+  const nativeShare = useCanShare();
   const { status, copy } = useCopy();
   const copied = status === "copied";
 

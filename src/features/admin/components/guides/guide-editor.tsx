@@ -13,7 +13,7 @@ import type { AdminGuide } from "@/types/admin";
 
 import { adminContent } from "../../content";
 import type { AdminApiError } from "../../lib/api-error";
-import { formatClock, parseClock } from "../../lib/format";
+import { clockValue, parseClock } from "../../lib/format";
 import { applyFieldErrors } from "../../lib/server-errors";
 import { useAdminMutation } from "../../lib/use-admin-mutation";
 import { zodOptions } from "../../lib/zod";
@@ -56,13 +56,13 @@ const toForm = (guide: AdminGuide | null): GuideFormInput => ({
     hash: guide?.video?.kind === "aparat" ? guide.video.hash : "",
     posterMediaId: guide?.video?.posterMediaId ?? null,
   },
-  durationSec: guide?.durationSec ? formatClock(guide.durationSec) : "",
+  durationSec: guide?.durationSec ? clockValue(guide.durationSec) : "",
   steps: guide?.steps ?? [],
   tools: guide?.tools ?? [],
   safety: guide?.safety ?? [],
   chapters: (guide?.chapters ?? []).map((chapter) => ({
     title: chapter.title,
-    startSec: formatClock(chapter.startSec),
+    startSec: clockValue(chapter.startSec),
   })),
   published: guide?.published ?? false,
 });

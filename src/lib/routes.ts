@@ -28,8 +28,11 @@ export const routes = {
   upload: (key: string) => `/uploads/${key}` as const,
 } as const;
 
+export const adminPathHeader = "x-admin-path";
+
 export const adminRoutes = {
   login: "/admin/login",
+  loginFrom: (next: string) => `/admin/login?next=${encodeURIComponent(next)}` as const,
   dashboard: "/admin",
   products: "/admin/products",
   newProduct: "/admin/products/new",

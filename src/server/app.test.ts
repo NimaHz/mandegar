@@ -17,11 +17,10 @@ import {
   warrantyPolicies,
 } from "@/server/db/schema";
 import { issueFormToken } from "@/server/lib/form-guard";
-import { loadEnvFiles } from "@/server/load-env-files";
-import { field, postJson, request, testIp } from "@/server/testing/http";
+import { field, loadTestEnv, postJson, request, testIp } from "@/server/testing/http";
 
 process.env.ALTCHA_COST = "1";
-loadEnvFiles();
+loadTestEnv();
 
 const suffix = Date.now().toString(36);
 const phone = `0912${String(Date.now()).slice(-7)}`;
@@ -124,6 +123,24 @@ describe("health and search", () => {
   });
 });
 
+describe("product lookup", () => {
+  it("returns visible products for the requested slugs only", async () => {
+    const response = await request(
+      `/products?slugs=test-product-${suffix},missing-${suffix}&locale=en`,
+      { ip: testIp() },
+    );
+    assert.equal(response.status, 200);
+    const items = field(response.json, "items");
+    assert.ok(Array.isArray(items));
+    assert.deepEqual(
+      items.map((item) => field(item, "slug")),
+      [`test-product-${suffix}`],
+    );
+    const empty = await request("/products?slugs=&locale=fa", { ip: testIp() });
+    assert.deepEqual(empty.json, { items: [] });
+  });
+});
+
 describe("warranty lookup", () => {
   it("finds a code typed with dashes and lowercase", async () => {
     const response = await postJson(
@@ -167,6 +184,37 @@ describe("warranty lookup", () => {
       { ip },
     );
     assert.deepEqual(limited.json, { status: "rate-limited" });
+  });
+
+  it("counts concurrent misses atomically and ignores hits", async () => {
+    const ip = testIp();
+    const misses = await Promise.all(
+      Array.from({ length: 15 }, () =>
+        postJson("/warranty/lookup", { code: createWarrantyCode(1405), locale: "fa" }, { ip }),
+      ),
+    );
+    const outcomes = misses.map((response) => String(field(response.json, "status")));
+    assert.equal(outcomes.filter((status) => status === "not-found").length, 10);
+    assert.equal(outcomes.filter((status) => status === "rate-limited").length, 5);
+    const hitsIp = testIp();
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      const hit = await postJson("/warranty/lookup", { code: fixture.code }, { ip: hitsIp });
+      assert.equal(field(hit.json, "status"), "found");
+    }
+  });
+
+  it("answers malformed bodies with 400 and wrong content types with 415", async () => {
+    const malformed = await request("/warranty/lookup", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{bad",
+      ip: testIp(),
+    });
+    assert.equal(malformed.status, 400);
+    assert.equal(field(field(malformed.json, "error"), "code"), "BAD_REQUEST");
+    const wrongType = await postJson("/tickets", {}, { ip: testIp() });
+    assert.equal(wrongType.status, 415);
+    assert.equal(field(field(wrongType.json, "error"), "code"), "UNSUPPORTED_MEDIA");
   });
 
   it("rejects cross-origin writes", async () => {
@@ -218,6 +266,39 @@ describe("tickets", () => {
     assert.equal(row?.priority, "urgent");
     assert.equal(row?.productId, fixture.productId);
     assert.ok(row && row.firstResponseDue > row.createdAt);
+  });
+
+  it("rejects future purchase dates and oversize attachments", async () => {
+    const form = () => {
+      const data = new FormData();
+      const fields = {
+        type: "repair",
+        name: "Test Customer",
+        phone,
+        province: "23",
+        city: "Tehran",
+        address: "Test street, number 1",
+        subject: "Noisy fan",
+        description: "The fan is louder than before.",
+        formToken: "unused",
+        altcha: "unused",
+      };
+      for (const [key, value] of Object.entries(fields)) data.set(key, value);
+      return data;
+    };
+    const future = form();
+    future.set("purchaseDate", "2999-01-01");
+    const dated = await request("/tickets", { method: "POST", body: future, ip: testIp() });
+    assert.equal(dated.status, 422);
+    assert.ok(field(field(field(dated.json, "error"), "fields"), "purchaseDate"));
+    const heavy = form();
+    heavy.append(
+      "attachments",
+      new File([new Uint8Array(5 * 1024 * 1024 + 1)], "photo.jpg", { type: "image/jpeg" }),
+    );
+    const large = await request("/tickets", { method: "POST", body: heavy, ip: testIp() });
+    assert.equal(large.status, 413);
+    assert.equal(field(field(large.json, "error"), "code"), "PAYLOAD_TOO_LARGE");
   });
 
   it("rejects a filled honeypot", async () => {

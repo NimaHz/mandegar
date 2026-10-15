@@ -8,6 +8,9 @@ import type { LocalizedText } from "@/types/common";
 
 export const t = (fa: string, en: string): LocalizedText => ({ fa, en });
 
+export const idsBySlug = (rows: readonly { id: string; slug: string }[]) =>
+  new Map(rows.map((row) => [row.slug, row.id]));
+
 export const seedId = (name: string) => {
   const hex = createHash("sha256").update(`mandegar-seed:${name}`).digest("hex");
   const variant = ((Number.parseInt(hex[16] ?? "0", 16) & 0x3) | 0x8).toString(16);

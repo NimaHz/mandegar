@@ -9,7 +9,7 @@ import { Select } from "@/components/ui/select";
 import { apiClient } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import type { AdminTicket } from "@/types/admin";
-import { type TicketStatus, ticketStatuses } from "@/types/support";
+import { isTicketStatus, type TicketStatus } from "@/types/support";
 
 import { openTicketStatuses } from "../../config";
 import { adminContent } from "../../content";
@@ -30,9 +30,6 @@ const afterOptions: TicketStatus[] = [
   "awaiting-parts",
   "resolved",
 ];
-
-const isStatus = (value: string): value is TicketStatus =>
-  ticketStatuses.some((status) => status === value);
 
 const carriesFiles = (event: DragEvent) => event.dataTransfer.types.includes("Files");
 
@@ -195,7 +192,9 @@ export function ReplyComposer({ ticket }: { ticket: AdminTicket }) {
               options={afterOptions.map((value) => ({ value, label: statuses.ticket[value] }))}
               placeholder={copy.keepStatus}
               value={after}
-              onChange={(event) => setAfter(isStatus(event.target.value) ? event.target.value : "")}
+              onChange={(event) =>
+                setAfter(isTicketStatus(event.target.value) ? event.target.value : "")
+              }
               className="h-9 w-44 text-xs"
             />
           </label>

@@ -14,7 +14,7 @@ export interface StatTileProps {
   className?: string;
 }
 
-export function StatTile({
+function StatTile({
   label,
   value,
   caption,

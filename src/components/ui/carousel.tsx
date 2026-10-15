@@ -6,6 +6,7 @@ import { Children, type KeyboardEvent, type ReactNode, useEffect, useRef, useSta
 import { fill } from "@/i18n/fill";
 import { useDictionary, useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/cn";
+import { isRtl } from "@/lib/dom";
 import { formatNumber } from "@/lib/format";
 
 interface CarouselProps {
@@ -19,8 +20,6 @@ const VISIBLE_RATIO = 0.75;
 
 const scrollBehavior = (): ScrollBehavior =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
-
-const isRtl = (element: HTMLElement) => getComputedStyle(element).direction === "rtl";
 
 export function Carousel({
   children,
@@ -113,7 +112,7 @@ export function Carousel({
   return (
     <div
       role="region"
-      aria-roledescription="carousel"
+      aria-roledescription={ui.carouselRole}
       aria-label={label}
       className={cn("flex flex-col gap-5", className)}
     >
@@ -131,7 +130,7 @@ export function Carousel({
             }}
             data-index={index}
             role="group"
-            aria-roledescription="slide"
+            aria-roledescription={ui.carouselSlideRole}
             aria-label={fill(ui.carouselSlide, { current: formatNumber(locale, index + 1), total })}
             className={cn("min-w-0 shrink-0 grow-0 snap-start", slideClassName)}
           >

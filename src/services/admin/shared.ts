@@ -8,9 +8,9 @@ import { clampPage, offsetOf, toPaginated } from "@/server/lib/pagination";
 import type { AdminMediaRef } from "@/types/admin";
 import type { Paginated } from "@/types/common";
 
-const ADMIN_PAGE_SIZE = 20;
+import type { MediaRow } from "../db/mappers";
 
-export type MediaRow = typeof media.$inferSelect;
+const ADMIN_PAGE_SIZE = 20;
 
 export const toMediaRef = (row: MediaRow): AdminMediaRef => ({
   id: row.id,
@@ -31,10 +31,6 @@ export const mediaRefs = async (ids: readonly (string | null | undefined)[]) => 
   const rows = await getDb().select().from(media).where(inArray(media.id, unique));
   return Object.fromEntries(rows.map((row) => [row.id, toMediaRef(row)]));
 };
-
-export const iso = (date: Date) => date.toISOString();
-
-export const isoOrNull = (date: Date | null) => date?.toISOString() ?? null;
 
 export const searchColumns = (
   q: string | undefined,

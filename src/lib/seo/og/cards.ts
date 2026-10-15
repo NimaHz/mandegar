@@ -13,6 +13,7 @@ import type { ImageAsset } from "@/types/common";
 import { seoContent } from "../content";
 import { plainText, truncate } from "../text";
 import { siteUrl } from "../urls";
+import { ogPalette } from "./palette";
 import { ogPages, type OgTarget } from "./targets";
 import type { OgCard } from "./template";
 
@@ -36,8 +37,8 @@ const imageDataUri = async (asset: ImageAsset | null | undefined, fit: "cover" |
     if (!file) return null;
     const input = Buffer.from(await new Response(file.body).arrayBuffer());
     const output = await sharp(input)
-      .resize(IMAGE_PIXELS, IMAGE_PIXELS, { fit, background: "#f8fafa" })
-      .flatten({ background: "#f8fafa" })
+      .resize(IMAGE_PIXELS, IMAGE_PIXELS, { fit, background: ogPalette.card })
+      .flatten({ background: ogPalette.card })
       .jpeg({ quality: 82 })
       .toBuffer();
     return `data:image/jpeg;base64,${output.toString("base64")}`;

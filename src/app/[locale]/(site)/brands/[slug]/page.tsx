@@ -35,11 +35,11 @@ export async function generateMetadata({
   const locale = await getLocale();
   const { slug } = await params;
   const brand = await api.catalog.brand(locale, slug);
-  if (!brand) return {};
+  if (!brand) notFound();
   return pageMetadata({
     locale,
     path: routes.brand(brand.slug),
-    title: brand.seo.title ?? brand.name,
+    title: brand.seo.title ?? fill(brandsContent[locale].detail.metaTitle, { name: brand.name }),
     description: brand.seo.description ?? brand.description,
     image: brand.logo
       ? { url: brand.logo.src, width: brand.logo.width, height: brand.logo.height }
@@ -95,7 +95,7 @@ export default async function BrandPage({ params }: PageProps<"/[locale]/brands/
             }
           />
         ) : (
-          <ProductGrid products={products} locale={locale} layout="full" priorityCount={0} />
+          <ProductGrid products={products} locale={locale} layout="full" priorityCount={1} />
         )}
       </section>
       <CompareTray products={toTrayItems(products)} />

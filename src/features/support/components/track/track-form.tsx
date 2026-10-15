@@ -7,10 +7,10 @@ import { CodeInput, inspectCode } from "@/components/shared/code-input";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import type { Locale } from "@/i18n/config";
+import { apiClient, apiResult } from "@/lib/api-client";
 import { normalizeMobile } from "@/lib/persian";
 import type { PublicTicket } from "@/types/support";
 
-import { postJson } from "../../api";
 import type { TrackContent } from "../../content";
 
 interface TrackFormProps {
@@ -45,7 +45,7 @@ export function TrackForm({ locale, copy, phonePlaceholder, onFound }: TrackForm
     }
     setPending(true);
     const input = { trackingCode: code.code, phone };
-    const result = await postJson<PublicTicket>("/api/tickets/track", { ...input, locale });
+    const result = await apiResult(apiClient.api.tickets.track.post({ ...input, locale }));
     setPending(false);
     if (result.ok) {
       onFound(result.data, input);

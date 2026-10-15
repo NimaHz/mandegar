@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getTableColumns, getTableName, is, Table } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
@@ -20,19 +21,31 @@ type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 
 export type Executor = Database | Transaction;
 
-const globalForDb = globalThis as typeof globalThis & { mandegarDb?: Database };
+const schemaKey = Object.values(schema)
+  .filter((value) => is(value, Table))
+  .flatMap((table) =>
+    Object.keys(getTableColumns(table)).map((column) => `${getTableName(table)}.${column}`),
+  )
+  .join(",");
+
+const globalForDb = globalThis as typeof globalThis & {
+  mandegarDatabases?: Map<string, Database>;
+};
 
 let database: Database | undefined;
 
 export const getDb = (): Database => {
-  database ??= globalForDb.mandegarDb ?? createDatabase();
-  if (process.env.NODE_ENV !== "production") globalForDb.mandegarDb = database;
-  return database;
+  if (database) return database;
+  const cache = (globalForDb.mandegarDatabases ??= new Map());
+  const created = cache.get(schemaKey) ?? createDatabase();
+  if (process.env.NODE_ENV !== "production") cache.set(schemaKey, created);
+  database = created;
+  return created;
 };
 
 export const closeDb = async () => {
   if (!database) return;
   await database.$client.end();
+  globalForDb.mandegarDatabases?.delete(schemaKey);
   database = undefined;
-  globalForDb.mandegarDb = undefined;
 };

@@ -13,7 +13,8 @@ import {
 } from "@/types/admin";
 
 import { orderByIds } from "../db/mappers";
-import { collatedName, iso, paginate, searchColumns, sortedBy, toMediaRefOrNull } from "./shared";
+import { iso } from "../db/mappers";
+import { collatedName, paginate, searchColumns, sortedBy, toMediaRefOrNull } from "./shared";
 
 const orders: Record<AdminSort<"categories">, SQL[]> = {
   "order-asc": [asc(categories.sortOrder), asc(categories.slug)],

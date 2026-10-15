@@ -1,5 +1,3 @@
-"use client";
-
 import { adminContent } from "../../content";
 import { LocalizedField, LocalizedTextarea } from "./localized-field";
 

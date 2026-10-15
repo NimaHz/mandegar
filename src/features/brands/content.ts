@@ -19,6 +19,7 @@ export interface BrandsContent {
     promise: string[];
   };
   detail: {
+    metaTitle: string;
     own: string;
     partner: string;
     models: PluralForms;
@@ -29,7 +30,6 @@ export interface BrandsContent {
     emptyTitle: string;
     emptyDescription: string;
     emptyAction: string;
-    allBrands: string;
   };
 }
 
@@ -54,6 +54,7 @@ export const brandsContent: Record<Locale, BrandsContent> = {
       promise: ["گارانتی رسمی ماندگار", "قطعه اصلی و سرویس‌کار مجاز", "راهنمای نصب برای هر مدل"],
     },
     detail: {
+      metaTitle: "{name}: مدل‌ها، گارانتی و خدمات",
       own: "برند ماندگار",
       partner: "برند همکار",
       models: { one: "{count} مدل", other: "{count} مدل" },
@@ -64,7 +65,6 @@ export const brandsContent: Record<Locale, BrandsContent> = {
       emptyTitle: "هنوز مدلی از این برند منتشر نشده",
       emptyDescription: "به‌زودی مدل‌های این برند اضافه می‌شوند. تا آن زمان سایر محصولات را ببین.",
       emptyAction: "همه محصولات",
-      allBrands: "همه برندها",
     },
   },
   en: {
@@ -91,6 +91,7 @@ export const brandsContent: Record<Locale, BrandsContent> = {
       ],
     },
     detail: {
+      metaTitle: "{name}: models, warranty and service",
       own: "Mandegar brand",
       partner: "Partner brand",
       models: { one: "{count} model", other: "{count} models" },
@@ -103,7 +104,6 @@ export const brandsContent: Record<Locale, BrandsContent> = {
       emptyDescription:
         "Models from this brand are coming soon. Meanwhile, explore our other products.",
       emptyAction: "All products",
-      allBrands: "All brands",
     },
   },
 };

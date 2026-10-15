@@ -23,7 +23,7 @@ import { pageMetadata } from "@/lib/seo/metadata";
 import { localeUrl } from "@/lib/seo/urls";
 import { api } from "@/services";
 
-export const revalidate = 3600;
+const FIRST_ROW = 3;
 
 export async function generateMetadata({
   searchParams,
@@ -122,9 +122,14 @@ export default async function GuidesPage({ searchParams }: PageProps<"/[locale]/
             key={active ?? "all"}
             className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3"
           >
-            {visible.map((guide) => (
+            {visible.map((guide, index) => (
               <RevealItem key={guide.slug} className="min-w-0">
-                <GuideCard guide={guide} locale={locale} copy={content.card} />
+                <GuideCard
+                  guide={guide}
+                  locale={locale}
+                  copy={content.card}
+                  priority={index < FIRST_ROW}
+                />
               </RevealItem>
             ))}
           </RevealGroup>

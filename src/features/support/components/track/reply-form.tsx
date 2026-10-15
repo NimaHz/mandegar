@@ -7,11 +7,10 @@ import { Button } from "@/components/ui/button";
 import { TextAreaField } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import type { Locale } from "@/i18n/config";
+import { postMultipart } from "@/lib/api-client";
 import type { PublicTicket } from "@/types/support";
 
-import { postForm } from "../../api";
 import type { TrackContent } from "../../content";
-import { REPLY_ATTACHMENT_LIMIT } from "../../schemas";
 import { type AttachmentLabels, AttachmentPicker } from "../attachment-picker";
 
 interface ReplyFormProps {
@@ -51,7 +50,7 @@ export function ReplyForm({
     data.append("body", body.trim());
     data.append("locale", locale);
     for (const file of files) data.append("attachments", file);
-    const result = await postForm<PublicTicket>(
+    const result = await postMultipart<PublicTicket>(
       `/api/tickets/${encodeURIComponent(trackingCode)}/messages`,
       data,
     );
@@ -80,12 +79,7 @@ export function ReplyForm({
         }}
         error={error}
       />
-      <AttachmentPicker
-        files={files}
-        onChange={setFiles}
-        max={REPLY_ATTACHMENT_LIMIT}
-        labels={attachmentLabels}
-      />
+      <AttachmentPicker files={files} onChange={setFiles} labels={attachmentLabels} />
       <Button type="submit" size="lg" disabled={sending} className="self-end max-sm:w-full">
         {sending ? (
           <>

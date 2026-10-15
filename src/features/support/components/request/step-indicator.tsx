@@ -7,7 +7,7 @@ import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
 
-import { type RequestStep, requestSteps } from "../../schemas";
+import { type RequestStep, requestSteps } from "../../constants";
 
 interface StepIndicatorProps {
   step: RequestStep;

@@ -6,14 +6,13 @@ export interface CompareContent {
     add: string;
     added: string;
     label: string;
-    fullTitle: string;
-    fullDescription: string;
-    fullAction: string;
   };
   tray: {
     label: string;
     title: PluralForms;
     hint: string;
+    fullTitle: string;
+    fullDescription: string;
     compare: string;
     clear: string;
     remove: string;
@@ -37,9 +36,7 @@ export interface CompareContent {
     warranty: string;
     releaseYear: string;
     empty: string;
-    viewModel: string;
     addMore: string;
-    addMoreHint: string;
     emptyTitle: string;
     emptyDescription: string;
     emptyAction: string;
@@ -54,15 +51,14 @@ export const compareContent: Record<Locale, CompareContent> = {
       add: "مقایسه",
       added: "در مقایسه",
       label: "مقایسه {name}",
-      fullTitle: "فهرست مقایسه پر است",
-      fullDescription:
-        "حداکثر {count} مدل را می‌شود کنار هم دید. یکی را بردار یا همین حالا مقایسه کن.",
-      fullAction: "مقایسه",
     },
     tray: {
       label: "مدل‌های انتخاب‌شده برای مقایسه",
       title: { one: "{count} مدل انتخاب شده", other: "مقایسه {count} مدل" },
       hint: "تا {count} مدل را کنار هم ببین",
+      fullTitle: "فهرست مقایسه پر است",
+      fullDescription:
+        "حداکثر {count} مدل را می‌شود کنار هم دید. یکی را بردار یا همین حالا مقایسه کن.",
       compare: "مقایسه کن",
       clear: "پاک کردن",
       remove: "حذف {name}",
@@ -87,9 +83,7 @@ export const compareContent: Record<Locale, CompareContent> = {
       warranty: "گارانتی",
       releaseYear: "سال عرضه",
       empty: "ندارد",
-      viewModel: "مشاهده مدل",
       addMore: "مدل دیگری اضافه کن",
-      addMoreHint: "از صفحه محصولات، دکمه مقایسه را روی هر مدل بزن.",
       emptyTitle: "هنوز مدلی برای مقایسه انتخاب نکرده‌ای",
       emptyDescription:
         "روی کارت هر محصول دکمه «مقایسه» را بزن تا حداکثر سه مدل را این‌جا کنار هم ببینی.",
@@ -107,14 +101,13 @@ export const compareContent: Record<Locale, CompareContent> = {
       add: "Compare",
       added: "Added",
       label: "Compare {name}",
-      fullTitle: "Your compare list is full",
-      fullDescription: "You can compare up to {count} models. Remove one, or compare them now.",
-      fullAction: "Compare",
     },
     tray: {
       label: "Models selected for comparison",
       title: { one: "{count} model selected", other: "Compare {count} models" },
       hint: "See up to {count} models side by side",
+      fullTitle: "Your compare list is full",
+      fullDescription: "You can compare up to {count} models. Remove one, or compare them now.",
       compare: "Compare",
       clear: "Clear",
       remove: "Remove {name}",
@@ -140,9 +133,7 @@ export const compareContent: Record<Locale, CompareContent> = {
       warranty: "Warranty",
       releaseYear: "Release year",
       empty: "None",
-      viewModel: "View model",
       addMore: "Add another model",
-      addMoreHint: "On the products page, tap Compare on any model.",
       emptyTitle: "No models to compare yet",
       emptyDescription:
         "Tap “Compare” on any product card to see up to three models side by side here.",

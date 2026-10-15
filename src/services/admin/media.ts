@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, type AnyColumn, asc, count, desc, eq, inArray, or, type SQL, sql } from "drizzle-orm";
 
+import { formatTrackingCode } from "@/lib/tracking-code";
 import { getDb } from "@/server/db/client";
 import {
   authors,
@@ -14,6 +15,7 @@ import {
   productImages,
   products,
   ticketMessages,
+  tickets,
   users,
 } from "@/server/db/schema";
 import {
@@ -22,19 +24,12 @@ import {
   type AdminMediaUsage,
   type AdminSort,
   adminSorts,
+  type MediaUsageEntity,
 } from "@/types/admin";
 import type { LocalizedText } from "@/types/common";
 
-import { orderByIds } from "../db/mappers";
-import {
-  collated,
-  iso,
-  type MediaRow,
-  paginate,
-  searchColumns,
-  sortedBy,
-  toMediaRef,
-} from "./shared";
+import { iso, type MediaRow } from "../db/mappers";
+import { collated, paginate, searchColumns, sortedBy, toMediaRef } from "./shared";
 
 const orders: Record<AdminSort<"media">, SQL[]> = {
   "created-desc": [desc(media.createdAt)],
@@ -66,8 +61,10 @@ const hydrate = async (rows: MediaRow[]): Promise<AdminMedia[]> => {
 const contains = (column: AnyColumn, value: unknown) =>
   sql`${column} @> ${JSON.stringify(value)}::jsonb`;
 
+const inLibrary = eq(media.scope, "library");
+
 const usage = (
-  entity: string,
+  entity: MediaUsageEntity,
   rows: { id: string; label: LocalizedText | string }[],
 ): AdminMediaUsage[] =>
   rows.map((row) => ({
@@ -79,6 +76,7 @@ const usage = (
 export const mediaAdmin = {
   list: async (query: Partial<AdminMediaQuery> = {}) => {
     const where = and(
+      inLibrary,
       searchColumns(query.q, {
         localized: [media.alt],
         text: [media.originalName, media.storageKey],
@@ -100,17 +98,16 @@ export const mediaAdmin = {
     );
   },
   get: async (id: string) => {
-    const rows = await getDb().select().from(media).where(eq(media.id, id));
+    const rows = await getDb()
+      .select()
+      .from(media)
+      .where(and(eq(media.id, id), inLibrary));
     return (await hydrate(rows))[0] ?? null;
   },
-  byIds: async (ids: string[]) =>
-    ids.length
-      ? orderByIds(
-          ids,
-          await hydrate(await getDb().select().from(media).where(inArray(media.id, ids))),
-        )
-      : [],
-  usages: async (id: string): Promise<AdminMediaUsage[]> => {
+  usages: async (
+    id: string,
+    { ticketLabels }: { ticketLabels: boolean },
+  ): Promise<AdminMediaUsage[]> => {
     const db = getDb();
     const [
       brandRows,
@@ -121,7 +118,7 @@ export const mediaAdmin = {
       slideRows,
       authorRows,
       postRows,
-      messageRows,
+      ticketRows,
     ] = await Promise.all([
       db
         .select({ id: brands.id, label: brands.name })
@@ -160,8 +157,9 @@ export const mediaAdmin = {
         .where(eq(authors.avatarMediaId, id)),
       db.select({ id: posts.id, label: posts.title }).from(posts).where(eq(posts.coverMediaId, id)),
       db
-        .select({ id: ticketMessages.ticketId, label: ticketMessages.body })
+        .selectDistinct({ id: tickets.id, label: tickets.trackingCode })
         .from(ticketMessages)
+        .innerJoin(tickets, eq(tickets.id, ticketMessages.ticketId))
         .where(sql`${id}::uuid = any(${ticketMessages.attachmentMediaIds})`),
     ]);
     return [
@@ -175,7 +173,10 @@ export const mediaAdmin = {
       ...usage("post", postRows),
       ...usage(
         "ticket",
-        messageRows.map((row) => ({ id: row.id, label: row.label.slice(0, 80) })),
+        ticketRows.map((row) => ({
+          id: row.id,
+          label: ticketLabels ? formatTrackingCode(row.label) : "",
+        })),
       ),
     ];
   },

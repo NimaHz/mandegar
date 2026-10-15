@@ -1,9 +1,10 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { fileTypeFromBuffer } from "file-type";
 import sharp from "sharp";
 
+import { MB } from "@/lib/format";
 import { getDb } from "@/server/db/client";
 import { media } from "@/server/db/schema";
 import { sha256 } from "@/server/lib/crypto";
@@ -14,14 +15,14 @@ import {
   orNotFound,
   payloadTooLarge,
   unsupportedMedia,
+  ValidationFailure,
 } from "@/server/lib/http-error";
 import { ulid } from "@/server/lib/ids";
-import { getStorage } from "@/server/storage";
+import { revalidateSite } from "@/server/lib/revalidate";
+import { getStorage, privateStorageKey } from "@/server/storage";
 import { mediaAdmin } from "@/services/admin/media";
-import type { MediaKind } from "@/types/admin";
+import type { MediaKind, MediaScope } from "@/types/admin";
 import type { LocalizedText } from "@/types/common";
-
-const MB = 1024 * 1024;
 
 const mediaSizeLimits: Record<MediaKind, number> = {
   image: 15 * MB,
@@ -48,6 +49,7 @@ interface IngestOptions {
   alt?: LocalizedText;
   uploadedBy?: string | null;
   originalName?: string | null;
+  scope?: MediaScope;
 }
 
 interface PreparedFile {
@@ -72,11 +74,17 @@ const encodeImage = async (input: Uint8Array): Promise<PreparedFile> => {
   return { bytes: data, mime: "image/webp", ext: "webp", width: info.width, height: info.height };
 };
 
-const storageKeyFor = (ext: string, now = new Date()) =>
-  `${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}/${ulid()}.${ext}`;
+const storageKeyFor = (ext: string, scope: MediaScope, now = new Date()) => {
+  const key = `${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}/${ulid()}.${ext}`;
+  return scope === "library" ? key : privateStorageKey(key);
+};
 
-const findBySha = async (hash: string) => {
-  const [row] = await getDb().select().from(media).where(eq(media.sha256, hash)).limit(1);
+const findLibraryCopy = async (hash: string) => {
+  const [row] = await getDb()
+    .select()
+    .from(media)
+    .where(and(eq(media.scope, "library"), eq(media.sha256, hash)))
+    .limit(1);
   return row ?? null;
 };
 
@@ -107,18 +115,21 @@ const prepare = async (
 };
 
 export const ingestMedia = async (data: Uint8Array, options: IngestOptions) => {
+  const scope = options.scope ?? "library";
   const type = await detect(data, options);
   const hash = sha256(data);
-  const existing = await findBySha(hash);
+  const shared = scope === "library";
+  const existing = shared ? await findLibraryCopy(hash) : null;
   if (existing) return existing;
   const prepared = await prepare(data, type);
-  const storageKey = storageKeyFor(prepared.ext);
+  const storageKey = storageKeyFor(prepared.ext, scope);
   const storage = await getStorage();
   await storage.put(storageKey, prepared.bytes, prepared.mime);
-  const [row] = await getDb()
+  const insert = getDb()
     .insert(media)
     .values({
       kind: type.kind,
+      scope,
       storageKey,
       mime: prepared.mime,
       size: prepared.bytes.byteLength,
@@ -128,12 +139,15 @@ export const ingestMedia = async (data: Uint8Array, options: IngestOptions) => {
       alt: options.alt ?? { fa: "", en: "" },
       originalName: options.originalName?.slice(0, 200) ?? null,
       uploadedBy: options.uploadedBy ?? null,
-    })
-    .onConflictDoNothing({ target: media.sha256 })
-    .returning();
+    });
+  const [row] = await (
+    shared
+      ? insert.onConflictDoNothing({ target: media.sha256, where: sql`scope = 'library'` })
+      : insert
+  ).returning();
   if (row) return row;
   await storage.remove(storageKey);
-  const raced = await findBySha(hash);
+  const raced = await findLibraryCopy(hash);
   if (!raced) throw new Error("Media insert failed");
   return raced;
 };
@@ -143,6 +157,30 @@ export const ingestFile = async (file: File, options: IngestOptions) =>
     originalName: file.name,
     ...options,
   });
+
+export const assertLibraryMedia = async (fields: Record<string, string | null | undefined>) => {
+  const refs = Object.entries(fields).flatMap(([field, id]) => (id ? [{ field, id }] : []));
+  if (refs.length === 0) return;
+  const rows = await getDb()
+    .select({ id: media.id })
+    .from(media)
+    .where(
+      and(
+        inArray(
+          media.id,
+          refs.map((ref) => ref.id),
+        ),
+        eq(media.scope, "library"),
+      ),
+    );
+  const found = new Set(rows.map((row) => row.id));
+  const missing = refs.filter((ref) => !found.has(ref.id));
+  if (missing.length > 0) {
+    throw new ValidationFailure(
+      Object.fromEntries(missing.map((ref) => [ref.field, "Referenced item not found"])),
+    );
+  }
+};
 
 const SVG = /\.svgz?$/i;
 
@@ -160,12 +198,13 @@ export const updateMediaAlt = async (id: string, alt: LocalizedText) => {
     .where(eq(media.id, id))
     .returning({ id: media.id });
   if (!row) throw notFound("Media not found");
+  revalidateSite();
   return orNotFound(await mediaAdmin.get(id));
 };
 
 export const deleteMedia = async (id: string) => {
   const target = orNotFound(await mediaAdmin.get(id), "Media not found");
-  const usages = await mediaAdmin.usages(id);
+  const usages = await mediaAdmin.usages(id, { ticketLabels: false });
   if (usages.length > 0) {
     throw conflict(`Media is used by ${usages.map((entry) => entry.entity).join(", ")}`, "IN_USE");
   }

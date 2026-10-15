@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { isRecord } from "@/lib/guards";
 import { localizedText } from "@/server/lib/validation";
 import { authorInputSchema } from "@/server/modules/authors/schema";
 import { brandInputSchema } from "@/server/modules/brands/schema";
@@ -18,10 +19,9 @@ import { warrantyPolicyInputSchema } from "@/server/modules/warranty/schema";
 import type { LocalizedSeo } from "@/types/admin";
 import type { LocalizedText } from "@/types/common";
 
-export const blankText = (): LocalizedText => ({ fa: "", en: "" });
+import { CLOCK_PATTERN } from "./lib/format";
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
+export const blankText = (): LocalizedText => ({ fa: "", en: "" });
 
 const isBlankText = (value: unknown) =>
   !isRecord(value) || (!String(value.fa ?? "").trim() && !String(value.en ?? "").trim());
@@ -29,13 +29,13 @@ const isBlankText = (value: unknown) =>
 export const blankToNull = (value: unknown) =>
   value === "" || (typeof value === "string" && !value.trim()) ? null : value;
 
-export const nullableText = (max: number) =>
+const nullableText = (max: number) =>
   z.preprocess((value) => (isBlankText(value) ? null : value), localizedText(max).nullable());
 
 const nullableString = <TSchema extends z.ZodType>(schema: TSchema) =>
   z.preprocess(blankToNull, schema.nullable());
 
-export const seoFormSchema = z.preprocess(
+const seoFormSchema = z.preprocess(
   (value) =>
     isRecord(value) && isBlankText(value.title) && isBlankText(value.description) ? null : value,
   z
@@ -102,10 +102,7 @@ const guideVideoForm = z.object({
   posterMediaId: z.string().nullable(),
 });
 
-const clock = z
-  .string()
-  .trim()
-  .regex(/^\d{1,3}:[0-5]\d$/);
+const clock = z.string().trim().regex(CLOCK_PATTERN);
 
 export const guideFormSchema = guideInputSchema.omit({ video: true }).extend({
   video: guideVideoForm,

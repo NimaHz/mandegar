@@ -7,7 +7,7 @@ import { formatNumber } from "@/lib/format";
 
 import { aboutContent } from "../content";
 
-export const displayYear = (locale: Locale, jalaliYear: number) =>
+const displayYear = (locale: Locale, jalaliYear: number) =>
   formatNumber(locale, locale === "fa" ? jalaliYear : jalaliToGregorianYear(jalaliYear), {
     useGrouping: false,
   });

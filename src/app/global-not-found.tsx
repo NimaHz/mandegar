@@ -1,11 +1,19 @@
 import "@/styles/globals.css";
 
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 
 import { LogoMark } from "@/components/brand/logo-mark";
 import { buttonVariants } from "@/components/ui/button";
 import { siteConfig } from "@/config/site";
-import { type Locale, localeMeta } from "@/i18n/config";
+import {
+  defaultLocale,
+  isLocale,
+  type Locale,
+  localeHeader,
+  localeMeta,
+  locales,
+} from "@/i18n/config";
 import { en } from "@/i18n/dictionaries/en";
 import { fa } from "@/i18n/dictionaries/fa";
 import { localizePath } from "@/i18n/paths";
@@ -13,12 +21,17 @@ import { routes } from "@/lib/routes";
 import { themeBootScript } from "@/lib/theme";
 import { fontVariables } from "@/styles/fonts";
 
-export const metadata: Metadata = {
-  title: `${fa.common.notFoundTitle} | ${fa.site.name}`,
-  robots: { index: false, follow: true },
+const dictionaries = { fa, en } as const;
+
+const requestLocale = async (): Promise<Locale> => {
+  const locale = (await headers()).get(localeHeader);
+  return isLocale(locale) ? locale : defaultLocale;
 };
 
-const dictionaries = { fa, en } as const;
+export async function generateMetadata(): Promise<Metadata> {
+  const { common, site } = dictionaries[await requestLocale()];
+  return { title: `${common.notFoundTitle} | ${site.name}` };
+}
 
 function NotFoundCopy({ locale, primary }: { locale: Locale; primary: boolean }) {
   const { common, nav } = dictionaries[locale];
@@ -50,28 +63,27 @@ function NotFoundCopy({ locale, primary }: { locale: Locale; primary: boolean })
   );
 }
 
-export default function GlobalNotFound() {
+export default async function GlobalNotFound() {
+  const locale = await requestLocale();
+  const { hreflang, dir } = localeMeta[locale];
+  const others = locales.filter((other) => other !== locale);
+
   return (
-    <html
-      lang={localeMeta.fa.hreflang}
-      dir={localeMeta.fa.dir}
-      className={fontVariables}
-      suppressHydrationWarning
-    >
+    <html lang={hreflang} dir={dir} className={fontVariables} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
       <body className="min-h-dvh overflow-x-clip">
         <main className="bg-glow bg-dots flex min-h-dvh flex-col items-center justify-center gap-10 px-4 py-14 sm:px-6">
           <a
-            href={localizePath("fa", routes.home)}
-            aria-label={fa.site.name}
+            href={localizePath(locale, routes.home)}
+            aria-label={dictionaries[locale].site.name}
             className="flex items-center gap-3"
           >
             <LogoMark className="size-11" />
             <span className="flex flex-col leading-none">
               <span className="font-display text-2xl font-extrabold text-ink">
-                {siteConfig.name.fa}
+                {siteConfig.name[locale]}
               </span>
               <span
                 dir="ltr"
@@ -91,8 +103,10 @@ export default function GlobalNotFound() {
             <span>4</span>
           </p>
           <div className="grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-2">
-            <NotFoundCopy locale="fa" primary />
-            <NotFoundCopy locale="en" primary={false} />
+            <NotFoundCopy locale={locale} primary />
+            {others.map((other) => (
+              <NotFoundCopy key={other} locale={other} primary={false} />
+            ))}
           </div>
         </main>
       </body>

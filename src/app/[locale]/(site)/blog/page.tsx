@@ -1,6 +1,7 @@
 import { BookOpenText } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 import { PageHero } from "@/components/layout/page-hero";
 import { PendingRegion, TransitionProvider } from "@/components/providers/transition-provider";
@@ -11,7 +12,12 @@ import { Pagination } from "@/components/ui/pagination";
 import { BlogToolbar } from "@/features/blog/components/blog-toolbar";
 import { PostListing } from "@/features/blog/components/post-listing";
 import { blogContent } from "@/features/blog/content";
-import { loadBlogSearchParams, serializeBlogSearchParams } from "@/features/blog/search-params";
+import {
+  type BlogFilters,
+  loadBlogSearchParams,
+  serializeBlogSearchParams,
+} from "@/features/blog/search-params";
+import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getLocale } from "@/i18n/get-locale";
@@ -23,40 +29,47 @@ import { pageMetadata } from "@/lib/seo/metadata";
 import { api } from "@/services";
 import { postKinds } from "@/types/content";
 
-export const revalidate = 3600;
+const loadPosts = async (locale: Locale, filters: BlogFilters) => {
+  const result = await api.content.posts(locale, { kind: filters.kind, page: filters.page });
+  if (filters.page > result.page) notFound();
+  return result;
+};
+
+const canonicalPath = ({ kind, page }: BlogFilters) =>
+  kind
+    ? routes.blog
+    : `${routes.blog}${serializeBlogSearchParams({ page: page > 1 ? page : null })}`;
 
 export async function generateMetadata({
   searchParams,
 }: PageProps<"/[locale]/blog">): Promise<Metadata> {
   const locale = await getLocale();
-  const { kind, page } = await loadBlogSearchParams(searchParams);
+  const filters = await loadBlogSearchParams(searchParams);
+  const [{ nav }] = await Promise.all([getDictionary(locale), loadPosts(locale, filters)]);
   const content = blogContent[locale];
-  const { nav } = await getDictionary(locale);
   const parts = [
-    kind ? content.kinds[kind].plural : null,
-    page > 1 ? fill(content.pageTitle, { page: formatNumber(locale, page) }) : null,
+    filters.kind ? content.kinds[filters.kind].plural : null,
+    filters.page > 1 ? fill(content.pageTitle, { page: formatNumber(locale, filters.page) }) : null,
     nav.blog,
   ].filter(Boolean);
 
   return pageMetadata({
     locale,
-    path: `${routes.blog}${serializeBlogSearchParams({ kind, page: page > 1 ? page : null })}`,
+    path: canonicalPath(filters),
     title: parts.join(" · "),
     description: content.metaDescription,
-    noindex: Boolean(kind),
+    noindex: Boolean(filters.kind),
   });
 }
 
 export default async function BlogPage({ searchParams }: PageProps<"/[locale]/blog">) {
   const locale = await getLocale();
   const filters = await loadBlogSearchParams(searchParams);
-  const [{ ui }, result] = await Promise.all([
-    getDictionary(locale),
-    api.content.posts(locale, { kind: filters.kind, page: filters.page }),
-  ]);
+  const [{ ui }, result] = await Promise.all([getDictionary(locale), loadPosts(locale, filters)]);
   const content = blogContent[locale];
   const blogPath = localizePath(locale, routes.blog);
   const graph = await blogGraph(locale, {
+    path: canonicalPath(filters),
     name: `${content.title} ${content.titleAccent}`,
     description: content.description,
     posts: result.items,

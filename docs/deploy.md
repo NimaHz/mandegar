@@ -10,6 +10,7 @@ and every image or package the build needs can come from an Iranian mirror.
 Internet ─▶ (optional ArvanCloud CDN) ─▶ nginx :80/:443
                                           ├─ /uploads/*        served from the uploads volume
                                           ├─ /_next/static/*   proxied once, then cached by nginx
+                                          ├─ /_next/image, /og/ proxied once per variant, then cached by nginx
                                           └─ everything else ─▶ app :3000 (Next standalone + Elysia /api)
                                                                  └─▶ db :5432 (PostgreSQL 16)
 ```
@@ -256,8 +257,10 @@ docker compose exec nginx tail -f /var/log/nginx/access.log
 
 - Scale vertically first. The app is a single Node process; ISR keeps most page views off the
   database, and nginx serves uploads and static assets without touching Node.
-- Image optimization (`/_next/image`) is the main CPU cost; its results are cached for 30 days in
-  `.next/cache/images` inside the container. Recreating the container clears that cache.
+- Image optimization (`/_next/image`) and Open Graph cards (`/og/`) are the main CPU costs. nginx
+  caches both in the `nginx-cache` volume for 30 days, keyed by URL and, for images, by the format
+  the `Accept` header negotiates (AVIF, WebP or the original), so releases and app container
+  restarts do not re-encode them. Inspect hits with the `X-Cache-Status` response header.
 - Running several app replicas needs a shared ISR cache (a custom `cacheHandler`, for example on
   Redis) and the S3 storage driver for uploads; until then keep one replica.
 - Tune PostgreSQL with `shared_buffers` around 25% of RAM via `command: postgres -c ...` on `db` if
@@ -342,7 +345,7 @@ immutable`), and so are `/_next/image` results for a given URL.
 | `S3_BUCKET`                          | for s3   |                                         | Bucket name                                                   |
 | `S3_ACCESS_KEY_ID`                   | for s3   |                                         | Access key                                                    |
 | `S3_SECRET_ACCESS_KEY`               | for s3   |                                         | Secret key                                                    |
-| `ALTCHA_COST`                        | no       | `5000`                                  | Proof-of-work cost                                            |
+| `ALTCHA_COST`                        | no       | `2000`                                  | Proof-of-work cost                                            |
 | `SMS_DRIVER`                         | no       | `console`                               | `console`, `kavenegar` or `none`                              |
 | `KAVENEGAR_API_KEY`                  | for sms  |                                         | Kavenegar API key                                             |
 | `KAVENEGAR_TEMPLATE_TICKET_RECEIVED` | no       | `mandegar-ticket-received`              | Verify-lookup template for new tickets                        |

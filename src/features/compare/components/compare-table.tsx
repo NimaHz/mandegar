@@ -30,7 +30,7 @@ const stickyColumn = "sticky start-0 z-10 w-32 border-e border-line bg-surface s
 export function CompareTable({ products, locale }: CompareTableProps) {
   const { page } = compareContent[locale];
   const slugs = products.map((product) => product.slug);
-  const empty = <span className="text-subtle">{page.empty}</span>;
+  const empty = <span className="text-muted">{page.empty}</span>;
   const slots = Math.max(0, COMPARE_LIMIT - products.length);
 
   const overview: CompareGroup = {
@@ -127,6 +127,8 @@ export function CompareTable({ products, locale }: CompareTableProps) {
                         alt=""
                         fill
                         sizes="(min-width: 1024px) 300px, 40vw"
+                        loading="eager"
+                        fetchPriority="high"
                         className="object-cover"
                       />
                     ) : (
@@ -202,7 +204,7 @@ interface CompareRowViewProps {
 function CompareRowView({ label, cells, differs, first, last, slots }: CompareRowViewProps) {
   const tone = differs
     ? "group-data-[highlight=true]/compare:bg-primary-soft"
-    : "group-data-[highlight=true]/compare:text-subtle";
+    : "group-data-[highlight=true]/compare:text-muted";
 
   const edge = cn("border-b border-line", first && "border-t");
 

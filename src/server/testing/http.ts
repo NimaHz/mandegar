@@ -1,8 +1,20 @@
 import { randomBytes } from "node:crypto";
 
+import { getEnv } from "@/config/env";
 import { app } from "@/server/app";
+import { isProduction } from "@/server/env";
+import { loadEnvFiles } from "@/server/load-env-files";
 
 const TEST_ORIGIN = "http://localhost:3000";
+
+export const loadTestEnv = () => {
+  loadEnvFiles();
+  if (isProduction() || new URL(getEnv().APP_ORIGIN).origin !== TEST_ORIGIN) {
+    throw new Error(
+      `Integration tests run only against a local stack (APP_ORIGIN=${TEST_ORIGIN}, NODE_ENV not production)`,
+    );
+  }
+};
 
 export const testIp = () => `10.${randomBytes(3).join(".")}`;
 

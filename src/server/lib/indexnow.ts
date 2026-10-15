@@ -13,7 +13,7 @@ const indexNowKey = () => {
   return process.env.INDEXNOW_ENABLED === "true" && key && KEY_PATTERN.test(key) ? key : null;
 };
 
-export const pingIndexNow = async (urls: readonly string[]): Promise<boolean> => {
+const pingIndexNow = async (urls: readonly string[]): Promise<boolean> => {
   try {
     const key = indexNowKey();
     const urlList = [...new Set(urls)].slice(0, MAX_URLS);

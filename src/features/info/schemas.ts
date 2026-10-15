@@ -12,7 +12,7 @@ export type ContactFormOutput = z.output<typeof contactSchema>;
 
 export type ContactField = keyof ContactFormValues;
 
-export const contactFields = ["department", "name", "phone", "email", "subject", "body"] as const;
+const contactFields = ["department", "name", "phone", "email", "subject", "body"] as const;
 
 export const contactBodyLimits = { min: 10, max: 3000 } as const;
 

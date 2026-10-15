@@ -2,10 +2,10 @@ import { Check, Phone, Siren, Timer } from "lucide-react";
 
 import type { Locale } from "@/i18n/config";
 import { formatNumber } from "@/lib/format";
+import { phoneHref } from "@/lib/phone";
 import type { SiteSettings } from "@/types/content";
 
 import type { RequestFlowContent } from "../../content";
-import { phoneHref } from "../../phone-href";
 
 interface RequestAsideProps {
   locale: Locale;
@@ -52,13 +52,16 @@ export function RequestAside({ locale, copy, phones }: RequestAsideProps) {
                   href={phoneHref(phone.value)}
                   className="flex items-center justify-between gap-3 rounded-field border border-line px-3 py-2.5 transition-colors hover:border-primary hover:bg-primary-soft/40"
                 >
-                  <span className="text-xs font-semibold text-muted">{phone.label}</span>
-                  <span className="inline-flex items-center gap-2 text-sm font-bold text-ink">
-                    <bdi dir="ltr" className="font-code">
+                  <span className="flex min-w-0 flex-col gap-0.5">
+                    <span className="text-xs font-semibold text-muted">{phone.label}</span>
+                    <bdi
+                      dir="ltr"
+                      className="self-start font-code text-sm font-bold whitespace-nowrap text-ink"
+                    >
                       {phone.value}
                     </bdi>
-                    <Phone className="size-4 text-primary" aria-hidden />
                   </span>
+                  <Phone className="size-4 shrink-0 text-primary" aria-hidden />
                 </a>
               </li>
             ))}

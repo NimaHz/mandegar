@@ -42,14 +42,14 @@ export function CatalogToolbar({ total, facets, hideCategory = false }: CatalogT
       <div className="flex flex-wrap items-center gap-3">
         <p
           role="status"
-          className="inline-flex min-w-0 flex-1 items-center gap-2 text-label font-semibold text-muted"
+          className="inline-flex shrink-0 items-center gap-2 text-label font-semibold whitespace-nowrap text-muted"
         >
           {isPending ? (
             <LoaderCircle className="size-4 shrink-0 animate-spin text-primary" aria-hidden />
           ) : (
             <span aria-hidden className="size-2 shrink-0 rounded-full bg-success" />
           )}
-          <span className="truncate">
+          <span>
             {total === 0 ? (
               listing.countEmpty
             ) : (
@@ -61,7 +61,7 @@ export function CatalogToolbar({ total, facets, hideCategory = false }: CatalogT
           </span>
         </p>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-1 items-center justify-end gap-2">
           <label
             htmlFor={sortId}
             className="inline-flex items-center gap-1.5 text-label font-bold text-ink max-sm:sr-only"
@@ -69,16 +69,18 @@ export function CatalogToolbar({ total, facets, hideCategory = false }: CatalogT
             <ArrowDownWideNarrow className="size-4 text-muted" aria-hidden />
             {listing.sortLabel}
           </label>
-          <Select
-            id={sortId}
-            className="h-10 min-w-36"
-            value={filters.sort}
-            options={productSorts.map((sort) => ({ value: sort, label: listing.sorts[sort] }))}
-            onChange={(event) => {
-              const sort = isSort(event.target.value);
-              void setFilters({ sort: sort === "featured" ? null : sort, page: null });
-            }}
-          />
+          <div className="min-w-36 flex-1 sm:flex-none">
+            <Select
+              id={sortId}
+              className="h-10"
+              value={filters.sort}
+              options={productSorts.map((sort) => ({ value: sort, label: listing.sorts[sort] }))}
+              onChange={(event) => {
+                const sort = isSort(event.target.value);
+                void setFilters({ sort: sort === "featured" ? null : sort, page: null });
+              }}
+            />
+          </div>
           <Button
             variant="line"
             size="sm"

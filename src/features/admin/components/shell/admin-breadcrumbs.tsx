@@ -29,7 +29,7 @@ const tailLabel = (segment: string, section: string) => {
   return section === adminRoutes.tickets ? shell.crumbs.detail : shell.crumbs.edit;
 };
 
-export const crumbsFor = (pathname: string): Crumb[] => {
+const crumbsFor = (pathname: string): Crumb[] => {
   const root: Crumb = { label: shell.items.dashboard, href: adminRoutes.dashboard };
   if (pathname === adminRoutes.dashboard) return [{ label: shell.items.dashboard }];
   const section = sections.find(

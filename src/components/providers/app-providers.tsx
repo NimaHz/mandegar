@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { MotionProvider } from "@/components/motion/motion-provider";
 import { SmoothScroll } from "@/components/motion/smooth-scroll";
 import { ServiceWorkerRegistrar } from "@/components/pwa/service-worker-registrar";
-import { Toaster } from "@/components/ui/toast";
+import { Toaster, type ToastPlacement } from "@/components/ui/toast";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/fa";
 import { LocaleProvider } from "@/i18n/locale-provider";
@@ -14,10 +14,11 @@ import { StoreHydrator } from "./store-hydrator";
 interface AppProvidersProps {
   locale: Locale;
   dictionary: Dictionary;
+  toastPlacement?: ToastPlacement;
   children: ReactNode;
 }
 
-export function AppProviders({ locale, dictionary, children }: AppProvidersProps) {
+export function AppProviders({ locale, dictionary, toastPlacement, children }: AppProvidersProps) {
   return (
     <LocaleProvider locale={locale} dictionary={dictionary}>
       <NuqsAdapter>
@@ -26,7 +27,7 @@ export function AppProviders({ locale, dictionary, children }: AppProvidersProps
           <StoreHydrator />
           <ServiceWorkerRegistrar />
           {children}
-          <Toaster />
+          <Toaster placement={toastPlacement} />
         </MotionProvider>
       </NuqsAdapter>
     </LocaleProvider>

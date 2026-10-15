@@ -4,13 +4,14 @@ import { and, asc, eq, type SQL } from "drizzle-orm";
 
 import type { Locale } from "@/i18n/config";
 import { maskMobile, normalizeMobile } from "@/lib/persian";
-import { routes } from "@/lib/routes";
+import { parseStatusEvent } from "@/lib/tickets";
 import { parseTrackingCode } from "@/lib/tracking-code";
 import { formatWarrantyCode } from "@/lib/warranty-code";
 import { getDb } from "@/server/db/client";
 import { ticketMessages, tickets } from "@/server/db/schema";
 import { safeEqual, sha256 } from "@/server/lib/crypto";
-import type { PublicTicket, TicketStatus } from "@/types/support";
+import { customerAttachmentHref } from "@/server/modules/tickets/attachments";
+import type { PublicTicket, PublicTicketMessage, TicketStatus } from "@/types/support";
 
 import type { SupportService } from "../contracts";
 import { iso, mediaIndex, pick } from "./mappers";
@@ -34,24 +35,33 @@ const publicMessages = async (ticketId: string) => {
     .where(and(eq(ticketMessages.ticketId, ticketId), eq(ticketMessages.internal, false)))
     .orderBy(asc(ticketMessages.createdAt));
   const files = await mediaIndex(rows.flatMap((row) => row.attachmentMediaIds));
-  return rows.map((row) => ({
-    id: row.id,
-    author: row.authorType,
-    body: row.body,
-    attachments: row.attachmentMediaIds.flatMap((id) => {
-      const file = files.get(id);
-      return file
-        ? [
-            {
-              href: routes.upload(file.storageKey),
-              name: file.originalName ?? file.storageKey,
-              mime: file.mime,
-            },
-          ]
-        : [];
-    }),
-    createdAt: iso(row.createdAt),
-  }));
+  return rows.flatMap((row): PublicTicketMessage[] => {
+    const createdAt = iso(row.createdAt);
+    if (row.authorType === "system") {
+      const status = parseStatusEvent(row.body);
+      return status ? [{ id: row.id, author: "system", status, createdAt }] : [];
+    }
+    return [
+      {
+        id: row.id,
+        author: row.authorType,
+        body: row.body,
+        attachments: row.attachmentMediaIds.flatMap((id) => {
+          const file = files.get(id);
+          return file
+            ? [
+                {
+                  href: customerAttachmentHref(id),
+                  name: file.originalName ?? file.storageKey,
+                  mime: file.mime,
+                },
+              ]
+            : [];
+        }),
+        createdAt,
+      },
+    ];
+  });
 };
 
 const isProductListed = (product: TicketRow["product"]) =>

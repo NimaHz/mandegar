@@ -3,15 +3,30 @@ import { Elysia } from "elysia";
 import { orNotFound } from "@/server/lib/http-error";
 import { idParamsSchema } from "@/server/lib/validation";
 import { auth } from "@/server/plugins/auth";
+import { rateLimiter } from "@/server/plugins/rate-limit";
 import { productsAdmin } from "@/services/admin/products";
 
 import {
   productImagesSchema,
   productInputSchema,
+  productLookupQuerySchema,
   productPatchSchema,
   productsQuerySchema,
 } from "./schema";
-import { createProduct, deleteProduct, setProductImages, updateProduct } from "./service";
+import {
+  createProduct,
+  deleteProduct,
+  lookupProducts,
+  setProductImages,
+  updateProduct,
+} from "./service";
+
+export const productRoutes = new Elysia({ prefix: "/products" })
+  .use(rateLimiter)
+  .get("/", ({ query }) => lookupProducts(query.locale, query.slugs), {
+    query: productLookupQuerySchema,
+    rateLimit: { scope: "products", limit: 60, windowSec: 60 },
+  });
 
 export const productAdminRoutes = new Elysia({ prefix: "/admin/products" })
   .use(auth)

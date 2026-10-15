@@ -6,9 +6,11 @@ import type { z } from "zod";
 import { routes } from "@/lib/routes";
 import { getDb } from "@/server/db/client";
 import { heroSlides } from "@/server/db/schema";
+import { cacheTags } from "@/server/lib/cache-tags";
 import { guardDelete, guardWrite } from "@/server/lib/db-errors";
 import { notFound, orNotFound } from "@/server/lib/http-error";
-import { revalidatePages } from "@/server/lib/revalidate";
+import { revalidateContent } from "@/server/lib/revalidate";
+import { assertLibraryMedia } from "@/server/modules/media/service";
 import { slidesAdmin } from "@/services/admin/content";
 
 import type { slideInputSchema, slidePatchSchema } from "./schema";
@@ -22,7 +24,14 @@ const toValues = <TInput extends z.output<typeof slidePatchSchema>>(input: TInpu
   endsAt: toDate(input.endsAt),
 });
 
+const assertSlideMedia = (input: z.output<typeof slidePatchSchema>) =>
+  assertLibraryMedia({
+    imageMediaId: input.imageMediaId,
+    mobileImageMediaId: input.mobileImageMediaId,
+  });
+
 export const createSlide = async (input: z.output<typeof slideInputSchema>) => {
+  await assertSlideMedia(input);
   const [row] = await guardWrite(() =>
     getDb()
       .insert(heroSlides)
@@ -34,11 +43,12 @@ export const createSlide = async (input: z.output<typeof slideInputSchema>) => {
       .returning({ id: heroSlides.id }),
   );
   if (!row) throw new Error("Slide insert failed");
-  revalidatePages([routes.home]);
+  revalidateContent([cacheTags.slides], [routes.home]);
   return orNotFound(await slidesAdmin.get(row.id));
 };
 
 export const updateSlide = async (id: string, patch: z.output<typeof slidePatchSchema>) => {
+  await assertSlideMedia(patch);
   const [row] = await guardWrite(() =>
     getDb()
       .update(heroSlides)
@@ -47,7 +57,7 @@ export const updateSlide = async (id: string, patch: z.output<typeof slidePatchS
       .returning({ id: heroSlides.id }),
   );
   if (!row) throw notFound("Slide not found");
-  revalidatePages([routes.home]);
+  revalidateContent([cacheTags.slides], [routes.home]);
   return orNotFound(await slidesAdmin.get(id));
 };
 
@@ -56,6 +66,6 @@ export const deleteSlide = async (id: string) => {
     getDb().delete(heroSlides).where(eq(heroSlides.id, id)).returning({ id: heroSlides.id }),
   );
   if (!row) throw notFound("Slide not found");
-  revalidatePages([routes.home]);
+  revalidateContent([cacheTags.slides], [routes.home]);
   return { id };
 };

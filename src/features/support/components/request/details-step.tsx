@@ -6,9 +6,10 @@ import { useFormContext, useFormState, useWatch } from "react-hook-form";
 import { CharCount } from "@/components/ui/char-count";
 import { Field, TextAreaField } from "@/components/ui/field";
 import type { Locale } from "@/i18n/config";
+import { mentionsGasSmell } from "@/lib/tickets";
 
 import type { RequestFlowContent } from "../../content";
-import { mentionsGasSmell, type RequestValues, TICKET_ATTACHMENT_LIMIT } from "../../schemas";
+import type { RequestValues } from "../../schemas";
 import { AttachmentPicker } from "../attachment-picker";
 import { GasSafetyCallout } from "../gas-safety-callout";
 
@@ -60,7 +61,6 @@ export function DetailsStep({ locale, copy, files, onFilesChange, filesError }: 
       <AttachmentPicker
         files={files}
         onChange={onFilesChange}
-        max={TICKET_ATTACHMENT_LIMIT}
         error={filesError}
         labels={{ ...copy.attachments, optional: copy.product.optional }}
       />

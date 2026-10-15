@@ -4,6 +4,7 @@ import type { Locale } from "@/i18n/config";
 export interface HomeContent {
   metaTitle: string;
   metaDescription: string;
+  heading: string;
   hero: {
     label: string;
     secondaryCta: string;
@@ -105,6 +106,7 @@ export const homeContent: Record<Locale, HomeContent> = {
     metaTitle: "ماندگار | کولر، بخاری، آبگرمکن و لوازم خانگی بادوام",
     metaDescription:
       "لوازم خانگی بادوام ماندگار با مشخصات کامل، راهنمای نصب هر مدل، استعلام آنی گارانتی و شبکه خدمات پس از فروش در سراسر ایران.",
+    heading: "{name}، {slogan}",
     hero: {
       label: "معرفی محصولات ماندگار",
       secondaryCta: "همه محصولات",
@@ -240,6 +242,7 @@ export const homeContent: Record<Locale, HomeContent> = {
     metaTitle: "Mandegar | Durable coolers, heaters and water heaters",
     metaDescription:
       "Durable Mandegar home appliances with full specs, an installation guide for every model, instant warranty checks and after-sales service across Iran.",
+    heading: "{name}: {slogan}",
     hero: {
       label: "Mandegar highlights",
       secondaryCta: "All products",

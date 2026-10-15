@@ -11,7 +11,8 @@ import {
   adminSorts,
 } from "@/types/admin";
 
-import { collated, iso, paginate, searchColumns, sortedBy } from "./shared";
+import { iso } from "../db/mappers";
+import { collated, paginate, searchColumns, sortedBy } from "./shared";
 
 const orders: Record<AdminSort<"messages">, SQL[]> = {
   "created-desc": [desc(contactMessages.createdAt)],

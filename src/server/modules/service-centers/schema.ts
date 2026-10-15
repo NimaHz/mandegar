@@ -4,6 +4,7 @@ import {
   listQuerySchema,
   localizedText,
   optionalFilter,
+  phoneNumberSchema,
   provinceSchema,
   slugSchema,
   sortSchema,
@@ -18,16 +19,7 @@ export const serviceCenterInputSchema = z.object({
   province: provinceSchema,
   city: localizedText(60),
   address: localizedText(300),
-  phones: z
-    .array(
-      z
-        .string()
-        .trim()
-        .min(4)
-        .max(30)
-        .regex(/^[+\d][\d\s-]*$/),
-    )
-    .max(6),
+  phones: z.array(phoneNumberSchema).max(6),
   hours: localizedText(200),
   lat: z.number().min(24).max(40).nullable(),
   lng: z.number().min(44).max(64).nullable(),
