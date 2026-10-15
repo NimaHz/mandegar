@@ -143,13 +143,15 @@ revocations are logged too.
 
 ### Secrets
 
-- All secrets live in environment variables (`.env` on the server, mode 600, never committed;
-  `.gitignore` excludes every `.env*` file except `.env.example`).
+- All secrets live in environment variables (`/etc/mandegar/mandegar.env` on the server, owned by
+  root with mode 600, never committed; `.gitignore` excludes every `.env*` file except
+  `.env.example`).
 - `SESSION_SECRET` (32+ random bytes) keys form tokens, ALTCHA and IP hashing. Rotating it signs
   out nobody but invalidates in-flight forms and challenges, and resets IP-keyed rate-limit buckets.
-- The image build receives the database URL and the session secret as BuildKit secrets; they are
-  not stored in image layers. The runtime image runs as an unprivileged user (uid 1001).
-- PostgreSQL is published on the host loopback only; nginx is the only public listener.
+- The app runs as the unprivileged `mandegar` system user under a hardened systemd unit
+  (read-only system, private `/tmp`, no new privileges); it can write only to the uploads directory
+  and its release's `.next` cache. Releases are built by the deploy user, never by root.
+- PostgreSQL and the app listen on loopback only; nginx is the only public listener.
 - Dependencies are pinned to exact versions in `package.json` and the lockfile, and pnpm enforces
   a minimum release age for new versions, with explicit exceptions in `pnpm-workspace.yaml`.
 
@@ -169,10 +171,10 @@ customer data: keep them on the server with mode 600, encrypt off-site copies, a
 
 - [ ] `SESSION_SECRET` is a fresh 32-byte random value (`openssl rand -hex 32`) and differs from
       every other environment.
-- [ ] `POSTGRES_PASSWORD` is random and only in `.env` (mode 600).
+- [ ] The database password is random and only in `/etc/mandegar/mandegar.env` (mode 600).
 - [ ] `NEXT_PUBLIC_SITE_URL` and `APP_ORIGIN` are the final `https://` origin.
 - [ ] The seeded owner has signed in, changed the password and enabled TOTP; remove or rotate
-      `SEED_OWNER_PASSWORD` in `.env` afterwards.
+      `SEED_OWNER_PASSWORD` in the environment file afterwards.
 - [ ] No placeholder users remain; each staff member has their own account with the least role.
 - [ ] HTTPS works on the apex and `www`, HTTP redirects to HTTPS, and certificate renewal passes
       `certbot renew --dry-run`.

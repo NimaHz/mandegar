@@ -1,30 +1,34 @@
 # Deploying Mandegar on an Iranian VPS
 
-This guide deploys Mandegar on a fresh Ubuntu 24.04 VPS hosted in Iran. Nothing in the running
-stack depends on a foreign service: fonts, scripts, images and the spam challenge are self-hosted,
-and every image or package the build needs can come from an Iranian mirror.
+This guide deploys Mandegar on a fresh Ubuntu 24.04 VPS hosted in Iran, directly on the host:
+PostgreSQL and nginx from Ubuntu packages, and the Next.js standalone server under systemd.
+Nothing in the running stack depends on a foreign service: fonts, scripts, images and the spam
+challenge are self-hosted, and every package the build needs can come from an Iranian mirror.
 
 ## Topology
 
 ```
 Internet ─▶ (optional ArvanCloud CDN) ─▶ nginx :80/:443
-                                          ├─ /uploads/*        served from the uploads volume
+                                          ├─ /uploads/*        served from /var/lib/mandegar/uploads
                                           ├─ /_next/static/*   proxied once, then cached by nginx
                                           ├─ /_next/image, /og/ proxied once per variant, then cached by nginx
-                                          └─ everything else ─▶ app :3000 (Next standalone + Elysia /api)
-                                                                 └─▶ db :5432 (PostgreSQL 16)
+                                          └─ everything else ─▶ mandegar.service, localhost:3000
+                                                                 (Next standalone + Elysia /api)
+                                                                 └─▶ PostgreSQL 16, 127.0.0.1:5432
 ```
 
-| Service   | Image                            | Role                                                      |
-| --------- | -------------------------------- | --------------------------------------------------------- |
-| `db`      | `postgres:16-alpine`             | Database, data in the `db-data` volume                    |
-| `migrate` | built from `Dockerfile` (tools)  | One-shot `pnpm db:migrate`; also runs the seed on demand  |
-| `app`     | built from `Dockerfile` (runner) | `node server.js` as uid 1001, uploads in `uploads` volume |
-| `nginx`   | `nginx:1.28-alpine`              | TLS, compression, static caching, rate limits             |
+| Path                               | Owner       | Contents                                                |
+| ---------------------------------- | ----------- | ------------------------------------------------------- |
+| `/opt/mandegar/source`             | deploy user | Git checkout; releases are built here                   |
+| `/opt/mandegar/releases/<release>` | `mandegar`  | One built standalone server per release                 |
+| `/opt/mandegar/current`            | `root`      | Symlink to the live release; the systemd unit runs here |
+| `/etc/mandegar/mandegar.env`       | `root`, 600 | Production environment                                  |
+| `/var/lib/mandegar/uploads`        | `mandegar`  | Uploaded media, served by nginx                         |
+| `/var/backups/mandegar`            | `root`, 700 | Nightly database dumps and uploads archives             |
+| `/var/cache/nginx`                 | `www-data`  | nginx cache for static assets, images and share cards   |
 
-The images are Alpine based. `sharp`, `@node-rs/argon2`, `@resvg/resvg-js` and the Next.js
-compiler all ship prebuilt musl binaries, so no glibc compatibility layer is needed, the runtime
-image stays small, and the build never runs `apk` (which would need an Alpine mirror).
+The deploy user is your own sudo-capable account. It builds releases without root and uses `sudo`
+only to read the environment file, publish a release and restart the service.
 
 ## 1. Prepare the server
 
@@ -34,7 +38,7 @@ Point the server at an Iranian Ubuntu mirror, for example ArvanCloud:
 sudo sed -i 's#http://[a-z.]*archive.ubuntu.com#https://mirror.arvancloud.ir#g; s#http://security.ubuntu.com#https://mirror.arvancloud.ir#g' \
   /etc/apt/sources.list.d/ubuntu.sources
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y git curl ufw certbot
+sudo apt install -y git curl rsync ufw certbot nginx postgresql
 sudo timedatectl set-timezone Asia/Tehran
 sudo ufw allow OpenSSH && sudo ufw allow 80,443/tcp && sudo ufw enable
 ```
@@ -47,95 +51,104 @@ sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapf
 sudo swapon /swapfile && echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
 
-## 2. Install Docker through mirrors
+## 2. Install Node.js
 
-The simplest route uses Ubuntu's own packages, which come from the Ubuntu mirror configured above:
-
-```bash
-sudo apt install -y docker.io docker-compose-v2 docker-buildx
-```
-
-Docker CE works too if your mirror carries the `docker-ce` repository; follow the mirror's
-instructions and install `docker-ce docker-ce-cli containerd.io docker-buildx-plugin
-docker-compose-plugin`.
-
-Docker Hub is often unreachable or rate limited from Iran. Configure a registry mirror and log
-rotation in `/etc/docker/daemon.json`:
-
-```json
-{
-  "registry-mirrors": ["https://docker.arvancloud.ir"],
-  "log-driver": "local",
-  "log-opts": { "max-size": "20m", "max-file": "5" }
-}
-```
+The app needs Node.js 22 or newer; `.nvmrc` pins 24, the current LTS. Ubuntu 24.04's own `nodejs`
+package is too old, so install the official Linux build. `NODE_DIST` is the download base: keep
+`https://nodejs.org/dist` when it is reachable, or point it at any mirror of that directory.
 
 ```bash
-sudo systemctl restart docker
-docker pull postgres:16-alpine
+NODE_VERSION=v24.22.0
+NODE_DIST=https://nodejs.org/dist
+curl -fsSLO "$NODE_DIST/$NODE_VERSION/node-$NODE_VERSION-linux-x64.tar.xz"
+curl -fsSL "$NODE_DIST/$NODE_VERSION/SHASUMS256.txt" | grep " node-$NODE_VERSION-linux-x64.tar.xz\$" | sha256sum -c -
+sudo tar -xJf "node-$NODE_VERSION-linux-x64.tar.xz" -C /usr/local --strip-components=1 --no-same-owner
+node -v && corepack --version
 ```
 
-If a mirror does not work as a transparent `registry-mirrors` entry, reference images through it
-directly in `.env`, for example `NODE_IMAGE=docker.arvancloud.ir/library/node:22-alpine`,
-`POSTGRES_IMAGE=docker.arvancloud.ir/library/postgres:16-alpine` and
-`NGINX_IMAGE=docker.arvancloud.ir/library/nginx:1.28-alpine`.
+Pick the newest `v24` release listed under `$NODE_DIST`. The release script runs pnpm through
+Corepack, which downloads the exact pnpm version pinned in `package.json` the first time.
 
-## 3. Get the code and configure it
+## 3. Database
+
+Create the role and database with a hex password (it goes into a URL, so it must be URL-safe):
 
 ```bash
-sudo mkdir -p /opt/mandegar && sudo chown "$USER" /opt/mandegar
-git clone <repository-url> /opt/mandegar
-cd /opt/mandegar
-cp .env.example .env
-chmod 600 .env
+DB_PASSWORD="$(openssl rand -hex 24)"
+sudo -u postgres psql -v ON_ERROR_STOP=1 -c "CREATE ROLE mandegar LOGIN PASSWORD '$DB_PASSWORD'"
+sudo -u postgres createdb --owner mandegar mandegar
+echo "$DB_PASSWORD"
 ```
 
-Edit `.env` (the full reference is at the end of this guide). For production at minimum:
+Keep the password for the environment file below. PostgreSQL listens on localhost only by default.
+The migrations enable `pg_trgm`, a trusted extension that the database owner can create without
+superuser rights.
+
+## 4. Service user and directories
 
 ```bash
+sudo useradd --system --home-dir /opt/mandegar --no-create-home --shell /usr/sbin/nologin mandegar
+sudo install -d -o "$USER" -g "$USER" /opt/mandegar/source
+sudo install -d /opt/mandegar/releases /etc/mandegar
+sudo install -d -o mandegar -g mandegar /var/lib/mandegar
+sudo install -d -o "$USER" -g mandegar /var/lib/mandegar/uploads
+sudo install -d -m 700 /var/backups/mandegar
+```
+
+The uploads directory belongs to you until the first seed has written its media; step 8 hands it to
+`mandegar`.
+
+## 5. Get the code and configure it
+
+```bash
+git clone <repository-url> /opt/mandegar/source
+cd /opt/mandegar/source
+sudo install -m 600 .env.example /etc/mandegar/mandegar.env
+sudoedit /etc/mandegar/mandegar.env
+```
+
+The full reference is at the end of this guide. For production at minimum:
+
+```bash
+DATABASE_URL=postgres://mandegar:<DB_PASSWORD>@127.0.0.1:5432/mandegar
 NEXT_PUBLIC_SITE_URL=https://mandegar.ir
 APP_ORIGIN=https://mandegar.ir
 SESSION_SECRET=<openssl rand -hex 32>
+UPLOAD_DIR=/var/lib/mandegar/uploads
 SEED_OWNER_EMAIL=<owner email>
 SEED_OWNER_PASSWORD=<long unique password>
 SMS_DRIVER=none
-POSTGRES_PASSWORD=<openssl rand -hex 24>
-BUILD_DATABASE_URL=postgres://mandegar:<same password>@127.0.0.1:5432/mandegar
 NPM_REGISTRY=<npm mirror URL, e.g. https://mirror-npm.runflare.com/>
 ```
 
-- Use hex passwords: the compose file builds `DATABASE_URL` from `POSTGRES_PASSWORD`, so the
-  password must be URL-safe. Keep every value shell-safe too, because `deploy/release.sh` sources
-  the file.
-- `DATABASE_URL` in `.env` is ignored by the containers; compose points the app at `db:5432`.
+- `deploy/release.sh` and `deploy/backup.sh` source this file and systemd reads it as well, so keep
+  every value on one line, unquoted and shell-safe.
+- `UPLOAD_DIR` must be the absolute path above. Values in the file override the unit's own
+  `Environment=` lines, so do not set `HOSTNAME`, `PORT` or `NODE_ENV` here.
 - `NEXT_PUBLIC_SITE_URL` is compiled into the build (canonical URLs, sitemaps, Open Graph). Changing
-  it requires a rebuild.
-- `NPM_REGISTRY` is used for both Corepack (to fetch pnpm) and pnpm. Check the mirror's current URL
-  on its website. If Corepack rejects the mirror's signatures, add `COREPACK_INTEGRITY_KEYS=0` as an
-  `ENV` in the Dockerfile's base stage.
+  it requires a new release.
+- `NPM_REGISTRY` is used only by the release script, for Corepack (to fetch pnpm) and pnpm. Check
+  the mirror's current URL on its website. If Corepack rejects the mirror's signatures, also add
+  `COREPACK_INTEGRITY_KEYS=0`.
 
-Replace `mandegar.example` in `deploy/nginx.conf` with your domain (three `server_name` lines and
-the two redirect targets).
-
-## 4. TLS certificates
+## 6. TLS certificates
 
 ### Let's Encrypt (certbot)
 
-Issue the first certificate before nginx starts, while port 80 is still free. The fixed
-`--cert-name` keeps the path that `deploy/nginx.conf` expects:
+Issue the first certificate while port 80 is still free, then switch renewals to the webroot that
+nginx serves. The fixed `--cert-name` keeps the path that `deploy/nginx.conf` expects:
 
 ```bash
+sudo systemctl stop nginx
 sudo certbot certonly --standalone --cert-name mandegar -d mandegar.ir -d www.mandegar.ir \
   -m ops@mandegar.ir --agree-tos --no-eff-email
 sudo mkdir -p /var/www/certbot
 sudo certbot reconfigure --cert-name mandegar --webroot --webroot-path /var/www/certbot \
-  --deploy-hook "docker compose -f /opt/mandegar/docker-compose.yml exec nginx nginx -s reload"
-sudo certbot renew --dry-run
+  --deploy-hook "systemctl reload nginx"
 ```
 
-After `reconfigure`, renewals go through the `/.well-known/acme-challenge/` location that nginx
-serves from `/var/www/certbot`, and nginx reloads automatically. The certbot package installs a
-systemd timer for renewals.
+Run `sudo certbot renew --dry-run` once nginx is up (next step). The certbot package installs a
+systemd timer for renewals, and nginx reloads after each one.
 
 ### ArvanCloud CDN SSL
 
@@ -145,81 +158,103 @@ from the CDN panel saved as `/etc/letsencrypt/live/mandegar/{fullchain,privkey}.
 CDN's origin protocol to HTTPS, so traffic between the CDN and the VPS stays encrypted. See the CDN
 notes below for the real client IP.
 
-## 5. First deployment
+## 7. nginx
+
+`deploy/nginx.conf` is a complete `nginx.conf` for Ubuntu's nginx package. Replace `mandegar.example`
+with your domain (three `server_name` lines and the two redirect targets), then install it:
 
 ```bash
-cd /opt/mandegar
-set -a && . ./.env && set +a
-
-docker compose up -d --wait db
-docker compose build migrate
-docker compose run --rm migrate
-docker compose run --rm migrate pnpm db:seed
-docker compose build app
-docker compose up -d
-docker compose ps
+cd /opt/mandegar/source
+sudo cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.ubuntu
+sudo cp deploy/nginx.conf /etc/nginx/nginx.conf
+sudo nginx -t && sudo systemctl enable --now nginx && sudo systemctl reload nginx
+sudo certbot renew --dry-run
 ```
 
-Why this order: the build prerenders the ISR catalog pages, so it needs a migrated (and ideally
-seeded) database. The build reaches PostgreSQL through the host network on `127.0.0.1:5432`, where
-compose publishes the `db` port on loopback only. The database URL and the session secret reach the
-build as BuildKit secrets (`BUILD_DATABASE_URL` and `SESSION_SECRET` from the environment), so they
-never end up in an image layer or in the runtime image's history. Exporting `.env` with `set -a` is
-what makes them visible to compose.
+It replaces Ubuntu's default site, so `/etc/nginx/sites-enabled` is no longer read. nginx runs as
+`www-data` and serves `/uploads/*` straight from `/var/lib/mandegar/uploads`, which the app creates
+world-readable. For Brotli, install `libnginx-mod-http-brotli-filter
+libnginx-mod-http-brotli-static` (the config already loads enabled modules) and add
+`brotli on; brotli_static on; brotli_comp_level 5;` to the `http` block with the same types as
+`gzip_types`.
+
+## 8. First release
+
+```bash
+cd /opt/mandegar/source
+set -a && . <(sudo cat /etc/mandegar/mandegar.env) && set +a
+export COREPACK_NPM_REGISTRY="${NPM_REGISTRY:-https://registry.npmjs.org/}"
+export npm_config_registry="$COREPACK_NPM_REGISTRY"
+corepack pnpm install --frozen-lockfile --prod=false
+corepack pnpm db:migrate
+corepack pnpm db:seed
+sudo chown -R mandegar:mandegar /var/lib/mandegar/uploads
+
+sudo cp deploy/mandegar.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable mandegar
+bash deploy/release.sh
+```
 
 The seed is idempotent. Besides the owner account it loads the placeholder catalog and content;
 product photos are downloaded from the internet when reachable, and replaced by generated
 placeholders otherwise. Replace the placeholder content in the admin before launch.
 
-If your Docker version refuses `network: host` for builds, build the image directly:
-
-```bash
-docker build --network host --target runner \
-  --secret id=database_url,env=BUILD_DATABASE_URL --secret id=session_secret,env=SESSION_SECRET \
-  --build-arg NEXT_PUBLIC_SITE_URL --build-arg NPM_REGISTRY --build-arg NODE_IMAGE \
-  -t mandegar-app:latest .
-```
+The unit binds to `localhost`, not `127.0.0.1`. Next.js reports loopback hosts as `localhost`
+inside the proxy, so with a `127.0.0.1` bind its locale rewrites no longer match the server origin
+and Persian pages answer with a 308 loop, or a 500 behind nginx. Check that
+`getent ahosts localhost` lists `127.0.0.1`, which is what the nginx upstream connects to.
 
 Check the deployment:
 
 ```bash
+systemctl status mandegar --no-pager
 curl -fsS https://mandegar.ir/api/health
 curl -sI https://mandegar.ir/ | grep -iE 'content-security-policy|strict-transport|x-request-id'
 ```
 
-## 6. Updates
+## 9. Updates and rollback
 
 ```bash
-cd /opt/mandegar
+cd /opt/mandegar/source
 git pull
 bash deploy/release.sh
 ```
 
-`deploy/release.sh` exports `.env`, starts the database, rebuilds and runs the migrator, rebuilds the
-app against the live database, recreates the containers and prunes dangling images. The app is
-unavailable for the few seconds it takes the new container to pass its health check; nginx returns
-502 during that window.
+`deploy/release.sh` loads the environment file, installs dependencies, applies migrations, builds
+against the live database (the build prerenders the ISR catalog pages), copies the standalone
+server into a new `/opt/mandegar/releases/<date>-<commit>` directory, switches the `current`
+symlink, restarts the service and waits for `/api/health`. If the new release does not become
+healthy within a minute it switches back to the previous release and exits with an error. It keeps
+the five newest releases (`KEEP_RELEASES`). The site is unavailable for the few seconds the
+restart takes; nginx answers 502 during that window and keeps serving cached static assets.
 
-To roll back, check out the previous commit and run the script again. Migrations are forward only:
-take a backup before releasing a migration that drops or rewrites data.
+To roll back by hand, point `current` at an older release and restart:
+
+```bash
+ls /opt/mandegar/releases
+sudo ln -sfn /opt/mandegar/releases/<release> /opt/mandegar/current
+sudo systemctl restart mandegar
+```
+
+Migrations are forward only, so a rollback across a migration keeps the newer schema. Take a backup
+before releasing a migration that drops or rewrites data.
 
 `public/sw.js` is versioned by its `VERSION` constant. Bump it whenever the service worker logic or
 the offline pages change; open tabs then show a "new version available" toast with a reload action.
 
-## 7. Backups
+## 10. Backups
 
 `deploy/backup.sh` writes `db-<stamp>.sql.gz` (a plain `pg_dump`) and `uploads-<stamp>.tar.gz` to
-`/var/backups/mandegar` and deletes files older than 14 days. Install the cron entry:
+`/var/backups/mandegar` and deletes files older than 14 days. It reads `DATABASE_URL` and
+`UPLOAD_DIR` from `/etc/mandegar/mandegar.env`. Install the cron entry and run it once:
 
 ```bash
-sudo mkdir -p /var/backups/mandegar
-sudo cp deploy/backup.cron /etc/cron.d/mandegar-backup
+sudo cp /opt/mandegar/source/deploy/backup.cron /etc/cron.d/mandegar-backup
 sudo chmod 644 /etc/cron.d/mandegar-backup
-sudo /opt/mandegar/deploy/backup.sh
+sudo /opt/mandegar/source/deploy/backup.sh
 ```
 
-Settings come from the environment: `BACKUP_DIR`, `RETENTION_DAYS`, `APP_DIR`, and for hosts
-without Docker `BACKUP_MODE=host` with `DATABASE_URL` and `UPLOAD_DIR`.
+Other settings come from the environment: `BACKUP_DIR`, `RETENTION_DAYS` and `ENV_FILE`.
 
 Keep an off-site copy, for example in ArvanCloud Object Storage with rclone, and encrypt it:
 
@@ -227,46 +262,50 @@ Keep an off-site copy, for example in ArvanCloud Object Storage with rclone, and
 rclone sync /var/backups/mandegar arvan:mandegar-backups --max-age 48h
 ```
 
-Restore:
+Restore into an empty database, with the app stopped:
 
 ```bash
-gunzip -c /var/backups/mandegar/db-20260101-031700.sql.gz \
-  | docker compose exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
-docker compose run --rm --no-deps -v /var/backups/mandegar:/backup --user 0 --entrypoint sh app \
-  -c 'tar -xzf /backup/uploads-20260101-031700.tar.gz -C /app && chown -R 1001:1001 /app/uploads'
+sudo systemctl stop mandegar
+sudo -u postgres dropdb mandegar && sudo -u postgres createdb --owner mandegar mandegar
+set -a && . <(sudo cat /etc/mandegar/mandegar.env) && set +a
+sudo gunzip -c /var/backups/mandegar/db-20260101-031700.sql.gz \
+  | psql -v ON_ERROR_STOP=1 "$DATABASE_URL"
+sudo rm -rf /var/lib/mandegar/uploads
+sudo tar -xzf /var/backups/mandegar/uploads-20260101-031700.tar.gz -C /var/lib/mandegar
+sudo chown -R mandegar:mandegar /var/lib/mandegar/uploads
+sudo systemctl start mandegar
 ```
 
-Restore into an empty database (recreate the `db-data` volume or drop and recreate the database
-first). Test a restore on a scratch server at least once before launch.
+Test a restore on a scratch server at least once before launch.
 
-## 8. Logs and monitoring
+## 11. Logs and monitoring
 
 ```bash
-docker compose logs -f app
-docker compose logs -f nginx
-docker compose exec nginx tail -f /var/log/nginx/access.log
+journalctl -u mandegar -f
+sudo tail -f /var/log/nginx/access.log /var/log/nginx/error.log
 ```
 
 - nginx stamps every request with `X-Request-ID` (`rid=` in the access log), passes it to the app
   and returns it to the client, so a user-reported ID can be traced.
 - `GET /api/health` returns 200 with `{ status: "ok", database: true }`, or 503 when the database is
-  down. Docker uses it as the container health check; point an uptime monitor at it as well.
-- Container logs rotate through the `log-opts` in `daemon.json`.
+  down. The release script waits for it; point an uptime monitor at it as well.
+- systemd restarts the app if it exits. Ubuntu rotates the nginx logs with logrotate; cap the
+  journal with `SystemMaxUse=500M` in `/etc/systemd/journald.conf` if the disk is small.
 
-## 9. Scaling notes
+## 12. Scaling notes
 
 - Scale vertically first. The app is a single Node process; ISR keeps most page views off the
   database, and nginx serves uploads and static assets without touching Node.
 - Image optimization (`/_next/image`) and Open Graph cards (`/og/`) are the main CPU costs. nginx
-  caches both in the `nginx-cache` volume for 30 days, keyed by URL and, for images, by the format
-  the `Accept` header negotiates (AVIF, WebP or the original), so releases and app container
-  restarts do not re-encode them. Inspect hits with the `X-Cache-Status` response header.
-- Running several app replicas needs a shared ISR cache (a custom `cacheHandler`, for example on
-  Redis) and the S3 storage driver for uploads; until then keep one replica.
-- Tune PostgreSQL with `shared_buffers` around 25% of RAM via `command: postgres -c ...` on `db` if
-  the catalog grows large.
+  caches both in `/var/cache/nginx` for 30 days, keyed by URL and, for images, by the format the
+  `Accept` header negotiates (AVIF, WebP or the original), so releases and restarts do not
+  re-encode them. Inspect hits with the `X-Cache-Status` response header.
+- Running several app processes needs a shared ISR cache (a custom `cacheHandler`, for example on
+  Redis) and the S3 storage driver for uploads; until then keep one process.
+- If the catalog grows large, tune PostgreSQL with `shared_buffers` around 25% of RAM in a file
+  under `/etc/postgresql/16/main/conf.d/`, then `sudo systemctl restart postgresql`.
 
-## 10. ArvanCloud CDN notes
+## 13. ArvanCloud CDN notes
 
 - Cache at the edge: `/_next/static/*` and `/uploads/*` are immutable (`max-age=31536000,
 immutable`), and so are `/_next/image` results for a given URL.
@@ -277,8 +316,8 @@ immutable`), and so are `/_next/image` results for a given URL.
 - Bypass the cache for `/api/*` and `/admin/*`. Both send `no-store` or private responses.
 - Enable Brotli at the edge; the origin nginx compresses with gzip.
 - Restore the visitor IP at the origin, otherwise every visitor shares the CDN's rate-limit
-  bucket. Add this to the `http` block of `deploy/nginx.conf`, with one `set_real_ip_from` line per
-  range from ArvanCloud's published list of edge IPs:
+  bucket. Add this to the `http` block of `/etc/nginx/nginx.conf`, with one `set_real_ip_from`
+  line per range from ArvanCloud's published list of edge IPs:
 
   ```nginx
   set_real_ip_from 185.143.232.0/22;
@@ -288,89 +327,49 @@ immutable`), and so are `/_next/image` results for a given URL.
 
 - Keep the WAF and DDoS protection on; the origin's own rate limits remain as a second layer.
 
-## 11. Without Docker (systemd)
-
-1. Install Node.js 22 (from an Iranian mirror of the Node.js binaries or NodeSource packages),
-   PostgreSQL 16 and nginx from the Ubuntu mirror.
-2. Create the user and directories:
-
-   ```bash
-   sudo useradd --system --home /opt/mandegar --shell /usr/sbin/nologin mandegar
-   sudo mkdir -p /opt/mandegar /var/lib/mandegar/uploads /etc/mandegar
-   sudo chown -R mandegar:mandegar /var/lib/mandegar
-   ```
-
-3. Put production variables in `/etc/mandegar/mandegar.env` (mode 600), with
-   `DATABASE_URL=postgres://mandegar:<password>@127.0.0.1:5432/mandegar`.
-4. Build on the server or in CI, then publish a release directory:
-
-   ```bash
-   corepack enable && pnpm install --frozen-lockfile
-   set -a && . /etc/mandegar/mandegar.env && set +a
-   pnpm db:migrate && pnpm build && pnpm standalone:assemble
-   sudo rsync -a --delete .next/standalone/ /opt/mandegar/releases/$(git rev-parse --short HEAD)/
-   sudo ln -sfn /opt/mandegar/releases/$(git rev-parse --short HEAD) /opt/mandegar/current
-   sudo chown -R mandegar:mandegar /opt/mandegar/releases
-   ```
-
-5. Install and start the unit:
-
-   ```bash
-   sudo cp deploy/mandegar.service /etc/systemd/system/
-   sudo systemctl daemon-reload && sudo systemctl enable --now mandegar
-   journalctl -u mandegar -f
-   ```
-
-   The unit binds to `localhost`, not `127.0.0.1`. Next.js reports loopback hosts as `localhost`
-   inside the proxy, so with a `127.0.0.1` bind its locale rewrites no longer match the server
-   origin and Persian pages answer with a 308 loop, or a 500 behind nginx. Check that
-   `getent ahosts localhost` lists `127.0.0.1`, so the nginx upstream below reaches the app.
-
-6. Reuse `deploy/nginx.conf` on the host with three changes: `server 127.0.0.1:3000;` instead of
-   `server app:3000 resolve;`, remove the `resolver` line, and `root /var/lib/mandegar;` in the
-   uploads location (nginx needs read access to `/var/lib/mandegar/uploads`). For Brotli on the host,
-   install `libnginx-mod-http-brotli-filter libnginx-mod-http-brotli-static` and add
-   `brotli on; brotli_static on; brotli_comp_level 5;` with the same types as `gzip_types`.
-7. Back up with `BACKUP_MODE=host DATABASE_URL=... UPLOAD_DIR=/var/lib/mandegar/uploads
-/opt/mandegar/current/deploy/backup.sh` (copy `deploy/` next to the release, or run it from the
-   repository checkout).
-
 ## Environment reference
 
-| Variable                             | Required | Default / example                       | Purpose                                                       |
-| ------------------------------------ | -------- | --------------------------------------- | ------------------------------------------------------------- |
-| `DATABASE_URL`                       | yes      | `postgres://…`                          | PostgreSQL connection (compose builds it from `POSTGRES_*`)   |
-| `NEXT_PUBLIC_SITE_URL`               | yes      | `https://mandegar.ir`                   | Public origin; compiled into the build                        |
-| `APP_ORIGIN`                         | yes      | `https://mandegar.ir`                   | Only origin allowed for non-GET API requests                  |
-| `SESSION_SECRET`                     | yes      | 64 hex characters                       | Signs form tokens, derives ALTCHA keys, hashes client IPs     |
-| `UPLOAD_DIR`                         | no       | `uploads` (`/app/uploads` in Docker)    | Local media directory                                         |
-| `STORAGE_DRIVER`                     | no       | `local`                                 | `local` or `s3`                                               |
-| `S3_ENDPOINT`                        | for s3   | `https://s3.ir-thr-at1.arvanstorage.ir` | S3-compatible endpoint                                        |
-| `S3_REGION`                          | no       | `default`                               | S3 region                                                     |
-| `S3_BUCKET`                          | for s3   |                                         | Bucket name                                                   |
-| `S3_ACCESS_KEY_ID`                   | for s3   |                                         | Access key                                                    |
-| `S3_SECRET_ACCESS_KEY`               | for s3   |                                         | Secret key                                                    |
-| `ALTCHA_COST`                        | no       | `2000`                                  | Proof-of-work cost                                            |
-| `SMS_DRIVER`                         | no       | `console`                               | `console`, `kavenegar` or `none`                              |
-| `KAVENEGAR_API_KEY`                  | for sms  |                                         | Kavenegar API key                                             |
-| `KAVENEGAR_TEMPLATE_TICKET_RECEIVED` | no       | `mandegar-ticket-received`              | Verify-lookup template for new tickets                        |
-| `KAVENEGAR_TEMPLATE_TICKET_UPDATED`  | no       | `mandegar-ticket-updated`               | Verify-lookup template for ticket updates                     |
-| `SEED_OWNER_EMAIL`                   | seed     |                                         | Owner account created by the seed                             |
-| `SEED_OWNER_PASSWORD`                | seed     | 12+ characters                          | Initial owner password; never overwritten by later seeds      |
-| `GOOGLE_SITE_VERIFICATION`           | no       |                                         | Search Console verification token                             |
-| `BING_SITE_VERIFICATION`             | no       |                                         | Bing Webmaster verification token                             |
-| `INDEXNOW_KEY`                       | no       |                                         | IndexNow key (see docs/seo.md)                                |
-| `POSTGRES_USER`                      | compose  | `mandegar`                              | Database user                                                 |
-| `POSTGRES_PASSWORD`                  | compose  | hex                                     | Database password                                             |
-| `POSTGRES_DB`                        | compose  | `mandegar`                              | Database name                                                 |
-| `BUILD_DATABASE_URL`                 | compose  | `postgres://…@127.0.0.1:5432/mandegar`  | Database URL used by the image build through the host network |
-| `DB_HOST_PORT`                       | no       | `5432`                                  | Loopback port where compose publishes PostgreSQL              |
-| `NPM_REGISTRY`                       | no       | `https://registry.npmjs.org/`           | npm mirror for Corepack and pnpm during the build             |
-| `NODE_IMAGE`                         | no       | `node:22-alpine`                        | Base image (set a mirror-prefixed name if needed)             |
-| `POSTGRES_IMAGE`                     | no       | `postgres:16-alpine`                    | Database image                                                |
-| `NGINX_IMAGE`                        | no       | `nginx:1.28-alpine`                     | nginx image (1.27.3+ is required for `resolve`)               |
-| `TLS_DIR`                            | no       | `/etc/letsencrypt`                      | Host directory mounted into nginx for certificates            |
-| `ACME_WEBROOT`                       | no       | `/var/www/certbot`                      | Host directory for ACME HTTP-01 challenges                    |
+Application settings, in `/etc/mandegar/mandegar.env`:
+
+| Variable                             | Required | Default / example                       | Purpose                                                   |
+| ------------------------------------ | -------- | --------------------------------------- | --------------------------------------------------------- |
+| `DATABASE_URL`                       | yes      | `postgres://…@127.0.0.1:5432/mandegar`  | PostgreSQL connection                                     |
+| `NEXT_PUBLIC_SITE_URL`               | yes      | `https://mandegar.ir`                   | Public origin; compiled into the build                    |
+| `APP_ORIGIN`                         | yes      | `https://mandegar.ir`                   | Only origin allowed for non-GET API requests              |
+| `SESSION_SECRET`                     | yes      | 64 hex characters                       | Signs form tokens, derives ALTCHA keys, hashes client IPs |
+| `UPLOAD_DIR`                         | yes      | `/var/lib/mandegar/uploads`             | Local media directory (`uploads` in development)          |
+| `STORAGE_DRIVER`                     | no       | `local`                                 | `local` or `s3`                                           |
+| `S3_ENDPOINT`                        | for s3   | `https://s3.ir-thr-at1.arvanstorage.ir` | S3-compatible endpoint                                    |
+| `S3_REGION`                          | no       | `default`                               | S3 region                                                 |
+| `S3_BUCKET`                          | for s3   |                                         | Bucket name                                               |
+| `S3_ACCESS_KEY_ID`                   | for s3   |                                         | Access key                                                |
+| `S3_SECRET_ACCESS_KEY`               | for s3   |                                         | Secret key                                                |
+| `ALTCHA_COST`                        | no       | `2000`                                  | Proof-of-work cost                                        |
+| `SMS_DRIVER`                         | no       | `console`                               | `console`, `kavenegar` or `none`                          |
+| `KAVENEGAR_API_KEY`                  | for sms  |                                         | Kavenegar API key                                         |
+| `KAVENEGAR_TEMPLATE_TICKET_RECEIVED` | no       | `mandegar-ticket-received`              | Verify-lookup template for new tickets                    |
+| `KAVENEGAR_TEMPLATE_TICKET_UPDATED`  | no       | `mandegar-ticket-updated`               | Verify-lookup template for ticket updates                 |
+| `SEED_OWNER_EMAIL`                   | seed     |                                         | Owner account created by the seed                         |
+| `SEED_OWNER_PASSWORD`                | seed     | 12+ characters                          | Initial owner password; never overwritten by later seeds  |
+| `GOOGLE_SITE_VERIFICATION`           | no       |                                         | Search Console verification token                         |
+| `BING_SITE_VERIFICATION`             | no       |                                         | Bing Webmaster verification token                         |
+| `INDEXNOW_KEY`                       | no       |                                         | IndexNow key (see docs/seo.md)                            |
+| `NPM_REGISTRY`                       | no       | `https://registry.npmjs.org/`           | npm mirror for Corepack and pnpm in the release script    |
+
+The systemd unit sets `NODE_ENV=production`, `HOSTNAME=localhost` and `PORT=3000` itself.
 
 Leave optional variables out instead of setting them to an empty string: empty values fail the
 environment validation at startup.
+
+Release and backup scripts, set in the shell that runs them:
+
+| Variable         | Script       | Default                            | Purpose                                     |
+| ---------------- | ------------ | ---------------------------------- | ------------------------------------------- |
+| `ENV_FILE`       | both         | `/etc/mandegar/mandegar.env`       | Environment file to load                    |
+| `APP_ROOT`       | `release.sh` | `/opt/mandegar`                    | Holds `releases/` and the `current` symlink |
+| `APP_USER`       | `release.sh` | `mandegar`                         | Owner of release directories                |
+| `SERVICE`        | `release.sh` | `mandegar`                         | systemd unit to restart                     |
+| `KEEP_RELEASES`  | `release.sh` | `5`                                | Releases kept on disk                       |
+| `HEALTH_URL`     | `release.sh` | `http://localhost:3000/api/health` | Health check after the switch               |
+| `BACKUP_DIR`     | `backup.sh`  | `/var/backups/mandegar`            | Where archives are written                  |
+| `RETENTION_DAYS` | `backup.sh`  | `14`                               | Age at which archives are deleted           |

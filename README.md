@@ -99,23 +99,23 @@ offline and in CI.
 
 ## Scripts
 
-| Script                     | Purpose                                                        |
-| -------------------------- | -------------------------------------------------------------- |
-| `pnpm dev`                 | Development server                                             |
-| `pnpm build`               | Production build (`output: "standalone"`; needs the database)  |
-| `pnpm standalone:assemble` | Copy `public` and `.next/static` into `.next/standalone`       |
-| `pnpm start:standalone`    | Run the standalone server                                      |
-| `pnpm lint`                | ESLint (Next core-web-vitals, TypeScript, import sorting)      |
-| `pnpm typecheck`           | Generate route types and run `tsc`                             |
-| `pnpm test`                | Unit and API integration tests (`node:test`, needs a database) |
-| `pnpm format`              | Prettier with Tailwind class sorting                           |
-| `pnpm check`               | Format check, lint, typecheck and build                        |
-| `pnpm db:generate`         | Generate a migration from schema changes                       |
-| `pnpm db:migrate`          | Apply migrations                                               |
-| `pnpm db:seed`             | Seed the owner and placeholder content                         |
-| `pnpm db:studio`           | Drizzle Studio                                                 |
-| `pnpm deploy:release`      | Build and roll out the Docker stack (see deployment)           |
-| `pnpm deploy:backup`       | Database dump and uploads archive with rotation                |
+| Script                     | Purpose                                                         |
+| -------------------------- | --------------------------------------------------------------- |
+| `pnpm dev`                 | Development server                                              |
+| `pnpm build`               | Production build (`output: "standalone"`; needs the database)   |
+| `pnpm standalone:assemble` | Copy `public` and `.next/static` into `.next/standalone`        |
+| `pnpm start:standalone`    | Run the standalone server                                       |
+| `pnpm lint`                | ESLint (Next core-web-vitals, TypeScript, import sorting)       |
+| `pnpm typecheck`           | Generate route types and run `tsc`                              |
+| `pnpm test`                | Unit and API integration tests (`node:test`, needs a database)  |
+| `pnpm format`              | Prettier with Tailwind class sorting                            |
+| `pnpm check`               | Format check, lint, typecheck and build                         |
+| `pnpm db:generate`         | Generate a migration from schema changes                        |
+| `pnpm db:migrate`          | Apply migrations                                                |
+| `pnpm db:seed`             | Seed the owner and placeholder content                          |
+| `pnpm db:studio`           | Drizzle Studio                                                  |
+| `pnpm deploy:release`      | Build a release on the server and switch to it (see deployment) |
+| `pnpm deploy:backup`       | Database dump and uploads archive with rotation                 |
 
 ## Testing
 
@@ -148,10 +148,11 @@ PostgreSQL 16 service, runs the tests, builds, and smoke-tests the standalone se
 
 ## Deployment
 
-Production runs as a Docker Compose stack (PostgreSQL, a one-shot migrator, the standalone Next
-server and nginx) on an Ubuntu VPS, with Iranian mirrors for Docker images and npm packages. A
-systemd unit is provided for hosts without Docker. See [docs/deploy.md](docs/deploy.md) for the full
-procedure and [docs/security.md](docs/security.md) for the security model and the go-live checklist.
+Production runs directly on an Ubuntu VPS: PostgreSQL and nginx from Ubuntu packages, and the
+standalone Next server as a systemd service. `deploy/release.sh` builds each release on the server,
+switches to it and rolls back automatically if the health check fails. Packages come from Iranian
+mirrors. See [docs/deploy.md](docs/deploy.md) for the full procedure and
+[docs/security.md](docs/security.md) for the security model and the go-live checklist.
 
 ## Admin first login
 

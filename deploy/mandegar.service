@@ -1,6 +1,6 @@
 [Unit]
 Description=Mandegar web application
-Documentation=file:///opt/mandegar/current/docs/deploy.md
+Documentation=file:///opt/mandegar/source/docs/deploy.md
 After=network-online.target postgresql.service
 Wants=network-online.target
 
@@ -14,7 +14,7 @@ Environment=NODE_ENV=production
 Environment=HOSTNAME=localhost
 Environment=PORT=3000
 Environment=UPLOAD_DIR=/var/lib/mandegar/uploads
-ExecStart=/usr/bin/node server.js
+ExecStart=/usr/local/bin/node server.js
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=20

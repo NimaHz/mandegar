@@ -1,3 +1,3 @@
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-17 3 * * * root /opt/mandegar/deploy/backup.sh >> /var/log/mandegar-backup.log 2>&1
+17 3 * * * root /opt/mandegar/source/deploy/backup.sh >> /var/log/mandegar-backup.log 2>&1
