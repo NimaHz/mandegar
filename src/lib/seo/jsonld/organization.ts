@@ -67,6 +67,21 @@ export const organizationNode = ({
       streetAddress: settings.address,
       addressCountry: "IR",
     },
+    ...(settings.location && {
+      location: {
+        "@type": "Place",
+        address: {
+          "@type": "PostalAddress",
+          streetAddress: settings.address,
+          addressCountry: "IR",
+        },
+        geo: {
+          "@type": "GeoCoordinates",
+          latitude: settings.location.lat,
+          longitude: settings.location.lng,
+        },
+      },
+    }),
     telephone: settings.phones[0]?.value,
     email: settings.emails[0]?.value,
     contactPoint: [

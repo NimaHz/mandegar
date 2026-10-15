@@ -10,6 +10,7 @@ import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { localizePath } from "@/i18n/paths";
 import { cn } from "@/lib/cn";
+import { gregorianToJalaliYear } from "@/lib/dates";
 import { formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
 import { COMPARE_LIMIT } from "@/stores/compare";
@@ -78,7 +79,11 @@ export function CompareTable({ products, locale }: CompareTableProps) {
         label: page.releaseYear,
         cells: products.map((product) =>
           product.releaseYear
-            ? formatNumber(locale, product.releaseYear, { useGrouping: false })
+            ? formatNumber(
+                locale,
+                locale === "fa" ? gregorianToJalaliYear(product.releaseYear) : product.releaseYear,
+                { useGrouping: false },
+              )
             : empty,
         ),
         differs: differs(products.map((product) => String(product.releaseYear ?? ""))),
