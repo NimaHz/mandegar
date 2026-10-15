@@ -6,16 +6,19 @@ import type { z } from "zod";
 import type { Locale } from "@/i18n/config";
 import { createTrackingCode, formatTrackingCode, parseTrackingCode } from "@/lib/tracking-code";
 import { parseWarrantyCode } from "@/lib/warranty-code";
+import { hasPermission } from "@/server/auth/permissions";
 import { type Executor, getDb } from "@/server/db/client";
-import { products, ticketMessages, tickets, warrantyCodes } from "@/server/db/schema";
+import { products, ticketMessages, tickets, users, warrantyCodes } from "@/server/db/schema";
 import { randomToken, sha256 } from "@/server/lib/crypto";
 import { isUniqueViolation } from "@/server/lib/db-errors";
 import { assertHuman, type HumanProof } from "@/server/lib/form-guard";
-import { conflict, notFound, ValidationFailure } from "@/server/lib/http-error";
+import { conflict, notFound, orNotFound, ValidationFailure } from "@/server/lib/http-error";
 import { enforceRateLimit, isRateLimited, rateLimit } from "@/server/lib/rate-limit";
 import { ticketDeadlines } from "@/server/lib/sla";
 import { ingestFile } from "@/server/modules/media/service";
 import { notify } from "@/server/notify";
+import type { AdminActor } from "@/server/plugins/auth";
+import { ticketsAdmin } from "@/services/admin/tickets";
 import {
   findTicketByToken,
   isTicketOpen,
@@ -26,10 +29,12 @@ import type { PublicTicket, TicketReceipt, TicketStatus, TrackTicketInput } from
 
 import {
   mentionsGasSmell,
+  type staffMessageSchema,
   TICKET_ATTACHMENT_LIMIT,
   TICKET_ATTACHMENT_MAX_BYTES,
   ticketAttachmentTypes,
   type ticketFieldsSchema,
+  type ticketUpdateSchema,
 } from "./schema";
 
 type TicketFields = z.output<typeof ticketFieldsSchema>;
@@ -219,4 +224,108 @@ export const replyAsCustomer = async (
   const ticket = await loadPublicTicket(row.id, locale, true);
   if (!ticket) throw notFound("Request not found");
   return ticket;
+};
+
+const assertAssignee = async (assigneeId: string | null | undefined) => {
+  if (!assigneeId) return;
+  const [user] = await getDb()
+    .select({ role: users.role, active: users.active })
+    .from(users)
+    .where(eq(users.id, assigneeId));
+  if (!user?.active || !hasPermission(user.role, "tickets:write")) {
+    throw new ValidationFailure({ assigneeId: "Choose an active support user" });
+  }
+};
+
+const statusTimestamps = (
+  status: TicketStatus,
+  now: Date,
+  current: { resolvedAt: Date | null; closedAt: Date | null },
+) => {
+  if (status === "resolved") return { resolvedAt: current.resolvedAt ?? now, closedAt: null };
+  if (status === "closed" || status === "rejected") {
+    return { resolvedAt: current.resolvedAt, closedAt: current.closedAt ?? now };
+  }
+  return { resolvedAt: null, closedAt: null };
+};
+
+const requireTicket = async (id: string) => {
+  const [row] = await getDb().select().from(tickets).where(eq(tickets.id, id));
+  if (!row) throw notFound("Ticket not found");
+  return row;
+};
+
+export const updateTicket = async (
+  actor: AdminActor,
+  id: string,
+  input: z.output<typeof ticketUpdateSchema>,
+) => {
+  const before = await requireTicket(id);
+  await assertAssignee(input.assigneeId);
+  const now = new Date();
+  const statusChanged = input.status !== undefined && input.status !== before.status;
+  await getDb().transaction(async (tx) => {
+    await tx
+      .update(tickets)
+      .set({
+        ...input,
+        ...(statusChanged && input.status ? statusTimestamps(input.status, now, before) : {}),
+        updatedAt: now,
+      })
+      .where(eq(tickets.id, id));
+    if (statusChanged && input.status) {
+      await tx.insert(ticketMessages).values({
+        ticketId: id,
+        authorType: "system",
+        authorId: actor.id,
+        body: `status:${input.status}`,
+      });
+    }
+  });
+  if (statusChanged && input.status) {
+    await notify({
+      template: "ticket-updated",
+      recipient: before.phone,
+      tokens: [formatTrackingCode(before.trackingCode), input.status],
+    });
+  }
+  return orNotFound(await ticketsAdmin.get(id));
+};
+
+export const replyAsStaff = async (
+  actor: AdminActor,
+  id: string,
+  input: z.output<typeof staffMessageSchema>,
+) => {
+  const before = await requireTicket(id);
+  const now = new Date();
+  await getDb().transaction(async (tx) => {
+    await tx.insert(ticketMessages).values({
+      ticketId: id,
+      authorType: "staff",
+      authorId: actor.id,
+      body: input.body,
+      internal: input.internal,
+    });
+    await tx
+      .update(tickets)
+      .set(
+        input.internal
+          ? { updatedAt: now }
+          : {
+              updatedAt: now,
+              firstRespondedAt: before.firstRespondedAt ?? now,
+              status: before.status === "new" ? "in-review" : before.status,
+            },
+      )
+      .where(eq(tickets.id, id));
+  });
+  if (!input.internal) {
+    await notify({
+      template: "ticket-updated",
+      recipient: before.phone,
+      tokens: [formatTrackingCode(before.trackingCode)],
+    });
+  }
+  return orNotFound(await ticketsAdmin.get(id));
 };

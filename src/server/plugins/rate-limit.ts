@@ -4,7 +4,7 @@ import { enforceRateLimit } from "@/server/lib/rate-limit";
 
 import { security } from "./security";
 
-export interface RateLimitRule {
+interface RateLimitRule {
   scope: string;
   limit: number;
   windowSec: number;

@@ -1,6 +1,13 @@
 import { z } from "zod";
 
-import { emailSchema, mobileSchema, optionalText } from "@/server/lib/validation";
+import {
+  emailSchema,
+  listQuerySchema,
+  mobileSchema,
+  optionalFilter,
+  optionalText,
+} from "@/server/lib/validation";
+import { contactStatuses } from "@/types/admin";
 import { contactDepartments } from "@/types/support";
 
 export const contactSchema = z.object({
@@ -19,3 +26,10 @@ export const contactRequestSchema = contactSchema.extend({
 });
 
 export type ContactInput = z.input<typeof contactSchema>;
+
+export const messagesQuerySchema = listQuerySchema.extend({
+  status: optionalFilter(z.enum(contactStatuses)),
+  department: optionalFilter(z.enum(contactDepartments)),
+});
+
+export const messageStatusSchema = z.object({ status: z.enum(contactStatuses) });

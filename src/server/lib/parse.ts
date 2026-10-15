@@ -2,7 +2,7 @@ import type { z } from "zod";
 
 import { ValidationFailure } from "./http-error";
 
-export const issuesToFields = (issues: readonly z.core.$ZodIssue[]) => {
+const issuesToFields = (issues: readonly z.core.$ZodIssue[]) => {
   const fields: Record<string, string> = {};
   for (const issue of issues) {
     const key = issue.path.map(String).join(".") || "_";

@@ -36,9 +36,6 @@ export class ValidationFailure extends HttpError {
   }
 }
 
-export const badRequest = (message: string, code: ErrorCode = "BAD_REQUEST") =>
-  new HttpError(400, code, message);
-
 export const unauthorized = (
   message = "Authentication required",
   code: ErrorCode = "UNAUTHORIZED",
@@ -60,3 +57,8 @@ export const unsupportedMedia = (message: string) =>
 
 export const tooManyRequests = (retryAfterSec: number) =>
   new HttpError(429, "RATE_LIMITED", "Too many requests", retryAfterSec);
+
+export const orNotFound = <TValue>(value: TValue | null | undefined, message?: string): TValue => {
+  if (value === null || value === undefined) throw notFound(message);
+  return value;
+};

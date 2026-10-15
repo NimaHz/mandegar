@@ -76,7 +76,7 @@ const defaultSettings: SettingsValues = {
   },
 };
 
-const readSettings = async (): Promise<SettingsValues> => {
+export const readSettings = async (): Promise<SettingsValues> => {
   const rows = await getDb().select().from(settings);
   const value = <TKey extends keyof SettingsValues>(key: TKey): SettingsValues[TKey] => {
     const parsed = settingsSchemas[key].safeParse(rows.find((row) => row.key === key)?.value);

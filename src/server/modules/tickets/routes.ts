@@ -1,16 +1,23 @@
 import { Elysia, t } from "elysia";
 
 import { issueFormToken } from "@/server/lib/form-guard";
+import { orNotFound } from "@/server/lib/http-error";
 import { parseOrThrow } from "@/server/lib/parse";
+import { idParamsSchema } from "@/server/lib/validation";
+import { auth } from "@/server/plugins/auth";
 import { rateLimiter } from "@/server/plugins/rate-limit";
+import { ticketsAdmin } from "@/services/admin/tickets";
 
 import {
+  staffMessageSchema,
   ticketFieldsSchema,
   ticketProofSchema,
   ticketReplySchema,
+  ticketsQuerySchema,
   ticketTrackSchema,
+  ticketUpdateSchema,
 } from "./schema";
-import { createTicket, replyAsCustomer, trackTicket } from "./service";
+import { createTicket, replyAsCustomer, replyAsStaff, trackTicket, updateTicket } from "./service";
 
 const text = (maxLength: number) => t.Optional(t.String({ maxLength }));
 
@@ -81,3 +88,24 @@ export const ticketRoutes = new Elysia({ prefix: "/tickets" })
       }),
     },
   );
+
+export const ticketAdminRoutes = new Elysia({ prefix: "/admin/tickets" })
+  .use(auth)
+  .get("/", ({ query }) => ticketsAdmin.list(query), {
+    can: "tickets:read",
+    query: ticketsQuerySchema,
+  })
+  .get("/:id", async ({ params }) => orNotFound(await ticketsAdmin.get(params.id)), {
+    can: "tickets:read",
+    params: idParamsSchema,
+  })
+  .patch("/:id", ({ actor, params, body }) => updateTicket(actor, params.id, body), {
+    can: "tickets:write",
+    params: idParamsSchema,
+    body: ticketUpdateSchema,
+  })
+  .post("/:id/messages", ({ actor, params, body }) => replyAsStaff(actor, params.id, body), {
+    can: "tickets:write",
+    params: idParamsSchema,
+    body: staffMessageSchema,
+  });

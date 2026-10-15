@@ -23,7 +23,7 @@ const rolePermissions: Record<UserRole, readonly Permission[]> = {
   ],
 };
 
-export const permissionsFor = (role: UserRole): Permission[] => [...rolePermissions[role]];
+const permissionsFor = (role: UserRole): Permission[] => [...rolePermissions[role]];
 
 export const hasPermission = (role: UserRole, permission: Permission) =>
   rolePermissions[role].includes(permission);

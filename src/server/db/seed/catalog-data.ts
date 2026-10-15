@@ -10,7 +10,7 @@ import type { LocalizedText } from "@/types/common";
 
 import { amount, describe, dimensions, measure, t, type Unit, units } from "./helpers";
 
-export type BrandSlug = "mandegar" | "general" | "aras-home" | "nikan-electric";
+type BrandSlug = "mandegar" | "general" | "aras-home" | "nikan-electric";
 
 export type CategorySlug =
   | "evaporative-coolers"
@@ -30,7 +30,7 @@ export interface BrandSeed {
   logo: { primary: string; secondary: string; shape: "wave" | "ring" | "square" | "bolt" };
 }
 
-export interface CategorySeed {
+interface CategorySeed {
   slug: CategorySlug;
   icon: string;
   photo: string;
@@ -43,7 +43,7 @@ export interface CategorySeed {
   policy: "care" | "care-plus";
 }
 
-export interface ProductSeed {
+interface ProductSeed {
   slug: string;
   modelCode: string;
   category: CategorySlug;

@@ -7,7 +7,7 @@ import { rateLimits } from "@/server/db/schema";
 
 import { tooManyRequests } from "./http-error";
 
-export interface RateLimitResult {
+interface RateLimitResult {
   allowed: boolean;
   count: number;
   retryAfterSec: number;

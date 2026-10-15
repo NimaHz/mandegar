@@ -17,8 +17,6 @@ export interface SessionMeta {
   userAgent: string | null;
 }
 
-export type SessionUser = typeof users.$inferSelect;
-
 const slidingExpiry = (createdAt: Date, now: number) =>
   new Date(Math.min(now + SLIDING_MS, createdAt.getTime() + ABSOLUTE_MS));
 
@@ -80,7 +78,11 @@ export const revokeSession = async (id: string, userId?: string) => {
 export const revokeUserSessions = async (userId: string, exceptId?: string) => {
   await getDb()
     .delete(sessions)
-    .where(exceptId ? and(eq(sessions.userId, userId), ne(sessions.id, exceptId)) : eq(sessions.userId, userId));
+    .where(
+      exceptId
+        ? and(eq(sessions.userId, userId), ne(sessions.id, exceptId))
+        : eq(sessions.userId, userId),
+    );
 };
 
 export const listSessions = (userId: string) =>

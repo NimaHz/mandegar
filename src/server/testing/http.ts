@@ -2,11 +2,11 @@ import { randomBytes } from "node:crypto";
 
 import { app } from "@/server/app";
 
-export const TEST_ORIGIN = "http://localhost:3000";
+const TEST_ORIGIN = "http://localhost:3000";
 
 export const testIp = () => `10.${randomBytes(3).join(".")}`;
 
-export interface TestResponse {
+interface TestResponse {
   status: number;
   headers: Headers;
   json: unknown;

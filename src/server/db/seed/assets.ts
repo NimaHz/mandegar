@@ -37,12 +37,16 @@ const cachedPhoto = async (photoId: string) => {
   return null;
 };
 
-export const photoMedia = async (photoId: string, alt: LocalizedText) => {
-  const data = await cachedPhoto(photoId);
-  if (!data) {
-    process.stdout.write(`  ! photo ${photoId} unavailable, skipped\n`);
-    return null;
-  }
+const placeholderPhoto = async (photoId: string) => {
+  const hue = 170 + ([...photoId].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 40);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hue}, 28%, 86%)"/><stop offset="1" stop-color="hsl(${hue + 10}, 34%, 58%)"/></linearGradient></defs><rect width="1600" height="1200" fill="url(#g)"/><circle cx="800" cy="600" r="220" fill="hsl(38, 80%, 62%)" fill-opacity="0.35"/></svg>`;
+  return new Uint8Array(await sharp(Buffer.from(svg)).jpeg({ quality: 82 }).toBuffer());
+};
+
+const photoMedia = async (photoId: string, alt: LocalizedText) => {
+  const downloaded = await cachedPhoto(photoId);
+  if (!downloaded) process.stdout.write(`  ! photo ${photoId} unavailable, using a placeholder\n`);
+  const data = downloaded ?? (await placeholderPhoto(photoId));
   return ingestMedia(data, { kinds: ["image"], alt, originalName: `${photoId}.jpg` });
 };
 

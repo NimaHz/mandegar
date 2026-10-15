@@ -15,7 +15,7 @@ const resolutionDays: Record<TicketType, number> = {
   suggestion: 10,
 };
 
-export const addBusinessDays = (start: Date, days: number) => {
+const addBusinessDays = (start: Date, days: number) => {
   let date = new Date(start.getTime());
   let remaining = days;
   while (remaining > 0) {

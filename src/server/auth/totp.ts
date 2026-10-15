@@ -9,7 +9,11 @@ const ISSUER = "Mandegar";
 
 export const createTotpSecret = (email: string) => {
   const secret = generateSecret();
-  return { secret, sealed: sealSecret(secret), uri: generateURI({ issuer: ISSUER, label: email, secret }) };
+  return {
+    secret,
+    sealed: sealSecret(secret),
+    uri: generateURI({ issuer: ISSUER, label: email, secret }),
+  };
 };
 
 export const verifyTotp = async (userId: string, sealed: string | null, code: string) => {

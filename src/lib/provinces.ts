@@ -42,8 +42,6 @@ export const provinces = [
 
 export type ProvinceCode = (typeof provinces)[number]["code"];
 
-export const provinceCodes = provinces.map((province) => province.code);
-
 export const isProvinceCode = (value: string): value is ProvinceCode =>
   provinces.some((province) => province.code === value);
 

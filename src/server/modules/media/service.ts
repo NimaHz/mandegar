@@ -7,15 +7,23 @@ import sharp from "sharp";
 import { getDb } from "@/server/db/client";
 import { media } from "@/server/db/schema";
 import { sha256 } from "@/server/lib/crypto";
-import { payloadTooLarge, unsupportedMedia } from "@/server/lib/http-error";
+import { guardDelete } from "@/server/lib/db-errors";
+import {
+  conflict,
+  notFound,
+  orNotFound,
+  payloadTooLarge,
+  unsupportedMedia,
+} from "@/server/lib/http-error";
 import { ulid } from "@/server/lib/ids";
 import { getStorage } from "@/server/storage";
+import { mediaAdmin } from "@/services/admin/media";
 import type { MediaKind } from "@/types/admin";
 import type { LocalizedText } from "@/types/common";
 
 const MB = 1024 * 1024;
 
-export const mediaSizeLimits: Record<MediaKind, number> = {
+const mediaSizeLimits: Record<MediaKind, number> = {
   image: 15 * MB,
   video: 200 * MB,
   document: 30 * MB,
@@ -33,7 +41,7 @@ const acceptedTypes: Record<string, { kind: MediaKind; ext: string }> = {
 
 const MAX_DIMENSION = 2400;
 
-export interface IngestOptions {
+interface IngestOptions {
   kinds: readonly MediaKind[];
   limits?: Partial<Record<MediaKind, number>>;
   allowedMimes?: readonly string[];
@@ -135,3 +143,33 @@ export const ingestFile = async (file: File, options: IngestOptions) =>
     originalName: file.name,
     ...options,
   });
+
+const SVG = /\.svgz?$/i;
+
+export const uploadMedia = async (file: File, alt: LocalizedText, uploadedBy: string) => {
+  if (file.type === "image/svg+xml" || SVG.test(file.name))
+    throw unsupportedMedia("SVG files are not allowed");
+  const row = await ingestFile(file, { kinds: ["image", "video", "document"], alt, uploadedBy });
+  return orNotFound(await mediaAdmin.get(row.id));
+};
+
+export const updateMediaAlt = async (id: string, alt: LocalizedText) => {
+  const [row] = await getDb()
+    .update(media)
+    .set({ alt })
+    .where(eq(media.id, id))
+    .returning({ id: media.id });
+  if (!row) throw notFound("Media not found");
+  return orNotFound(await mediaAdmin.get(id));
+};
+
+export const deleteMedia = async (id: string) => {
+  const target = orNotFound(await mediaAdmin.get(id), "Media not found");
+  const usages = await mediaAdmin.usages(id);
+  if (usages.length > 0) {
+    throw conflict(`Media is used by ${usages.map((entry) => entry.entity).join(", ")}`, "IN_USE");
+  }
+  await guardDelete(() => getDb().delete(media).where(eq(media.id, id)));
+  await (await getStorage()).remove(target.storageKey);
+  return { id };
+};

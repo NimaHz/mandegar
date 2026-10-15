@@ -179,6 +179,13 @@ export interface AdminRef {
   name: string;
 }
 
+export interface AdminOption {
+  id: string;
+  slug: string | null;
+  label: LocalizedText;
+  hint: string | null;
+}
+
 export interface AdminMediaRef {
   id: string;
   kind: MediaKind;

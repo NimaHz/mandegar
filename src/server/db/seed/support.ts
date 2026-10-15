@@ -128,7 +128,7 @@ const ticketSeeds: TicketSeed[] = [
         hoursLater: 4,
       },
       { author: "customer", internal: false, body: "قطعه را تحویل گرفتم، ممنون.", hoursLater: 50 },
-      { author: "system", internal: false, body: "درخواست بسته شد.", hoursLater: 52 },
+      { author: "system", internal: false, body: "status:resolved", hoursLater: 52 },
     ],
   },
 ];

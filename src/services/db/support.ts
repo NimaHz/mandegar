@@ -60,7 +60,7 @@ const isProductListed = (product: TicketRow["product"]) =>
   product.category.published &&
   product.brand.published;
 
-export const toPublicTicket = async (
+const toPublicTicket = async (
   row: TicketRow,
   locale: Locale,
   viaToken: boolean,

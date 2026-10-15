@@ -3,13 +3,15 @@ import { z } from "zod";
 import { normalizeFa } from "@/lib/persian";
 import {
   emailSchema,
+  listQuerySchema,
   localeSchema,
   mobileSchema,
+  optionalFilter,
   optionalText,
   provinceSchema,
   slugSchema,
 } from "@/server/lib/validation";
-import { ticketTypes } from "@/types/support";
+import { ticketPriorities, ticketStatuses, ticketTypes } from "@/types/support";
 
 export const TICKET_ATTACHMENT_LIMIT = 5;
 export const TICKET_ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
@@ -62,4 +64,31 @@ export const ticketReplySchema = z.object({
   token: z.string().min(20).max(100),
   body: z.string().trim().min(1).max(3000),
   locale: localeSchema,
+});
+
+const flag = optionalFilter(z.enum(["true", "false"]).transform((value) => value === "true"));
+
+export const ticketsQuerySchema = listQuerySchema.extend({
+  type: optionalFilter(z.enum(ticketTypes)),
+  status: optionalFilter(z.enum(ticketStatuses)),
+  priority: optionalFilter(z.enum(ticketPriorities)),
+  assigneeId: optionalFilter(z.uuid()),
+  breaching: flag,
+  open: flag,
+});
+
+export const ticketUpdateSchema = z
+  .object({
+    status: z.enum(ticketStatuses).optional(),
+    priority: z.enum(ticketPriorities).optional(),
+    assigneeId: z.uuid().nullable().optional(),
+  })
+  .refine(
+    (value) => Object.values(value).some((entry) => entry !== undefined),
+    "Nothing to update",
+  );
+
+export const staffMessageSchema = z.object({
+  body: z.string().trim().min(1).max(5000),
+  internal: z.boolean(),
 });

@@ -5,7 +5,7 @@ import type { FaqGroup, PostKind, ServiceCenterKind } from "@/types/content";
 import type { CategorySlug } from "./catalog-data";
 import { t } from "./helpers";
 
-export interface GuideSeed {
+interface GuideSeed {
   slug: string;
   category: CategorySlug;
   poster: string;
@@ -19,7 +19,7 @@ export interface GuideSeed {
   chapters: { title: LocalizedText; startSec: number }[];
 }
 
-export interface SlideSeed {
+interface SlideSeed {
   key: string;
   photo: string;
   tone: "light" | "dark";
@@ -29,14 +29,14 @@ export interface SlideSeed {
   ctaHref: string;
 }
 
-export interface FaqSeed {
+interface FaqSeed {
   key: string;
   group: FaqGroup;
   question: LocalizedText;
   answer: LocalizedText;
 }
 
-export interface AuthorSeed {
+interface AuthorSeed {
   slug: string;
   photo: string;
   name: LocalizedText;
@@ -44,7 +44,7 @@ export interface AuthorSeed {
   bio: LocalizedText;
 }
 
-export interface PostSeed {
+interface PostSeed {
   slug: string;
   kind: PostKind;
   author: string;
@@ -56,7 +56,7 @@ export interface PostSeed {
   body: LocalizedText;
 }
 
-export interface ServiceCenterSeed {
+interface ServiceCenterSeed {
   slug: string;
   kind: ServiceCenterKind;
   province: string;
@@ -68,7 +68,7 @@ export interface ServiceCenterSeed {
   categories: CategorySlug[] | "all";
 }
 
-export interface PolicySeed {
+interface PolicySeed {
   key: "care" | "care-plus";
   name: string;
   months: number;

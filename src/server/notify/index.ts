@@ -10,7 +10,7 @@ import { createKavenegarNotifier } from "./kavenegar";
 
 export type NotificationTemplate = "ticket-received" | "ticket-updated";
 
-export interface Notification {
+interface Notification {
   template: NotificationTemplate;
   recipient: string;
   tokens: string[];
