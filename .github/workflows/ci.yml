@@ -77,11 +77,16 @@ jobs:
       - name: Smoke test standalone server
         run: |
           pnpm standalone:assemble
-          PORT=3100 HOSTNAME=127.0.0.1 UPLOAD_DIR="$PWD/uploads" node .next/standalone/server.js &
+          PORT=3100 HOSTNAME=localhost NODE_OPTIONS=--dns-result-order=ipv4first \
+            UPLOAD_DIR="$PWD/uploads" node .next/standalone/server.js &
           for attempt in $(seq 1 30); do
-            curl -fsS http://127.0.0.1:3100/api/health && break
+            curl -fs -o /dev/null http://127.0.0.1:3100/api/health && break
             sleep 1
           done
-          for path in / /en /products /manifest.webmanifest /sw.js /robots.txt /sitemap.xml; do
-            curl -fsS -o /dev/null -w "%{http_code} $path\n" "http://127.0.0.1:3100$path"
+          status=0
+          for path in / /about /products /en /en/about /manifest.webmanifest /sw.js /robots.txt /sitemap.xml; do
+            code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:3100$path")"
+            printf '%s %s\n' "$code" "$path"
+            [ "$code" = 200 ] || status=1
           done
+          exit "$status"

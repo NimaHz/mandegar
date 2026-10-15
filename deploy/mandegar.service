@@ -13,6 +13,7 @@ EnvironmentFile=/etc/mandegar/mandegar.env
 Environment=NODE_ENV=production
 Environment=HOSTNAME=localhost
 Environment=PORT=3000
+Environment=NODE_OPTIONS=--dns-result-order=ipv4first
 Environment=UPLOAD_DIR=/var/lib/mandegar/uploads
 ExecStart=/usr/local/bin/node server.js
 Restart=on-failure
@@ -30,6 +31,17 @@ ProtectKernelModules=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true
 LockPersonality=true
+ProtectClock=true
+ProtectKernelLogs=true
+ProtectHostname=true
+ProtectProc=invisible
+RestrictNamespaces=true
+RestrictRealtime=true
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallErrorNumber=EPERM
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 ReadWritePaths=/var/lib/mandegar /opt/mandegar/current/.next
 

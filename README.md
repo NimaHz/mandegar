@@ -115,7 +115,6 @@ offline and in CI.
 | `pnpm db:seed`             | Seed the owner and placeholder content                          |
 | `pnpm db:studio`           | Drizzle Studio                                                  |
 | `pnpm deploy:release`      | Build a release on the server and switch to it (see deployment) |
-| `pnpm deploy:backup`       | Database dump and uploads archive with rotation                 |
 
 ## Testing
 

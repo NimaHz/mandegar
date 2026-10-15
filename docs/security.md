@@ -148,9 +148,17 @@ revocations are logged too.
   `.env.example`).
 - `SESSION_SECRET` (32+ random bytes) keys form tokens, ALTCHA and IP hashing. Rotating it signs
   out nobody but invalidates in-flight forms and challenges, and resets IP-keyed rate-limit buckets.
-- The app runs as the unprivileged `mandegar` system user under a hardened systemd unit
-  (read-only system, private `/tmp`, no new privileges); it can write only to the uploads directory
-  and its release's `.next` cache. Releases are built by the deploy user, never by root.
+- The app runs as the unprivileged `mandegar` system user under a hardened systemd unit: read-only
+  system, private `/tmp`, no new privileges or capabilities, no namespaces, and a system-call filter
+  limited to `@system-service`. It can write only to the uploads directory and its release's
+  `.next` cache. Customer ticket attachments under `uploads/private` are written mode 600, readable
+  by the app only; nginx refuses that path.
+- Releases are built by the deploy user, never by root. `deploy/release.sh` installs dependencies
+  without the production secrets in their environment and drops cached sudo credentials before
+  any package script runs. Corepack verifies pnpm against the SHA-512 pinned in `package.json`.
+- The root cron job runs a root-owned copy of the backup script (`/usr/local/sbin/mandegar-backup`),
+  not the deploy user's checkout, and passes the database password to `pg_dump` through the
+  environment instead of the command line.
 - PostgreSQL and the app listen on loopback only; nginx is the only public listener.
 - Dependencies are pinned to exact versions in `package.json` and the lockfile, and pnpm enforces
   a minimum release age for new versions, with explicit exceptions in `pnpm-workspace.yaml`.

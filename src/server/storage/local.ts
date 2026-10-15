@@ -5,7 +5,13 @@ import { mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, resolve, sep } from "node:path";
 import { Readable } from "node:stream";
 
-import { type ByteRange, isSafeStorageKey, type StorageDriver, type StoredObject } from "./index";
+import {
+  type ByteRange,
+  isPublicStorageKey,
+  isSafeStorageKey,
+  type StorageDriver,
+  type StoredObject,
+} from "./index";
 
 const resolveKey = (root: string, key: string) => {
   if (!isSafeStorageKey(key)) return null;
@@ -24,8 +30,9 @@ export const createLocalDriver = (uploadDir: string): StorageDriver => {
     put: async (key, data) => {
       const path = resolveKey(root, key);
       if (!path) throw new Error(`Unsafe storage key ${key}`);
-      await mkdir(dirname(path), { recursive: true });
-      await writeFile(path, data, { flag: "wx" });
+      const shared = isPublicStorageKey(key);
+      await mkdir(dirname(path), { recursive: true, mode: shared ? 0o755 : 0o700 });
+      await writeFile(path, data, { flag: "wx", mode: shared ? 0o644 : 0o600 });
     },
     get: async (key, range): Promise<StoredObject | null> => {
       const path = resolveKey(root, key);

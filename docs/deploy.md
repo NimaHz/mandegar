@@ -66,8 +66,13 @@ sudo tar -xJf "node-$NODE_VERSION-linux-x64.tar.xz" -C /usr/local --strip-compon
 node -v && corepack --version
 ```
 
-Pick the newest `v24` release listed under `$NODE_DIST`. The release script runs pnpm through
-Corepack, which downloads the exact pnpm version pinned in `package.json` the first time.
+Pick the newest `v24` release listed under `$NODE_DIST`. When `NODE_DIST` is a mirror, the checksum
+file comes from the same mirror, so also compare the tarball's SHA-256 (`sha256sum node-*.tar.xz`)
+with `https://nodejs.org/dist/<version>/SHASUMS256.txt` fetched over another network.
+
+The release script runs pnpm through Corepack, which downloads the pnpm version pinned in
+`package.json` the first time and checks it against the SHA-512 pinned there, so a mirror cannot
+substitute a different pnpm.
 
 ## 3. Database
 
@@ -75,12 +80,13 @@ Create the role and database with a hex password (it goes into a URL, so it must
 
 ```bash
 DB_PASSWORD="$(openssl rand -hex 24)"
-sudo -u postgres psql -v ON_ERROR_STOP=1 -c "CREATE ROLE mandegar LOGIN PASSWORD '$DB_PASSWORD'"
+printf "CREATE ROLE mandegar LOGIN PASSWORD '%s';\n" "$DB_PASSWORD" | sudo -u postgres psql -v ON_ERROR_STOP=1
 sudo -u postgres createdb --owner mandegar mandegar
 echo "$DB_PASSWORD"
 ```
 
-Keep the password for the environment file below. PostgreSQL listens on localhost only by default.
+Keep the password for the environment file below; piping the SQL keeps it out of the process list.
+PostgreSQL listens on localhost only by default.
 The migrations enable `pg_trgm`, a trusted extension that the database owner can create without
 superuser rights.
 
@@ -127,28 +133,26 @@ NPM_REGISTRY=<npm mirror URL, e.g. https://mirror-npm.runflare.com/>
   `Environment=` lines, so do not set `HOSTNAME`, `PORT` or `NODE_ENV` here.
 - `NEXT_PUBLIC_SITE_URL` is compiled into the build (canonical URLs, sitemaps, Open Graph). Changing
   it requires a new release.
-- `NPM_REGISTRY` is used only by the release script, for Corepack (to fetch pnpm) and pnpm. Check
-  the mirror's current URL on its website. If Corepack rejects the mirror's signatures, also add
-  `COREPACK_INTEGRITY_KEYS=0`.
+- `NPM_REGISTRY` is used only by the release script, for Corepack (to fetch pnpm) and pnpm (as
+  `pnpm_config_registry`; pnpm 11 ignores `npm_config_registry`). Check the mirror's current URL on
+  its website. If Corepack rejects the mirror's npm signatures, also add `COREPACK_INTEGRITY_KEYS=0`;
+  the SHA-512 pin in `package.json` still guarantees the exact pnpm build.
 
 ## 6. TLS certificates
 
 ### Let's Encrypt (certbot)
 
-Issue the first certificate while port 80 is still free, then switch renewals to the webroot that
-nginx serves. The fixed `--cert-name` keeps the path that `deploy/nginx.conf` expects:
+Issue the first certificate while port 80 is still free. The fixed `--cert-name` keeps the path that
+`deploy/nginx.conf` expects:
 
 ```bash
 sudo systemctl stop nginx
 sudo certbot certonly --standalone --cert-name mandegar -d mandegar.ir -d www.mandegar.ir \
   -m ops@mandegar.ir --agree-tos --no-eff-email
-sudo mkdir -p /var/www/certbot
-sudo certbot reconfigure --cert-name mandegar --webroot --webroot-path /var/www/certbot \
-  --deploy-hook "systemctl reload nginx"
 ```
 
-Run `sudo certbot renew --dry-run` once nginx is up (next step). The certbot package installs a
-systemd timer for renewals, and nginx reloads after each one.
+Renewals switch to the webroot that nginx serves once nginx is running with the new config, at the
+end of the next step.
 
 ### ArvanCloud CDN SSL
 
@@ -160,20 +164,33 @@ notes below for the real client IP.
 
 ## 7. nginx
 
-`deploy/nginx.conf` is a complete `nginx.conf` for Ubuntu's nginx package. Replace `mandegar.example`
-with your domain (three `server_name` lines and the two redirect targets), then install it:
+`deploy/nginx.conf` is a complete `nginx.conf` for Ubuntu's nginx package. Install it with your
+domain in place of `mandegar.example`, without editing the checkout (so `git pull` stays clean):
 
 ```bash
 cd /opt/mandegar/source
 sudo cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.ubuntu
-sudo cp deploy/nginx.conf /etc/nginx/nginx.conf
+sudo install -d -o www-data -g www-data -m 700 /var/cache/nginx
+sudo install -d /var/www/certbot
+sed 's/mandegar\.example/mandegar.ir/g' deploy/nginx.conf | sudo tee /etc/nginx/nginx.conf > /dev/null
 sudo nginx -t && sudo systemctl enable --now nginx && sudo systemctl reload nginx
+```
+
+Then move certificate renewals to the webroot. `reconfigure` runs a test renewal through nginx,
+which is why it comes after nginx is up; answer yes when it asks whether to run the deploy hook:
+
+```bash
+sudo certbot reconfigure --cert-name mandegar --webroot --webroot-path /var/www/certbot \
+  --deploy-hook "systemctl reload nginx"
 sudo certbot renew --dry-run
 ```
 
+The certbot package installs a systemd timer for renewals, and nginx reloads after each one. Repeat
+the `sed | tee` line after a `git pull` that changes `deploy/nginx.conf`.
+
 It replaces Ubuntu's default site, so `/etc/nginx/sites-enabled` is no longer read. nginx runs as
-`www-data` and serves `/uploads/*` straight from `/var/lib/mandegar/uploads`, which the app creates
-world-readable. For Brotli, install `libnginx-mod-http-brotli-filter
+`www-data` and serves `/uploads/*` straight from `/var/lib/mandegar/uploads`, where the app writes
+public media world-readable and ticket attachments under `private/` readable by `mandegar` only. For Brotli, install `libnginx-mod-http-brotli-filter
 libnginx-mod-http-brotli-static` (the config already loads enabled modules) and add
 `brotli on; brotli_static on; brotli_comp_level 5;` to the `http` block with the same types as
 `gzip_types`.
@@ -182,27 +199,36 @@ libnginx-mod-http-brotli-static` (the config already loads enabled modules) and 
 
 ```bash
 cd /opt/mandegar/source
+registry="$(sudo sed -n 's/^NPM_REGISTRY=//p' /etc/mandegar/mandegar.env)"
+COREPACK_NPM_REGISTRY="${registry:-https://registry.npmjs.org/}" \
+  pnpm_config_registry="${registry:-https://registry.npmjs.org/}" \
+  corepack pnpm install --frozen-lockfile --prod=false
 set -a && . <(sudo cat /etc/mandegar/mandegar.env) && set +a
-export COREPACK_NPM_REGISTRY="${NPM_REGISTRY:-https://registry.npmjs.org/}"
-export npm_config_registry="$COREPACK_NPM_REGISTRY"
-corepack pnpm install --frozen-lockfile --prod=false
 corepack pnpm db:migrate
 corepack pnpm db:seed
 sudo chown -R mandegar:mandegar /var/lib/mandegar/uploads
+sudo install -d -o mandegar -g mandegar -m 700 /var/lib/mandegar/uploads/private
+sudo chmod -R go-rwx /var/lib/mandegar/uploads/private
 
 sudo cp deploy/mandegar.service /etc/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl enable mandegar
 bash deploy/release.sh
 ```
 
+Dependencies are installed before the environment file is loaded, so package install scripts never
+see the production secrets.
+
 The seed is idempotent. Besides the owner account it loads the placeholder catalog and content;
 product photos are downloaded from the internet when reachable, and replaced by generated
-placeholders otherwise. Replace the placeholder content in the admin before launch.
+placeholders otherwise. Replace the placeholder content in the admin before launch. To run it again
+later, lend yourself the uploads directory for the duration:
+`sudo chown -R "$USER" /var/lib/mandegar/uploads && corepack pnpm db:seed; sudo chown -R mandegar:mandegar /var/lib/mandegar/uploads`.
 
 The unit binds to `localhost`, not `127.0.0.1`. Next.js reports loopback hosts as `localhost`
 inside the proxy, so with a `127.0.0.1` bind its locale rewrites no longer match the server origin
-and Persian pages answer with a 308 loop, or a 500 behind nginx. Check that
-`getent ahosts localhost` lists `127.0.0.1`, which is what the nginx upstream connects to.
+and Persian pages answer with a 308 loop, or a 500 behind nginx. The unit also sets
+`NODE_OPTIONS=--dns-result-order=ipv4first`, so `localhost` resolves to `127.0.0.1`, the address the
+nginx upstream connects to, even on images whose `/etc/hosts` lists `::1 localhost` first.
 
 Check the deployment:
 
@@ -220,13 +246,16 @@ git pull
 bash deploy/release.sh
 ```
 
-`deploy/release.sh` loads the environment file, installs dependencies, applies migrations, builds
-against the live database (the build prerenders the ISR catalog pages), copies the standalone
-server into a new `/opt/mandegar/releases/<date>-<commit>` directory, switches the `current`
-symlink, restarts the service and waits for `/api/health`. If the new release does not become
-healthy within a minute it switches back to the previous release and exits with an error. It keeps
-the five newest releases (`KEEP_RELEASES`). The site is unavailable for the few seconds the
-restart takes; nginx answers 502 during that window and keeps serving cached static assets.
+Run it as the deploy user; it refuses to run as root. `deploy/release.sh` reads the environment file
+once and drops the cached sudo credentials, installs dependencies with a minimal environment (no
+production secrets), then loads the environment, applies migrations and builds against the live
+database (the build prerenders the ISR catalog pages). It copies the standalone server into a new
+`/opt/mandegar/releases/<date>-<commit>` directory, asks for sudo again to publish it, switches the
+`current` symlink, restarts the service and waits for `http://127.0.0.1:3000/api/health`, the
+address nginx uses. If the new release does not become healthy within a minute, it switches back
+to the previous release, deletes the failed one and exits with an error. It keeps the five newest
+releases (`KEEP_RELEASES`). The site is unavailable for the few seconds the restart takes; nginx
+answers 502 during that window and keeps serving cached static assets.
 
 To roll back by hand, point `current` at an older release and restart:
 
@@ -246,33 +275,43 @@ the offline pages change; open tabs then show a "new version available" toast wi
 
 `deploy/backup.sh` writes `db-<stamp>.sql.gz` (a plain `pg_dump`) and `uploads-<stamp>.tar.gz` to
 `/var/backups/mandegar` and deletes files older than 14 days. It reads `DATABASE_URL` and
-`UPLOAD_DIR` from `/etc/mandegar/mandegar.env`. Install the cron entry and run it once:
+`UPLOAD_DIR` from `/etc/mandegar/mandegar.env` and hands the password to `pg_dump` through the
+environment, so it never shows in the process list.
+
+The cron job runs as root, so it runs a root-owned copy of the script, never the one in the deploy
+user's checkout. Install the copy and the cron entry, and run it once:
 
 ```bash
-sudo cp /opt/mandegar/source/deploy/backup.cron /etc/cron.d/mandegar-backup
-sudo chmod 644 /etc/cron.d/mandegar-backup
-sudo /opt/mandegar/source/deploy/backup.sh
+cd /opt/mandegar/source
+sudo install -o root -g root -m 755 deploy/backup.sh /usr/local/sbin/mandegar-backup
+sudo install -o root -g root -m 644 deploy/backup.cron /etc/cron.d/mandegar-backup
+sudo /usr/local/sbin/mandegar-backup
 ```
 
-Other settings come from the environment: `BACKUP_DIR`, `RETENTION_DAYS` and `ENV_FILE`.
+When a `git pull` changes `deploy/backup.sh`, review the diff and run the first `install` line
+again. Other settings come from the environment: `BACKUP_DIR`, `RETENTION_DAYS` and `ENV_FILE`.
 
-Keep an off-site copy, for example in ArvanCloud Object Storage with rclone, and encrypt it:
+Keep an encrypted off-site copy, for example in ArvanCloud Object Storage through an rclone `crypt`
+remote. Create an `s3` remote for the bucket and a `crypt` remote on top of it with
+`sudo rclone config` (keep the crypt passwords somewhere off the server, or the backups cannot be
+decrypted), then sync as root, because the backups are readable by root only:
 
 ```bash
-rclone sync /var/backups/mandegar arvan:mandegar-backups --max-age 48h
+sudo rclone sync /var/backups/mandegar arvan-crypt: --max-age 48h
 ```
 
-Restore into an empty database, with the app stopped:
+Restore into an empty database, with the app stopped. The restore connects as the `mandegar` role
+through peer authentication, so the tables stay owned by the app and no password is typed:
 
 ```bash
 sudo systemctl stop mandegar
 sudo -u postgres dropdb mandegar && sudo -u postgres createdb --owner mandegar mandegar
-set -a && . <(sudo cat /etc/mandegar/mandegar.env) && set +a
 sudo gunzip -c /var/backups/mandegar/db-20260101-031700.sql.gz \
-  | psql -v ON_ERROR_STOP=1 "$DATABASE_URL"
+  | sudo -u mandegar psql -v ON_ERROR_STOP=1 -d mandegar
 sudo rm -rf /var/lib/mandegar/uploads
 sudo tar -xzf /var/backups/mandegar/uploads-20260101-031700.tar.gz -C /var/lib/mandegar
 sudo chown -R mandegar:mandegar /var/lib/mandegar/uploads
+sudo chmod -R go-rwx /var/lib/mandegar/uploads/private
 sudo systemctl start mandegar
 ```
 
@@ -353,13 +392,17 @@ Application settings, in `/etc/mandegar/mandegar.env`:
 | `SEED_OWNER_PASSWORD`                | seed     | 12+ characters                          | Initial owner password; never overwritten by later seeds  |
 | `GOOGLE_SITE_VERIFICATION`           | no       |                                         | Search Console verification token                         |
 | `BING_SITE_VERIFICATION`             | no       |                                         | Bing Webmaster verification token                         |
+| `INDEXNOW_ENABLED`                   | no       | `false`                                 | Set to `true` to send IndexNow pings (see docs/seo.md)    |
 | `INDEXNOW_KEY`                       | no       |                                         | IndexNow key (see docs/seo.md)                            |
 | `NPM_REGISTRY`                       | no       | `https://registry.npmjs.org/`           | npm mirror for Corepack and pnpm in the release script    |
+| `COREPACK_INTEGRITY_KEYS`            | no       |                                         | `0` when a mirror breaks Corepack's npm signature check   |
 
-The systemd unit sets `NODE_ENV=production`, `HOSTNAME=localhost` and `PORT=3000` itself.
+The systemd unit sets `NODE_ENV=production`, `HOSTNAME=localhost`, `PORT=3000` and `NODE_OPTIONS`
+itself; do not set them in the file.
 
-Leave optional variables out instead of setting them to an empty string: empty values fail the
-environment validation at startup.
+Blank optional values, like the placeholders in `.env.example`, count as unset and fall back to the
+defaults above. A value that is present but invalid stops the app at startup with a message naming
+the variable.
 
 Release and backup scripts, set in the shell that runs them:
 
@@ -370,6 +413,6 @@ Release and backup scripts, set in the shell that runs them:
 | `APP_USER`       | `release.sh` | `mandegar`                         | Owner of release directories                |
 | `SERVICE`        | `release.sh` | `mandegar`                         | systemd unit to restart                     |
 | `KEEP_RELEASES`  | `release.sh` | `5`                                | Releases kept on disk                       |
-| `HEALTH_URL`     | `release.sh` | `http://localhost:3000/api/health` | Health check after the switch               |
+| `HEALTH_URL`     | `release.sh` | `http://127.0.0.1:3000/api/health` | Health check after the switch               |
 | `BACKUP_DIR`     | `backup.sh`  | `/var/backups/mandegar`            | Where archives are written                  |
 | `RETENTION_DAYS` | `backup.sh`  | `14`                               | Age at which archives are deleted           |

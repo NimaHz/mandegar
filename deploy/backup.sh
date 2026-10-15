@@ -25,9 +25,12 @@ case "$UPLOAD_DIR" in
     ;;
 esac
 
+db_password="$(printf '%s' "$DATABASE_URL" | sed -nE 's#^postgres(ql)?://[^:/@]+:([^@]*)@.*#\2#p')"
+db_url="$(printf '%s' "$DATABASE_URL" | sed -E 's#^(postgres(ql)?://[^:/@]+):[^@]*@#\1@#')"
+
 mkdir -p "$BACKUP_DIR"
 
-pg_dump --no-owner --no-privileges "$DATABASE_URL" | gzip -9 > "$DB_FILE.part"
+PGPASSWORD="$db_password" pg_dump --no-owner --no-privileges "$db_url" | gzip -9 > "$DB_FILE.part"
 tar -czf "$UPLOADS_FILE.part" -C "$(dirname "$UPLOAD_DIR")" \
   --exclude="$(basename "$UPLOAD_DIR")/.seed-cache" "$(basename "$UPLOAD_DIR")"
 
