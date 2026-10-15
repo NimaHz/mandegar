@@ -9,7 +9,7 @@ import type { AdminOption, AdminTicketListItem } from "@/types/admin";
 import type { Paginated } from "@/types/common";
 
 import { adminContent } from "../../content";
-import { enumOptions, toOptions } from "../../lib/options";
+import { enumOptions, sortOptions, toOptions } from "../../lib/options";
 import { type Column, DataTable } from "../data/data-table";
 import { ListEmpty, ListFrame } from "../data/list-frame";
 import { ListPagination } from "../data/list-pagination";
@@ -125,6 +125,7 @@ export function TicketsList({ result, assignees, filtered, now }: TicketsListPro
             },
             { key: "assigneeId", label: copy.filters.assignee, options: toOptions(assignees) },
           ]}
+          sort={sortOptions("tickets")}
         />
       }
     >

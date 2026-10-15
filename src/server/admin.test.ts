@@ -5,6 +5,7 @@ import { eq, inArray } from "drizzle-orm";
 import { generate } from "otplib";
 import sharp from "sharp";
 
+import { createTrackingCode } from "@/lib/tracking-code";
 import { hashPassword } from "@/server/auth/password";
 import { closeDb, getDb } from "@/server/db/client";
 import {
@@ -13,10 +14,13 @@ import {
   categories,
   media,
   products,
+  tickets,
   users,
   warrantyCodes,
 } from "@/server/db/schema";
+import { randomToken, sha256 } from "@/server/lib/crypto";
 import { loadEnvFiles } from "@/server/load-env-files";
+import { getStorage } from "@/server/storage";
 import { field, postJson, request, testIp } from "@/server/testing/http";
 
 loadEnvFiles();
@@ -32,6 +36,8 @@ const created = {
   brandId: "",
   productId: "",
   mediaId: "",
+  ticketId: "",
+  attachmentIds: [] as string[],
   userIds: [] as string[],
 };
 
@@ -70,6 +76,15 @@ after(async () => {
   if (created.mediaId) await db.delete(media).where(eq(media.id, created.mediaId));
   if (created.brandId) await db.delete(brands).where(eq(brands.id, created.brandId));
   if (created.categoryId) await db.delete(categories).where(eq(categories.id, created.categoryId));
+  if (created.ticketId) await db.delete(tickets).where(eq(tickets.id, created.ticketId));
+  if (created.attachmentIds.length > 0) {
+    const rows = await db
+      .delete(media)
+      .where(inArray(media.id, created.attachmentIds))
+      .returning({ storageKey: media.storageKey });
+    const storage = await getStorage();
+    await Promise.all(rows.map((row) => storage.remove(row.storageKey)));
+  }
   await db.delete(auditLogs).where(inArray(auditLogs.actorId, userIds));
   await db.delete(users).where(inArray(users.id, userIds));
   await closeDb();
@@ -350,5 +365,219 @@ describe("catalog administration", () => {
     const stats = await request("/admin/stats", { cookie });
     assert.equal(stats.status, 200);
     assert.equal(typeof field(field(stats.json, "tickets"), "open"), "number");
+  });
+});
+
+describe("admin list sorting", () => {
+  it("sorts products by name and falls back to the default for unknown values", async () => {
+    const { cookie } = await login(accounts.owner.email);
+    const named = await request("/admin/products?sort=name-asc", { cookie });
+    assert.equal(named.status, 200);
+    const names = (field(named.json, "items") as unknown[]).map((item) =>
+      String(field(field(item, "name"), "fa")),
+    );
+    assert.deepEqual(
+      names,
+      names.toSorted((left, right) => left.localeCompare(right, "fa")),
+    );
+    const fallback = await request("/admin/products?sort=nope", { cookie });
+    const recent = await request("/admin/products", { cookie });
+    assert.equal(fallback.status, 200);
+    assert.deepEqual(fallback.json, recent.json);
+  });
+
+  it("orders tickets by the nearest SLA deadline", async () => {
+    const { cookie } = await login(accounts.owner.email);
+    const response = await request("/admin/tickets?sort=due-asc&open=true", { cookie });
+    assert.equal(response.status, 200);
+    const dues = (field(response.json, "items") as unknown[]).map((item) =>
+      new Date(
+        String(
+          field(item, "firstRespondedAt")
+            ? field(item, "resolutionDue")
+            : field(item, "firstResponseDue"),
+        ),
+      ).getTime(),
+    );
+    assert.deepEqual(
+      dues,
+      dues.toSorted((left, right) => left - right),
+    );
+  });
+});
+
+describe("staff ticket replies", () => {
+  const token = randomToken(32);
+  const shade = () => Math.floor(Math.random() * 256);
+
+  const photo = async (name: string) => {
+    const png = await sharp({
+      create: {
+        width: 40 + Math.floor(Math.random() * 40),
+        height: 30,
+        channels: 3,
+        background: { r: shade(), g: shade(), b: shade() },
+      },
+    })
+      .png()
+      .toBuffer();
+    return new File([new Uint8Array(png)], name, { type: "image/png" });
+  };
+
+  const pdf = (name: string) =>
+    new File(
+      [new TextEncoder().encode(`%PDF-1.4\n% ${suffix} ${name}\n1 0 obj << >> endobj\n%%EOF\n`)],
+      name,
+      { type: "application/pdf" },
+    );
+
+  const reply = (body: string, internal: boolean, files: File[], cookie: string) => {
+    const form = new FormData();
+    form.set("body", body);
+    form.set("internal", String(internal));
+    for (const file of files) form.append("attachments", file);
+    return request(`/admin/tickets/${created.ticketId}/messages`, {
+      method: "POST",
+      body: form,
+      cookie,
+    });
+  };
+
+  const lastMessage = (json: unknown) => {
+    const messages = field(json, "messages");
+    assert.ok(Array.isArray(messages));
+    return messages.at(-1);
+  };
+
+  const attachmentsOf = (message: unknown) => {
+    const files = field(message, "attachments");
+    assert.ok(Array.isArray(files));
+    return files;
+  };
+
+  before(async () => {
+    const now = Date.now();
+    const [row] = await getDb()
+      .insert(tickets)
+      .values({
+        trackingCode: createTrackingCode(),
+        accessTokenHash: sha256(token),
+        type: "repair",
+        name: "Test Customer",
+        phone: `0935${String(now).slice(-7)}`,
+        province: "23",
+        city: "Tehran",
+        address: "Test street, number 2",
+        subject: `Attachment test ${suffix}`,
+        description: "The heater does not start after the first cold night.",
+        firstResponseDue: new Date(now + 86_400_000),
+        resolutionDue: new Date(now + 7 * 86_400_000),
+      })
+      .returning({ id: tickets.id });
+    assert.ok(row);
+    created.ticketId = row.id;
+  });
+
+  it("stores staff attachments and shows public ones on the customer track page", async () => {
+    const { cookie } = await login(accounts.support.email);
+    const sent = await reply(
+      "Here is the wiring diagram and a photo of the right valve.",
+      false,
+      [await photo("valve.png"), pdf("wiring.pdf")],
+      cookie,
+    );
+    assert.equal(sent.status, 200, JSON.stringify(sent.json));
+    assert.equal(field(sent.json, "status"), "in-review");
+    assert.ok(field(sent.json, "firstRespondedAt"));
+    const files = attachmentsOf(lastMessage(sent.json));
+    created.attachmentIds.push(...files.map((file) => String(field(file, "id"))));
+    assert.deepEqual(
+      files.map((file) => [field(file, "kind"), field(file, "mime"), field(file, "name")]),
+      [
+        ["image", "image/webp", "valve.png"],
+        ["document", "application/pdf", "wiring.pdf"],
+      ],
+    );
+
+    const note = await reply(
+      "Internal photo of the serial plate.",
+      true,
+      [await photo("plate.png")],
+      cookie,
+    );
+    assert.equal(note.status, 200, JSON.stringify(note.json));
+    const noteMessage = lastMessage(note.json);
+    assert.equal(field(noteMessage, "internal"), true);
+    const noteFiles = attachmentsOf(noteMessage);
+    assert.equal(noteFiles.length, 1);
+    created.attachmentIds.push(String(field(noteFiles[0], "id")));
+
+    const tracked = await postJson("/tickets/track", { token, locale: "en" }, { ip: testIp() });
+    assert.equal(tracked.status, 200, JSON.stringify(tracked.json));
+    const messages = field(tracked.json, "messages");
+    assert.ok(Array.isArray(messages));
+    assert.ok(
+      messages.every((message) => field(message, "body") !== "Internal photo of the serial plate."),
+    );
+    const staff = messages.find((message) => field(message, "author") === "staff");
+    const publicFiles = attachmentsOf(staff);
+    assert.deepEqual(
+      publicFiles.map((file) => [field(file, "name"), field(file, "mime")]),
+      [
+        ["valve.png", "image/webp"],
+        ["wiring.pdf", "application/pdf"],
+      ],
+    );
+    assert.ok(publicFiles.every((file) => String(field(file, "href")).startsWith("/uploads/")));
+    assert.equal(
+      messages.flatMap((message) => attachmentsOf(message)).length,
+      2,
+      "internal attachments stay private",
+    );
+
+    const audit = await request(`/admin/audit?entity=tickets`, {
+      cookie: (await login(accounts.owner.email)).cookie,
+    });
+    const entry = (field(audit.json, "items") as unknown[]).find(
+      (item) =>
+        field(item, "entityId") === created.ticketId && field(item, "action") === "messages",
+    );
+    assert.ok(entry, "the reply is audited");
+  });
+
+  it("still accepts JSON replies without attachments", async () => {
+    const { cookie } = await login(accounts.support.email);
+    const response = await postJson(
+      `/admin/tickets/${created.ticketId}/messages`,
+      { body: "Plain JSON follow-up.", internal: false },
+      { cookie },
+    );
+    assert.equal(response.status, 200, JSON.stringify(response.json));
+    const message = lastMessage(response.json);
+    assert.equal(field(message, "body"), "Plain JSON follow-up.");
+    assert.deepEqual(field(message, "attachments"), []);
+  });
+
+  it("applies the public attachment rules to staff uploads", async () => {
+    const { cookie } = await login(accounts.support.email);
+    const text = new File(["just text"], "notes.txt", { type: "text/plain" });
+    const rejected = await reply("Unsupported file", false, [text], cookie);
+    assert.equal(rejected.status, 415);
+    assert.equal(errorCode(rejected.json), "UNSUPPORTED_MEDIA");
+    const many = await Promise.all(
+      Array.from({ length: 6 }, (_, index) => photo(`extra-${index}.png`)),
+    );
+    const tooMany = await reply("Too many files", false, many, cookie);
+    assert.equal(tooMany.status, 422);
+    const bare = await reply("Multipart reply without files", false, [], cookie);
+    assert.equal(bare.status, 200);
+    const form = new FormData();
+    form.set("body", "Missing internal flag");
+    const unflagged = await request(`/admin/tickets/${created.ticketId}/messages`, {
+      method: "POST",
+      body: form,
+      cookie,
+    });
+    assert.equal(unflagged.status, 422);
   });
 });

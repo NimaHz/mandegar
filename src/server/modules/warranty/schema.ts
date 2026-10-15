@@ -5,8 +5,9 @@ import {
   localeSchema,
   localizedText,
   optionalFilter,
+  sortSchema,
 } from "@/server/lib/validation";
-import { warrantyCodeKinds, warrantyCodeStatuses } from "@/types/admin";
+import { adminSorts, warrantyCodeKinds, warrantyCodeStatuses } from "@/types/admin";
 
 export const warrantyLookupSchema = z.object({
   code: z.string().max(64),
@@ -32,6 +33,7 @@ export const warrantyCodesQuerySchema = listQuerySchema.extend({
   productionYear: optionalFilter(z.coerce.number().int().min(1400).max(1431)),
   status: optionalFilter(z.enum(warrantyCodeStatuses)),
   kind: optionalFilter(z.enum(warrantyCodeKinds)),
+  sort: sortSchema(adminSorts.warrantyCodes),
 });
 
 export const warrantyGenerateSchema = z.object({

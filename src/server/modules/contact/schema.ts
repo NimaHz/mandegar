@@ -6,8 +6,9 @@ import {
   mobileSchema,
   optionalFilter,
   optionalText,
+  sortSchema,
 } from "@/server/lib/validation";
-import { contactStatuses } from "@/types/admin";
+import { adminSorts, contactStatuses } from "@/types/admin";
 import { contactDepartments } from "@/types/support";
 
 export const contactSchema = z.object({
@@ -30,6 +31,7 @@ export type ContactInput = z.input<typeof contactSchema>;
 export const messagesQuerySchema = listQuerySchema.extend({
   status: optionalFilter(z.enum(contactStatuses)),
   department: optionalFilter(z.enum(contactDepartments)),
+  sort: sortSchema(adminSorts.messages),
 });
 
 export const messageStatusSchema = z.object({ status: z.enum(contactStatuses) });

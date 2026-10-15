@@ -3,12 +3,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PageHero } from "@/components/layout/page-hero";
+import { JsonLd } from "@/components/seo/json-ld";
 import { buttonVariants } from "@/components/ui/button";
 import { FaqBrowser } from "@/features/faq/components/faq-browser";
 import { faqContent } from "@/features/faq/content";
 import { getLocale } from "@/i18n/get-locale";
 import { localizePath } from "@/i18n/paths";
 import { routes } from "@/lib/routes";
+import { faqGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { api } from "@/services";
 import { faqGroups } from "@/types/content";
@@ -33,9 +35,15 @@ export default async function FaqPage() {
   const sections = faqGroups
     .map((group) => ({ group, items: faqs.filter((faq) => faq.group === group) }))
     .filter((section) => section.items.length > 0);
+  const graph = await faqGraph(
+    locale,
+    { name: content.title, description: content.description },
+    sections.flatMap((section) => section.items),
+  );
 
   return (
     <>
+      <JsonLd data={graph} />
       <PageHero eyebrow={content.eyebrow} title={content.title} description={content.description} />
       <div className="container-page flex flex-col gap-12 pb-16 sm:pb-20">
         <FaqBrowser sections={sections} content={content} />

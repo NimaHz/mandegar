@@ -7,7 +7,9 @@ import {
   localizedText,
   optionalLocalizedText,
   slugSchema,
+  sortSchema,
 } from "@/server/lib/validation";
+import { adminSorts } from "@/types/admin";
 
 import { specGroupTemplateSchema } from "../products/schema";
 
@@ -28,4 +30,6 @@ export const categoryInputSchema = z.object({
 
 export const categoryPatchSchema = categoryInputSchema.partial();
 
-export const categoriesQuerySchema = listQuerySchema;
+export const categoriesQuerySchema = listQuerySchema.extend({
+  sort: sortSchema(adminSorts.categories),
+});

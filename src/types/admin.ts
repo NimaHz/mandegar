@@ -1,5 +1,5 @@
 import type { DownloadKind, EnergyClass } from "./catalog";
-import type { LocalizedText } from "./common";
+import type { GeoPoint, LocalizedText } from "./common";
 import type { FaqGroup, PostKind, ServiceCenterKind, SocialLinks } from "./content";
 import type { ContactDepartment, TicketPriority, TicketStatus, TicketType } from "./support";
 import type { WarrantyCodeStatus } from "./warranty";
@@ -133,6 +133,7 @@ export interface ContactSettings {
   address: LocalizedText;
   hours: LocalizedText;
   socials: SocialLinks;
+  location: GeoPoint | null;
 }
 
 export interface SeoSettings {
@@ -194,6 +195,11 @@ export interface AdminMediaRef {
   width: number | null;
   height: number | null;
   alt: LocalizedText;
+}
+
+export interface AdminAttachment extends AdminMediaRef {
+  name: string;
+  size: number;
 }
 
 export interface AdminMedia extends AdminMediaRef {
@@ -416,7 +422,7 @@ export interface AdminTicketMessage {
   author: AdminRef | null;
   body: string;
   internal: boolean;
-  attachments: AdminMediaRef[];
+  attachments: AdminAttachment[];
   createdAt: string;
 }
 
@@ -569,6 +575,27 @@ export interface DashboardStats {
   recentTickets: AdminTicketListItem[];
 }
 
+export interface AdminCounts {
+  openTickets: number;
+  unreadMessages: number;
+}
+
+export const adminSorts = {
+  products: ["updated-desc", "created-desc", "name-asc", "model-asc"],
+  categories: ["order-asc", "updated-desc", "created-desc", "name-asc"],
+  guides: ["updated-desc", "created-desc", "name-asc"],
+  posts: ["updated-desc", "created-desc", "name-asc"],
+  tickets: ["priority-desc", "due-asc", "updated-desc", "created-desc", "name-asc"],
+  serviceCenters: ["province-asc", "updated-desc", "created-desc", "name-asc"],
+  media: ["created-desc", "updated-desc", "name-asc"],
+  messages: ["created-desc", "updated-desc", "name-asc"],
+  warrantyCodes: ["year-desc", "updated-desc", "created-desc", "model-asc"],
+} as const satisfies Record<string, readonly [string, ...string[]]>;
+
+export type AdminSortEntity = keyof typeof adminSorts;
+export type AdminSort<TEntity extends AdminSortEntity = AdminSortEntity> =
+  (typeof adminSorts)[TEntity][number];
+
 export interface AdminListQuery {
   q: string;
   page: number;
@@ -578,10 +605,21 @@ export interface AdminProductsQuery extends AdminListQuery {
   status: ContentStatus | null;
   categoryId: string | null;
   brandId: string | null;
+  sort: AdminSort<"products">;
+}
+
+export interface AdminCategoriesQuery extends AdminListQuery {
+  sort: AdminSort<"categories">;
+}
+
+export interface AdminGuidesQuery extends AdminListQuery {
+  published: boolean | null;
+  sort: AdminSort<"guides">;
 }
 
 export interface AdminMediaQuery extends AdminListQuery {
   kind: MediaKind | null;
+  sort: AdminSort<"media">;
 }
 
 export interface AdminWarrantyCodesQuery extends AdminListQuery {
@@ -589,6 +627,7 @@ export interface AdminWarrantyCodesQuery extends AdminListQuery {
   productionYear: number | null;
   status: WarrantyCodeStatus | null;
   kind: WarrantyCodeKindValue | null;
+  sort: AdminSort<"warrantyCodes">;
 }
 
 export interface AdminTicketsQuery extends AdminListQuery {
@@ -598,16 +637,19 @@ export interface AdminTicketsQuery extends AdminListQuery {
   assigneeId: string | null;
   breaching: boolean;
   open: boolean;
+  sort: AdminSort<"tickets">;
 }
 
 export interface AdminMessagesQuery extends AdminListQuery {
   status: ContactStatus | null;
   department: ContactDepartment | null;
+  sort: AdminSort<"messages">;
 }
 
 export interface AdminServiceCentersQuery extends AdminListQuery {
   province: string | null;
   kind: ServiceCenterKind | null;
+  sort: AdminSort<"serviceCenters">;
 }
 
 export interface AdminFaqsQuery extends AdminListQuery {
@@ -618,6 +660,7 @@ export interface AdminPostsQuery extends AdminListQuery {
   kind: PostKind | null;
   status: ContentStatus | null;
   authorId: string | null;
+  sort: AdminSort<"posts">;
 }
 
 export interface AdminAuditQuery extends AdminListQuery {

@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { PageHero } from "@/components/layout/page-hero";
 import { PendingRegion, TransitionProvider } from "@/components/providers/transition-provider";
+import { JsonLd } from "@/components/seo/json-ld";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/ui/pagination";
@@ -17,6 +18,7 @@ import { getLocale } from "@/i18n/get-locale";
 import { localizePath } from "@/i18n/paths";
 import { formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
+import { blogGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { api } from "@/services";
 import { postKinds } from "@/types/content";
@@ -41,6 +43,7 @@ export async function generateMetadata({
     path: `${routes.blog}${serializeBlogSearchParams({ kind, page: page > 1 ? page : null })}`,
     title: parts.join(" · "),
     description: content.metaDescription,
+    noindex: Boolean(kind),
   });
 }
 
@@ -53,9 +56,15 @@ export default async function BlogPage({ searchParams }: PageProps<"/[locale]/bl
   ]);
   const content = blogContent[locale];
   const blogPath = localizePath(locale, routes.blog);
+  const graph = await blogGraph(locale, {
+    name: `${content.title} ${content.titleAccent}`,
+    description: content.description,
+    posts: result.items,
+  });
 
   return (
     <TransitionProvider>
+      <JsonLd data={graph} />
       <PageHero
         eyebrow={content.eyebrow}
         title={

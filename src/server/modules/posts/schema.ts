@@ -6,8 +6,9 @@ import {
   localizedText,
   optionalFilter,
   slugSchema,
+  sortSchema,
 } from "@/server/lib/validation";
-import { contentStatuses } from "@/types/admin";
+import { adminSorts, contentStatuses } from "@/types/admin";
 import { postKinds } from "@/types/content";
 
 export const postInputSchema = z.object({
@@ -30,4 +31,5 @@ export const postsQuerySchema = listQuerySchema.extend({
   kind: optionalFilter(z.enum(postKinds)),
   status: optionalFilter(z.enum(contentStatuses)),
   authorId: optionalFilter(z.uuid()),
+  sort: sortSchema(adminSorts.posts),
 });

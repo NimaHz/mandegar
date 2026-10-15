@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { PageHero } from "@/components/layout/page-hero";
 import { RevealGroup, RevealItem } from "@/components/motion/reveal";
+import { JsonLd } from "@/components/seo/json-ld";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -17,19 +18,25 @@ import { getLocale } from "@/i18n/get-locale";
 import { localizePath } from "@/i18n/paths";
 import { formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
+import { collectionGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
+import { localeUrl } from "@/lib/seo/urls";
 import { api } from "@/services";
 
 export const revalidate = 3600;
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+  searchParams,
+}: PageProps<"/[locale]/guides">): Promise<Metadata> {
   const locale = await getLocale();
   const { meta } = guidesContent[locale];
+  const { category } = await loadGuidesSearchParams(searchParams);
   return pageMetadata({
     locale,
     path: routes.guides,
     title: meta.title,
     description: meta.description,
+    noindex: Boolean(category),
   });
 }
 
@@ -54,22 +61,31 @@ export default async function GuidesPage({ searchParams }: PageProps<"/[locale]/
   const visible = active
     ? guides.filter((guide) => guide.categories.some((entry) => entry.slug === active))
     : guides;
+  const breadcrumbs = [
+    { label: nav.home, href: localizePath(locale, routes.home) },
+    { label: nav.guides },
+  ];
+  const graph = await collectionGraph(locale, {
+    path: routes.guides,
+    name: content.hero.title,
+    description: content.hero.description,
+    listName: content.hero.title,
+    breadcrumbs,
+    entries: visible.map((guide) => ({
+      url: localeUrl(locale, routes.guide(guide.slug)),
+      name: guide.title,
+      image: guide.poster?.src,
+    })),
+  });
 
   return (
     <>
+      <JsonLd data={graph} />
       <PageHero
         eyebrow={content.hero.eyebrow}
         title={content.hero.title}
         description={content.hero.description}
-        breadcrumbs={
-          <Breadcrumbs
-            label={ui.breadcrumbsLabel}
-            items={[
-              { label: nav.home, href: localizePath(locale, routes.home) },
-              { label: nav.guides },
-            ]}
-          />
-        }
+        breadcrumbs={<Breadcrumbs label={ui.breadcrumbsLabel} items={breadcrumbs} />}
       >
         <GuideFilters
           locale={locale}

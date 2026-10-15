@@ -47,7 +47,10 @@ const parser = new Marked({
         .map((cell) => `<th scope="col">${this.parser.parseInline(cell.tokens)}</th>`)
         .join("");
       const body = token.rows
-        .map((row) => `<tr>${row.map((cell) => `<td>${this.parser.parseInline(cell.tokens)}</td>`).join("")}</tr>`)
+        .map(
+          (row) =>
+            `<tr>${row.map((cell) => `<td>${this.parser.parseInline(cell.tokens)}</td>`).join("")}</tr>`,
+        )
         .join("");
       return `<div class="table-scroll"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
     },

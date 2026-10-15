@@ -42,7 +42,8 @@ const isEntityKind = (value: string): value is OgEntityKind =>
   ogEntityKinds.some((kind) => kind === value);
 
 export const ogPageKey = (path: string): OgPageKey => {
-  const key = path.replace(/^\/+|\/+$/g, "").replaceAll("/", "-") || "home";
+  const [pathname = ""] = path.split(/[?#]/);
+  const key = pathname.replace(/^\/+|\/+$/g, "").replaceAll("/", "-") || "home";
   return isOgPageKey(key) ? key : "home";
 };
 

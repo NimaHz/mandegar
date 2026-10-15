@@ -1,4 +1,4 @@
-import { type AnyColumn, inArray, or, type SQL, sql } from "drizzle-orm";
+import { type AnyColumn, asc, inArray, or, type SQL, sql } from "drizzle-orm";
 
 import { routes } from "@/lib/routes";
 import { getDb } from "@/server/db/client";
@@ -53,6 +53,16 @@ export const searchColumns = (
     ),
   );
 };
+
+export const collated = (value: AnyColumn | SQL) => sql`${value} collate "fa-x-icu"`;
+
+export const collatedName = (column: AnyColumn) => sql`(${column}->>'fa') collate "fa-x-icu"`;
+
+export const sortedBy = <TSort extends string>(
+  orders: Record<TSort, SQL[]>,
+  sort: TSort,
+  id: AnyColumn,
+) => [...orders[sort], asc(id)];
 
 export const paginate = async <TRow, TItem>(
   page: number | undefined,

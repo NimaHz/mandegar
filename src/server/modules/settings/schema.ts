@@ -12,6 +12,11 @@ const labeledValue = z.object({
   value: z.string().trim().min(1).max(120),
 });
 
+export const officeLocationSchema = z.object({
+  lat: z.number().min(24).max(40),
+  lng: z.number().min(44).max(64),
+});
+
 export const contactSettingsSchema = z.object({
   phones: z.array(labeledValue).max(10),
   emails: z.array(labeledValue).max(10),
@@ -26,6 +31,7 @@ export const contactSettingsSchema = z.object({
     rubika: socialUrl,
     linkedin: socialUrl,
   }),
+  location: officeLocationSchema.nullable().default(null),
 });
 
 export const seoSettingsSchema = z.object({

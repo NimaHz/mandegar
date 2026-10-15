@@ -30,6 +30,7 @@ import { type TicketStatus, ticketStatuses } from "@/types/support";
 
 import { warrantyStatusTone } from "../../config";
 import { adminContent } from "../../content";
+import { formatBytes } from "../../lib/format";
 import { StatusBadge } from "../data/status-badge";
 import { CodeText } from "../data/thumb-cell";
 import { MediaThumb } from "../media/media-thumb";
@@ -57,21 +58,53 @@ const statusEvent = (message: AdminTicketMessage) => {
 
 function Attachments({ message }: { message: AdminTicketMessage }) {
   if (message.attachments.length === 0) return null;
+  const images = message.attachments.filter((file) => file.kind === "image");
+  const documents = message.attachments.filter((file) => file.kind !== "image");
   return (
-    <ul className="flex flex-wrap gap-2 pt-1" aria-label={copy.attachments}>
-      {message.attachments.map((file) => (
-        <li key={file.id}>
-          <a
-            href={file.url}
-            target="_blank"
-            rel="noreferrer"
-            className="group relative flex size-16 items-center justify-center overflow-hidden rounded-control border border-line bg-sunken"
-          >
-            <MediaThumb media={file} sizes="4rem" />
-          </a>
-        </li>
-      ))}
-    </ul>
+    <div className="flex flex-col gap-2 pt-1">
+      {images.length > 0 && (
+        <ul className="flex flex-wrap gap-2" aria-label={copy.attachments}>
+          {images.map((file) => (
+            <li key={file.id}>
+              <a
+                href={file.url}
+                target="_blank"
+                rel="noreferrer"
+                title={file.name}
+                aria-label={`${copy.openAttachment}: ${file.name}`}
+                className="relative flex size-20 overflow-hidden rounded-control border border-line bg-sunken transition-[border-color,box-shadow] hover:border-primary focus-visible:ring-3 focus-visible:ring-primary/25"
+              >
+                <MediaThumb media={file} sizes="5rem" />
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+      {documents.length > 0 && (
+        <ul className="flex flex-wrap gap-2" aria-label={copy.attachments}>
+          {documents.map((file) => (
+            <li key={file.id}>
+              <a
+                href={file.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex max-w-64 items-center gap-2 rounded-control border border-line bg-surface py-1.5 ps-2 pe-3 transition-colors hover:border-primary hover:text-primary"
+              >
+                <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-danger-soft text-danger">
+                  <FileText className="size-4" aria-hidden />
+                </span>
+                <span className="flex min-w-0 flex-col">
+                  <span dir="auto" className="truncate text-label font-bold">
+                    {file.name}
+                  </span>
+                  <span className="text-2xs text-muted">{formatBytes(file.size)}</span>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 

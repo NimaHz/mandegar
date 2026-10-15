@@ -62,6 +62,9 @@ export const listQuerySchema = z.object({
 export const optionalFilter = <TSchema extends z.ZodType>(schema: TSchema) =>
   z.preprocess((value) => (value === "" ? undefined : value), schema.optional()).catch(undefined);
 
+export const sortSchema = <const TValues extends readonly [string, ...string[]]>(values: TValues) =>
+  optionalFilter(z.enum(values));
+
 export const localeSchema = z.enum(locales).catch(defaultLocale);
 
 export const optionalText = <TSchema extends z.ZodType>(schema: TSchema) =>

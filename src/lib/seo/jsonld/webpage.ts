@@ -1,5 +1,6 @@
 import { type Locale, localeMeta } from "@/i18n/config";
 
+import { tehranIso } from "../text";
 import { absoluteUrl } from "../urls";
 import { breadcrumbId, ref, siteIds, webPageId, websiteId } from "./ids";
 import type { JsonLdNode, JsonLdRef } from "./types";
@@ -53,6 +54,6 @@ export const webPageNode = ({
   mainEntity,
   about,
   primaryImageOfPage: image ? { "@type": "ImageObject", url: absoluteUrl(image) } : null,
-  datePublished,
-  dateModified,
+  datePublished: datePublished ? tehranIso(datePublished) : null,
+  dateModified: dateModified ? tehranIso(dateModified) : null,
 });

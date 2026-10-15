@@ -114,7 +114,7 @@ export const homeContent: Record<Locale, HomeContent> = {
       title: "استعلام فوری گارانتی",
       description: "کد ۹ رقمی روی برچسب دستگاه را وارد کن تا اصالت و مدت گارانتی را ببینی.",
       label: "کد گارانتی",
-      placeholder: "مثلاً W5K-3M9-XT0",
+      placeholder: "مثلاً W5K-3M9-XTS",
       submit: "استعلام",
       hint: "کد را با یا بدون خط تیره وارد کن",
       requestService: "ثبت درخواست خدمات",
@@ -250,7 +250,7 @@ export const homeContent: Record<Locale, HomeContent> = {
       description:
         "Enter the 9-character code on your appliance label to see its authenticity and coverage.",
       label: "Warranty code",
-      placeholder: "e.g. W5K-3M9-XT0",
+      placeholder: "e.g. W5K-3M9-XTS",
       submit: "Check",
       hint: "With or without dashes",
       requestService: "Request service",

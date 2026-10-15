@@ -10,7 +10,9 @@ import {
   optionalText,
   provinceSchema,
   slugSchema,
+  sortSchema,
 } from "@/server/lib/validation";
+import { adminSorts } from "@/types/admin";
 import { ticketPriorities, ticketStatuses, ticketTypes } from "@/types/support";
 
 export const TICKET_ATTACHMENT_LIMIT = 5;
@@ -75,6 +77,7 @@ export const ticketsQuerySchema = listQuerySchema.extend({
   assigneeId: optionalFilter(z.uuid()),
   breaching: flag,
   open: flag,
+  sort: sortSchema(adminSorts.tickets),
 });
 
 export const ticketUpdateSchema = z
@@ -90,5 +93,8 @@ export const ticketUpdateSchema = z
 
 export const staffMessageSchema = z.object({
   body: z.string().trim().min(1).max(5000),
-  internal: z.boolean(),
+  internal: z.union([
+    z.boolean(),
+    z.enum(["true", "false"]).transform((value) => value === "true"),
+  ]),
 });

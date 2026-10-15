@@ -22,6 +22,7 @@ import { getDictionary } from "@/i18n/get-dictionary";
 import { getLocale } from "@/i18n/get-locale";
 import { localizePath } from "@/i18n/paths";
 import { routes } from "@/lib/routes";
+import { categoryChoiceFaqs } from "@/lib/seo/answers";
 import { categoryGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { api } from "@/services";
@@ -79,15 +80,21 @@ export default async function CategoryPage({
     api.catalog.products(locale, toProductsQuery(filters, category.slug)),
     api.catalog.byCategory(locale, category.slug),
   ]);
-  const details = await Promise.all(
-    members.slice(0, FAQ_LIMIT).map((product) => api.catalog.product(locale, product.slug)),
-  );
+  const details = (
+    await Promise.all(members.map((product) => api.catalog.product(locale, product.slug)))
+  ).filter((detail) => detail !== null);
   const productFaqs = [
     ...new Map(
-      details.flatMap((detail) => detail?.faqs ?? []).map((faq) => [faq.question, faq]),
+      details
+        .slice(0, FAQ_LIMIT)
+        .flatMap((detail) => detail.faqs)
+        .map((faq) => [faq.question, faq]),
     ).values(),
   ].slice(0, FAQ_LIMIT);
-  const faqs = productFaqs.length > 0 ? productFaqs : generalFaqs;
+  const faqs = [
+    ...categoryChoiceFaqs(locale, category.name, details),
+    ...(productFaqs.length > 0 ? productFaqs : generalFaqs),
+  ];
   const guide = guides.find((entry) =>
     entry.categories.some((item) => item.slug === category.slug),
   );

@@ -14,6 +14,7 @@ import type { Paginated } from "@/types/common";
 
 import { adminContent } from "../../content";
 import { faNumber } from "../../lib/format";
+import { sortOptions } from "../../lib/options";
 import { useAdminMutation } from "../../lib/use-admin-mutation";
 import { type Column, DataTable } from "../data/data-table";
 import { ListEmpty, ListFrame } from "../data/list-frame";
@@ -120,6 +121,7 @@ export function GuidesList({ result, filtered, canWrite }: GuidesListProps) {
               ],
             },
           ]}
+          sort={sortOptions("guides")}
         />
       }
     >

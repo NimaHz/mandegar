@@ -5,9 +5,11 @@ import Link from "next/link";
 import { PageHero } from "@/components/layout/page-hero";
 import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { PendingRegion, TransitionProvider } from "@/components/providers/transition-provider";
+import { JsonLd } from "@/components/seo/json-ld";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { mapLinks } from "@/features/info/map-links";
 import { CenterCard } from "@/features/service-centers/components/center-card";
 import { CentersFilters } from "@/features/service-centers/components/centers-filters";
 import { DealerCta } from "@/features/service-centers/components/dealer-cta";
@@ -24,20 +26,25 @@ import { localizePath } from "@/i18n/paths";
 import { formatNumber } from "@/lib/format";
 import { isProvinceCode, provinces as allProvinces } from "@/lib/provinces";
 import { routes } from "@/lib/routes";
+import { serviceCentersGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { api } from "@/services";
 import type { ServiceCenter } from "@/types/content";
 
 export const revalidate = 3600;
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+  searchParams,
+}: PageProps<"/[locale]/service-centers">): Promise<Metadata> {
   const locale = await getLocale();
   const { meta } = serviceCentersContent[locale];
+  const { province, kind } = await loadServiceCentersSearchParams(searchParams);
   return pageMetadata({
     locale,
     path: routes.serviceCenters,
     title: meta.title,
     description: meta.description,
+    noindex: Boolean(province || kind),
   });
 }
 
@@ -67,23 +74,30 @@ export default async function ServiceCentersPage({
     .map((province) => ({ value: province.code, label: province.name[locale] }))
     .toSorted((left, right) => left.label.localeCompare(right.label, locale));
   const groups = filters.province ? null : groupByProvince(centers);
+  const breadcrumbs = [
+    { label: nav.home, href: localizePath(locale, routes.home) },
+    { label: nav.support, href: localizePath(locale, routes.support) },
+    { label: nav.serviceCenters },
+  ];
+  const graph = await serviceCentersGraph(locale, {
+    name: content.hero.title,
+    description: content.hero.description,
+    centers,
+    breadcrumbs,
+    mapUrl: (center) =>
+      center.lat !== null && center.lng !== null
+        ? mapLinks({ lat: center.lat, lng: center.lng }).neshan
+        : null,
+  });
 
   return (
     <TransitionProvider>
+      <JsonLd data={graph} />
       <PageHero
         eyebrow={content.hero.eyebrow}
         title={content.hero.title}
         description={content.hero.description}
-        breadcrumbs={
-          <Breadcrumbs
-            label={ui.breadcrumbsLabel}
-            items={[
-              { label: nav.home, href: localizePath(locale, routes.home) },
-              { label: nav.support, href: localizePath(locale, routes.support) },
-              { label: nav.serviceCenters },
-            ]}
-          />
-        }
+        breadcrumbs={<Breadcrumbs label={ui.breadcrumbsLabel} items={breadcrumbs} />}
       >
         <CentersFilters provinces={provinceOptions} copy={content.filters} />
       </PageHero>

@@ -10,6 +10,7 @@ const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 const bodyLimits: { pattern: RegExp; bytes: number }[] = [
   { pattern: /^\/api\/admin\/media\/?$/, bytes: 210 * MB },
   { pattern: /^\/api\/tickets(\/[^/]+\/messages)?\/?$/, bytes: 30 * MB },
+  { pattern: /^\/api\/admin\/tickets\/[^/]+\/messages\/?$/, bytes: 30 * MB },
 ];
 
 const bodyLimitFor = (pathname: string) =>

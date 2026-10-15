@@ -1,4 +1,4 @@
-import type { ImageAsset, SeoFields } from "./common";
+import type { GeoPoint, ImageAsset, SeoFields } from "./common";
 
 export const faqGroups = ["general", "warranty", "installation", "products", "support"] as const;
 export type FaqGroup = (typeof faqGroups)[number];
@@ -140,6 +140,7 @@ export interface SiteSettings {
   address: string;
   hours: string;
   socials: SocialLinks;
+  location: GeoPoint | null;
   stats: { years: number; serviceCenters: number; models: number; warrantyMonths: number };
   company: {
     legalName: string;

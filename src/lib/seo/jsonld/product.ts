@@ -82,7 +82,14 @@ export const productNode = ({
     description: product.summary || product.tagline,
     slogan: product.tagline,
     category: product.category.name,
-    brand: ref(brandId(locale, product.brand)),
+    brand: product.brand.isOwn
+      ? ref(siteIds.brand)
+      : {
+          "@type": "Brand",
+          "@id": brandId(locale, product.brand),
+          name: product.brand.name,
+          url: localeUrl(locale, routes.brand(product.brand.slug)),
+        },
     manufacturer: product.brand.isOwn ? ref(siteIds.organization) : null,
     image: images.map((image) => absoluteUrl(image.src)),
     releaseDate: product.releaseYear ? String(product.releaseYear) : null,

@@ -14,7 +14,7 @@ import type { Paginated } from "@/types/common";
 
 import { contentStatusTone } from "../../config";
 import { adminContent } from "../../content";
-import { enumOptions, toOptions } from "../../lib/options";
+import { enumOptions, sortOptions, toOptions } from "../../lib/options";
 import { useAdminMutation } from "../../lib/use-admin-mutation";
 import { type Column, DataTable } from "../data/data-table";
 import { ListEmpty, ListFrame } from "../data/list-frame";
@@ -122,6 +122,7 @@ export function ProductsList({
             { key: "categoryId", label: copy.columns.category, options: toOptions(categories) },
             { key: "brandId", label: copy.columns.brand, options: toOptions(brands) },
           ]}
+          sort={sortOptions("products")}
         />
       }
     >

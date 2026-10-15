@@ -1,25 +1,36 @@
 import "server-only";
 
-import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, type SQL } from "drizzle-orm";
 
 import { getDb } from "@/server/db/client";
 import { authors, faqs, heroSlides, posts, serviceCenters } from "@/server/db/schema";
-import type {
-  AdminAuthor,
-  AdminFaq,
-  AdminFaqsQuery,
-  AdminListQuery,
-  AdminOption,
-  AdminPost,
-  AdminPostListItem,
-  AdminPostsQuery,
-  AdminServiceCenter,
-  AdminServiceCentersQuery,
-  AdminSlide,
+import {
+  type AdminAuthor,
+  type AdminFaq,
+  type AdminFaqsQuery,
+  type AdminListQuery,
+  type AdminOption,
+  type AdminPost,
+  type AdminPostListItem,
+  type AdminPostsQuery,
+  type AdminServiceCenter,
+  type AdminServiceCentersQuery,
+  type AdminSlide,
+  type AdminSort,
+  adminSorts,
 } from "@/types/admin";
 
 import { orderByIds } from "../db/mappers";
-import { iso, isoOrNull, paginate, searchColumns, toMediaRef, toMediaRefOrNull } from "./shared";
+import {
+  collatedName,
+  iso,
+  isoOrNull,
+  paginate,
+  searchColumns,
+  sortedBy,
+  toMediaRef,
+  toMediaRefOrNull,
+} from "./shared";
 
 const findSlides = (ids: string[]) =>
   getDb().query.heroSlides.findMany({
@@ -92,6 +103,13 @@ export const faqsAdmin = {
   },
 };
 
+const centerOrders: Record<AdminSort<"serviceCenters">, SQL[]> = {
+  "province-asc": [asc(serviceCenters.province), asc(serviceCenters.slug)],
+  "updated-desc": [desc(serviceCenters.updatedAt)],
+  "created-desc": [desc(serviceCenters.createdAt)],
+  "name-asc": [asc(collatedName(serviceCenters.name))],
+};
+
 const toServiceCenter = (row: typeof serviceCenters.$inferSelect): AdminServiceCenter => ({
   ...row,
   createdAt: iso(row.createdAt),
@@ -116,7 +134,13 @@ export const serviceCentersAdmin = {
           .select()
           .from(serviceCenters)
           .where(where)
-          .orderBy(asc(serviceCenters.province), asc(serviceCenters.slug))
+          .orderBy(
+            ...sortedBy(
+              centerOrders,
+              query.sort ?? adminSorts.serviceCenters[0],
+              serviceCenters.id,
+            ),
+          )
           .limit(limit)
           .offset(offset),
       (rows) => rows.map(toServiceCenter),
@@ -185,6 +209,12 @@ const findPosts = (ids: string[]) =>
 
 type PostRow = Awaited<ReturnType<typeof findPosts>>[number];
 
+const postOrders: Record<AdminSort<"posts">, SQL[]> = {
+  "updated-desc": [desc(posts.updatedAt)],
+  "created-desc": [desc(posts.createdAt)],
+  "name-asc": [asc(collatedName(posts.title))],
+};
+
 const toPostListItem = (row: PostRow): AdminPostListItem => ({
   id: row.id,
   slug: row.slug,
@@ -213,7 +243,7 @@ export const postsAdmin = {
           .select({ id: posts.id })
           .from(posts)
           .where(where)
-          .orderBy(desc(posts.updatedAt))
+          .orderBy(...sortedBy(postOrders, query.sort ?? adminSorts.posts[0], posts.id))
           .limit(limit)
           .offset(offset),
       async (rows) => {

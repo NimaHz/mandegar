@@ -17,7 +17,7 @@ import type { Paginated } from "@/types/common";
 import { warrantyStatusTone } from "../../config";
 import { adminContent } from "../../content";
 import { faNumber, faYear } from "../../lib/format";
-import { enumOptions, toOptions } from "../../lib/options";
+import { enumOptions, sortOptions, toOptions } from "../../lib/options";
 import { type Column, DataTable } from "../data/data-table";
 import { ListEmpty, ListFrame } from "../data/list-frame";
 import { ListPagination } from "../data/list-pagination";
@@ -180,6 +180,7 @@ export function CodesList({
             },
             { key: "status", label: copy.filters.status, options: enumOptions(statuses.warranty) },
           ]}
+          sort={sortOptions("warrantyCodes")}
         />
       }
     >

@@ -1,15 +1,27 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ExternalLink } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
-import { type FieldValues, FormProvider, useForm, type UseFormReturn } from "react-hook-form";
+import {
+  type FieldValues,
+  FormProvider,
+  useForm,
+  useFormContext,
+  type UseFormReturn,
+  useFormState,
+  useWatch,
+} from "react-hook-form";
 import { z } from "zod";
 
+import { buttonVariants } from "@/components/ui/button";
 import { panelId, tabId, Tabs } from "@/components/ui/tabs";
+import { mapLinks } from "@/features/info/map-links";
 import { apiClient } from "@/lib/api-client";
 import {
   companySettingsSchema,
   contactSettingsSchema,
+  officeLocationSchema,
   seoSettingsSchema,
   statsSettingsSchema,
 } from "@/server/modules/settings/schema";
@@ -39,7 +51,23 @@ const social = z.preprocess(
     .nullable(),
 );
 
+const isBlankCoordinate = (value: unknown) => value === null || value === undefined || value === "";
+
+const locationField = z.preprocess(
+  (value) =>
+    typeof value === "object" &&
+    value !== null &&
+    "lat" in value &&
+    "lng" in value &&
+    isBlankCoordinate(value.lat) &&
+    isBlankCoordinate(value.lng)
+      ? null
+      : value,
+  officeLocationSchema.nullable(),
+);
+
 const contactFormSchema = contactSettingsSchema.extend({
+  location: locationField,
   socials: z.object({
     aparat: social,
     instagram: social,
@@ -68,6 +96,7 @@ function SectionShell<TInput extends FieldValues, TOutput extends FieldValues>({
   children,
 }: SectionShellProps<TInput, TOutput>) {
   const { run, pending } = useAdminMutation();
+  const { isDirty } = useFormState({ control: form.control });
   const onSubmit = form.handleSubmit(async (values) => {
     const snapshot = form.getValues();
     const saved = await run(() => save(values), {
@@ -81,7 +110,7 @@ function SectionShell<TInput extends FieldValues, TOutput extends FieldValues>({
     <FormProvider {...form}>
       <form noValidate onSubmit={onSubmit} className="flex flex-col gap-4">
         {children}
-        <SaveBar dirty={form.formState.isDirty} pending={pending} onDiscard={() => form.reset()} />
+        <SaveBar dirty={isDirty} pending={pending} onDiscard={() => form.reset()} />
       </form>
     </FormProvider>
   );
@@ -115,6 +144,23 @@ function LabeledRepeater({ name, add, empty, label, placeholder }: LabeledRepeat
   );
 }
 
+function LocationPreview() {
+  const { control } = useFormContext();
+  const location = officeLocationSchema.safeParse(useWatch({ control, name: "location" }));
+  if (!location.success) return null;
+  return (
+    <a
+      href={mapLinks(location.data).neshan}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={buttonVariants({ variant: "line", size: "sm" })}
+    >
+      <ExternalLink className="size-3.5" aria-hidden />
+      {copy.contact.previewNeshan}
+    </a>
+  );
+}
+
 function ContactForm({ value }: { value: SettingsValues["contact"] }) {
   const form = useForm<
     z.input<typeof contactFormSchema>,
@@ -125,6 +171,7 @@ function ContactForm({ value }: { value: SettingsValues["contact"] }) {
     defaultValues: {
       ...value,
       socials: Object.fromEntries(socialKeys.map((key) => [key, value.socials[key] ?? ""])),
+      location: value.location ?? { lat: null, lng: null },
     },
   });
 
@@ -162,7 +209,28 @@ function ContactForm({ value }: { value: SettingsValues["contact"] }) {
         />
         <LocalizedField name="hours" label={copy.contact.hours} maxLength={200} />
       </FormSection>
-      <FormSection step={4} title={copy.contact.socials} description={copy.contact.socialsHint}>
+      <FormSection
+        step={4}
+        title={copy.contact.location}
+        description={copy.contact.locationHint}
+        action={<LocationPreview />}
+      >
+        <div className={fieldGridClass}>
+          <NumberInput
+            name="location.lat"
+            label={copy.contact.lat}
+            placeholder="35.7009"
+            hint={copy.contact.latHint}
+          />
+          <NumberInput
+            name="location.lng"
+            label={copy.contact.lng}
+            placeholder="51.3899"
+            hint={copy.contact.lngHint}
+          />
+        </div>
+      </FormSection>
+      <FormSection step={5} title={copy.contact.socials} description={copy.contact.socialsHint}>
         <div className={fieldGridClass}>
           {socialKeys.map((key) => (
             <CodeInput

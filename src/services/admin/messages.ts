@@ -1,12 +1,23 @@
 import "server-only";
 
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq, type SQL } from "drizzle-orm";
 
 import { getDb } from "@/server/db/client";
 import { contactMessages } from "@/server/db/schema";
-import type { AdminContactMessage, AdminMessagesQuery } from "@/types/admin";
+import {
+  type AdminContactMessage,
+  type AdminMessagesQuery,
+  type AdminSort,
+  adminSorts,
+} from "@/types/admin";
 
-import { iso, paginate, searchColumns } from "./shared";
+import { collated, iso, paginate, searchColumns, sortedBy } from "./shared";
+
+const orders: Record<AdminSort<"messages">, SQL[]> = {
+  "created-desc": [desc(contactMessages.createdAt)],
+  "updated-desc": [desc(contactMessages.updatedAt)],
+  "name-asc": [asc(collated(contactMessages.name))],
+};
 
 const toMessage = ({
   ipHash: _ipHash,
@@ -39,7 +50,7 @@ export const messagesAdmin = {
           .select()
           .from(contactMessages)
           .where(where)
-          .orderBy(desc(contactMessages.createdAt))
+          .orderBy(...sortedBy(orders, query.sort ?? adminSorts.messages[0], contactMessages.id))
           .limit(limit)
           .offset(offset),
       (rows) => rows.map(toMessage),

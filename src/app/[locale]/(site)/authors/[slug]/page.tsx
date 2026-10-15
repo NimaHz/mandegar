@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { RevealGroup, RevealItem } from "@/components/motion/reveal";
+import { JsonLd } from "@/components/seo/json-ld";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { AuthorProfile } from "@/features/blog/components/author-profile";
 import { PostCard } from "@/features/blog/components/post-card";
@@ -12,6 +13,7 @@ import { getDictionary } from "@/i18n/get-dictionary";
 import { getLocale } from "@/i18n/get-locale";
 import { localizePath } from "@/i18n/paths";
 import { routes } from "@/lib/routes";
+import { authorGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { api } from "@/services";
 
@@ -33,6 +35,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: routes.author(author.slug),
+    og: { kind: "author", slug: author.slug },
     title: author.name,
     description: fill(blogContent[locale].authorMetaDescription, {
       name: author.name,
@@ -53,18 +56,18 @@ export default async function AuthorPage({ params }: PageProps<"/[locale]/author
   ]);
   if (!author) notFound();
   const content = blogContent[locale];
+  const breadcrumbs = [
+    { label: nav.home, href: localizePath(locale, routes.home) },
+    { label: nav.blog, href: localizePath(locale, routes.blog) },
+    { label: author.name },
+  ];
+  const graph = await authorGraph(locale, { author, posts, breadcrumbs });
 
   return (
     <div className="container-page flex flex-col gap-10 pt-6 pb-16 sm:gap-14 sm:pt-10 sm:pb-20">
+      <JsonLd data={graph} />
       <div className="flex flex-col gap-6">
-        <Breadcrumbs
-          label={ui.breadcrumbsLabel}
-          items={[
-            { label: nav.home, href: localizePath(locale, routes.home) },
-            { label: nav.blog, href: localizePath(locale, routes.blog) },
-            { label: author.name },
-          ]}
-        />
+        <Breadcrumbs label={ui.breadcrumbsLabel} items={breadcrumbs} />
         <AuthorProfile author={author} locale={locale} postCount={posts.length} />
       </div>
 

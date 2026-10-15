@@ -62,6 +62,7 @@ const defaultSettings: SettingsValues = {
       rubika: null,
       linkedin: null,
     },
+    location: null,
   },
   seo: {
     defaultTitle: { fa: siteConfig.name.fa, en: siteConfig.name.en },
@@ -102,6 +103,7 @@ const toSiteSettings = (values: SettingsValues, locale: Locale): SiteSettings =>
   address: pick(values.contact.address, locale),
   hours: pick(values.contact.hours, locale),
   socials: values.contact.socials,
+  location: values.contact.location,
   stats: values.stats,
   company: {
     legalName: pick(values.company.legalName, locale),

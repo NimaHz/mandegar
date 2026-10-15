@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { PageHero } from "@/components/layout/page-hero";
+import { JsonLd } from "@/components/seo/json-ld";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { FaqSection } from "@/features/support/components/faq-section";
 import { requestClientKey } from "@/features/warranty/client-key";
@@ -14,6 +15,8 @@ import { getDictionary } from "@/i18n/get-dictionary";
 import { getLocale } from "@/i18n/get-locale";
 import { localizePath } from "@/i18n/paths";
 import { routes } from "@/lib/routes";
+import { seoContent } from "@/lib/seo/content";
+import { serviceGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { api } from "@/services";
 
@@ -47,23 +50,36 @@ export default async function WarrantyPage({ searchParams }: PageProps<"/[locale
       : null,
   ]);
   const serverIssue = lookup?.status === "invalid" ? lookup.reason : null;
+  const breadcrumbs = [
+    { label: nav.home, href: localizePath(locale, routes.home) },
+    { label: nav.support, href: localizePath(locale, routes.support) },
+    { label: nav.warranty },
+  ];
+  const graph = code
+    ? null
+    : await serviceGraph(locale, {
+        path: routes.warranty,
+        name: content.hero.title,
+        description: content.hero.description,
+        breadcrumbs,
+        service: {
+          id: "warrantyService",
+          name: content.hero.title,
+          description: content.hero.description,
+          serviceType: seoContent[locale].warrantyServiceType,
+        },
+        faqTitle: content.faq.title,
+        faqs,
+      });
 
   return (
     <>
+      {graph && <JsonLd data={graph} />}
       <PageHero
         eyebrow={content.hero.eyebrow}
         title={content.hero.title}
         description={content.hero.description}
-        breadcrumbs={
-          <Breadcrumbs
-            label={ui.breadcrumbsLabel}
-            items={[
-              { label: nav.home, href: localizePath(locale, routes.home) },
-              { label: nav.support, href: localizePath(locale, routes.support) },
-              { label: nav.warranty },
-            ]}
-          />
-        }
+        breadcrumbs={<Breadcrumbs label={ui.breadcrumbsLabel} items={breadcrumbs} />}
       >
         <WarrantyForm
           key={code}

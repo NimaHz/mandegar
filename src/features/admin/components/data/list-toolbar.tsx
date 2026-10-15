@@ -1,6 +1,6 @@
 "use client";
 
-import { LoaderCircle, Search, X } from "lucide-react";
+import { ArrowDownUp, LoaderCircle, Search, X } from "lucide-react";
 import { parseAsString, useQueryStates } from "nuqs";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
@@ -23,21 +23,27 @@ export interface ToolbarFilter {
 interface ListToolbarProps {
   searchPlaceholder?: string;
   filters?: readonly ToolbarFilter[];
+  sort?: readonly Option[];
   children?: ReactNode;
   className?: string;
 }
 
 const SEARCH_DEBOUNCE_MS = 350;
+const SORT_KEY = "sort";
 
 export function ListToolbar({
   searchPlaceholder,
   filters = [],
+  sort,
   children,
   className,
 }: ListToolbarProps) {
   const { isPending, startTransition } = useSharedTransition();
   const parsers = Object.fromEntries(
-    ["q", "page", ...filters.map((filter) => filter.key)].map((key) => [key, parseAsString]),
+    ["q", "page", SORT_KEY, ...filters.map((filter) => filter.key)].map((key) => [
+      key,
+      parseAsString,
+    ]),
   );
   const [state, setState] = useQueryStates(parsers, {
     shallow: false,
@@ -48,6 +54,8 @@ export function ListToolbar({
   const [query, setQuery] = useState(state.q ?? "");
   const timer = useRef<number | undefined>(undefined);
   const active = filters.some((filter) => state[filter.key]) || Boolean(state.q);
+  const defaultSort = sort?.[0]?.value;
+  const sortValue = (sort?.find((option) => option.value === state.sort) ?? sort?.[0])?.value;
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
@@ -62,7 +70,13 @@ export function ListToolbar({
   const clear = () => {
     window.clearTimeout(timer.current);
     setQuery("");
-    void setState(Object.fromEntries(Object.keys(parsers).map((key) => [key, null])));
+    void setState(
+      Object.fromEntries(
+        Object.keys(parsers)
+          .filter((key) => key !== SORT_KEY)
+          .map((key) => [key, null]),
+      ),
+    );
   };
 
   return (
@@ -87,7 +101,7 @@ export function ListToolbar({
           />
         )}
       </label>
-      {(filters.length > 0 || children) && (
+      {(filters.length > 0 || sort || children) && (
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center lg:flex-[2]">
           {filters.map((filter) => (
             <label key={filter.key} className="min-w-0 sm:w-44">
@@ -113,6 +127,23 @@ export function ListToolbar({
               <X className="size-4" aria-hidden />
               {common.clearFilters}
             </button>
+          )}
+          {sort && defaultSort && (
+            <label className="min-w-0 sm:ms-auto sm:w-44">
+              <span className="sr-only">{common.sort}</span>
+              <Select
+                icon={ArrowDownUp}
+                options={sort}
+                value={sortValue}
+                onChange={(event) =>
+                  void setState({
+                    [SORT_KEY]: event.target.value === defaultSort ? null : event.target.value,
+                    page: null,
+                  })
+                }
+                className={cn(sortValue !== defaultSort && "border-primary/60 bg-primary-soft/40")}
+              />
+            </label>
           )}
         </div>
       )}

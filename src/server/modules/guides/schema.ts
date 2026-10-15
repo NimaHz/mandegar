@@ -5,7 +5,9 @@ import {
   localizedText,
   optionalFilter,
   slugSchema,
+  sortSchema,
 } from "@/server/lib/validation";
+import { adminSorts } from "@/types/admin";
 
 const aparatHash = z
   .string()
@@ -48,4 +50,5 @@ export const guidePatchSchema = guideInputSchema.partial();
 
 export const guidesQuerySchema = listQuerySchema.extend({
   published: optionalFilter(z.enum(["true", "false"]).transform((value) => value === "true")),
+  sort: sortSchema(adminSorts.guides),
 });

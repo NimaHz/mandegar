@@ -37,7 +37,7 @@ import { type ProductGuideRef, productNode } from "./jsonld/product";
 import { serviceNode } from "./jsonld/service";
 import type { JsonLdNode, JsonLdRef, MaybeNode } from "./jsonld/types";
 import { videoNode } from "./jsonld/video";
-import { webPageNode,type WebPageType } from "./jsonld/webpage";
+import { webPageNode, type WebPageType } from "./jsonld/webpage";
 import { ogImagePath } from "./og/targets";
 import { plainText, tehranIso } from "./text";
 import { absoluteUrl, localeUrl } from "./urls";
@@ -170,7 +170,7 @@ export const productGraph = (
     guide: ProductGuideRef | null;
     breadcrumbs: BreadcrumbEntry[];
     faqTitle: string;
-    service: ServiceText;
+    service?: ServiceText;
   },
 ) => {
   const { product } = input;
@@ -196,7 +196,7 @@ export const productGraph = (
       serviceNode({
         id: siteIds.afterSalesService,
         locale,
-        ...input.service,
+        ...(input.service ?? copy.afterSales),
         url: localeUrl(locale, routes.support),
         isRelatedTo: [ref(productId(locale, product.slug))],
       }),
@@ -252,6 +252,7 @@ export const serviceGraph = (
     service: ServiceText & { id: "warrantyService" | "afterSalesService"; phone?: string | null };
     faqTitle?: string;
     faqs?: QuestionEntry[];
+    breadcrumbs?: BreadcrumbEntry[];
   },
 ) => {
   const url = localeUrl(locale, input.path);
@@ -260,6 +261,7 @@ export const serviceGraph = (
     path: input.path,
     name: input.name,
     description: input.description,
+    breadcrumbs: input.breadcrumbs,
     mainEntity: ref(id),
     nodes: [
       serviceNode({ ...input.service, id, locale, url }),

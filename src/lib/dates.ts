@@ -31,3 +31,5 @@ export const currentJalaliYear = (date = new Date()) =>
   );
 
 export const jalaliToGregorianYear = (jalaliYear: number) => jalaliYear + 621;
+
+export const gregorianToJalaliYear = (gregorianYear: number) => gregorianYear - 621;

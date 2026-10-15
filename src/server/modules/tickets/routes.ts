@@ -104,8 +104,22 @@ export const ticketAdminRoutes = new Elysia({ prefix: "/admin/tickets" })
     params: idParamsSchema,
     body: ticketUpdateSchema,
   })
-  .post("/:id/messages", ({ actor, params, body }) => replyAsStaff(actor, params.id, body), {
-    can: "tickets:write",
-    params: idParamsSchema,
-    body: staffMessageSchema,
-  });
+  .post(
+    "/:id/messages",
+    ({ actor, params, body }) =>
+      replyAsStaff(
+        actor,
+        params.id,
+        parseOrThrow(staffMessageSchema, body),
+        filesOf(body.attachments),
+      ),
+    {
+      can: "tickets:write",
+      params: idParamsSchema,
+      body: t.Object({
+        body: t.String({ maxLength: 10000 }),
+        internal: t.Union([t.Boolean(), t.String({ maxLength: 5 })]),
+        attachments,
+      }),
+    },
+  );

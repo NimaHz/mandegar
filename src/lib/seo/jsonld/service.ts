@@ -46,8 +46,9 @@ export const serviceNode = ({
         "@type": "OfferCatalog",
         name,
         itemListElement: offers.map((offer) => ({
-          "@type": "Offer",
-          itemOffered: { "@type": "Service", name: offer },
+          "@type": "Service",
+          name: offer,
+          provider: ref(siteIds.organization),
         })),
       }
     : null,

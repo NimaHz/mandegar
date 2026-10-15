@@ -13,6 +13,7 @@ import type { Paginated } from "@/types/common";
 
 import { adminContent } from "../../content";
 import { faNumber } from "../../lib/format";
+import { sortOptions } from "../../lib/options";
 import { useAdminMutation } from "../../lib/use-admin-mutation";
 import { type Column, DataTable } from "../data/data-table";
 import { ListEmpty, ListFrame } from "../data/list-frame";
@@ -104,7 +105,7 @@ export function CategoriesList({ result, parents, filtered, canWrite }: Categori
           }
         />
       }
-      toolbar={<ListToolbar searchPlaceholder={copy.search} />}
+      toolbar={<ListToolbar searchPlaceholder={copy.search} sort={sortOptions("categories")} />}
     >
       {result.items.length === 0 ? (
         <ListEmpty filtered={filtered} icon={Shapes} title={copy.emptyTitle} />

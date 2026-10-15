@@ -6,7 +6,9 @@ import {
   optionalFilter,
   provinceSchema,
   slugSchema,
+  sortSchema,
 } from "@/server/lib/validation";
+import { adminSorts } from "@/types/admin";
 import { serviceCenterKinds } from "@/types/content";
 
 export const serviceCenterInputSchema = z.object({
@@ -38,4 +40,5 @@ export const serviceCenterPatchSchema = serviceCenterInputSchema.partial();
 export const serviceCentersQuerySchema = listQuerySchema.extend({
   province: optionalFilter(provinceSchema),
   kind: optionalFilter(z.enum(serviceCenterKinds)),
+  sort: sortSchema(adminSorts.serviceCenters),
 });

@@ -18,6 +18,7 @@ import {
 import type {
   AdminAuditLog,
   AdminAuditQuery,
+  AdminCounts,
   AdminListQuery,
   AdminOption,
   AdminUser,
@@ -122,6 +123,17 @@ const startOfToday = () => {
 };
 
 export const statsAdmin = {
+  counts: async (): Promise<AdminCounts> => {
+    const db = getDb();
+    const [[open], [unread]] = await Promise.all([
+      db
+        .select({ total: count() })
+        .from(tickets)
+        .where(notInArray(tickets.status, closedTicketStatuses)),
+      db.select({ total: count() }).from(contactMessages).where(eq(contactMessages.status, "new")),
+    ]);
+    return { openTickets: open?.total ?? 0, unreadMessages: unread?.total ?? 0 };
+  },
   get: async (): Promise<DashboardStats> => {
     const db = getDb();
     const openTickets = notInArray(tickets.status, closedTicketStatuses);

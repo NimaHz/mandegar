@@ -1,12 +1,18 @@
 import type { Metadata } from "next";
 
 import { PageHero } from "@/components/layout/page-hero";
+import { JsonLd } from "@/components/seo/json-ld";
 import { GlossaryJumpNav } from "@/features/glossary/components/glossary-jump-nav";
 import {
   GlossarySection,
   type ResolvedLink,
 } from "@/features/glossary/components/glossary-section";
-import { glossaryRelations, type GlossarySlug, glossarySlugs } from "@/features/glossary/config";
+import {
+  glossaryRelations,
+  type GlossarySlug,
+  glossarySlugs,
+  termAnchor,
+} from "@/features/glossary/config";
 import { glossaryContent } from "@/features/glossary/content";
 import { glossaryLetters } from "@/features/glossary/terms";
 import { fill } from "@/i18n/fill";
@@ -14,6 +20,7 @@ import { getLocale } from "@/i18n/get-locale";
 import { localizePath } from "@/i18n/paths";
 import { formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
+import { glossaryGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { api } from "@/services";
 
@@ -61,8 +68,21 @@ export default async function GlossaryPage() {
       return [{ href: localizePath(locale, path), label }];
     });
 
+  const graph = await glossaryGraph(
+    locale,
+    { name: content.title, description: content.description },
+    letters.flatMap((group) =>
+      group.terms.map((entry) => ({
+        term: entry.term,
+        definition: entry.definition,
+        anchor: termAnchor(entry.slug),
+      })),
+    ),
+  );
+
   return (
     <>
+      <JsonLd data={graph} />
       <PageHero eyebrow={content.eyebrow} title={content.title} description={content.description}>
         <p className="rounded-full bg-primary-soft px-4 py-1.5 text-label font-bold text-primary">
           {fill(content.termCount, { count: formatNumber(locale, glossarySlugs.length) })}

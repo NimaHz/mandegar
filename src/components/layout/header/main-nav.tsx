@@ -35,7 +35,8 @@ export function MainNav({ categories }: { categories: NavCategory[] }) {
     isNavActive(pathname, { href: routes.products }) ||
     pathname.startsWith("/categories/") ||
     isNavActive(pathname, { href: routes.compare });
-  const supportActive = supportNav.some((item) => isNavActive(pathname, item));
+  const primaryActive = primaryNav.some((item) => isNavActive(pathname, item));
+  const supportActive = !primaryActive && supportNav.some((item) => isNavActive(pathname, item));
 
   return (
     <nav aria-label={header.navLabel} className="flex min-w-0 items-center gap-0.5">

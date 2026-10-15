@@ -1,26 +1,37 @@
 import "server-only";
 
-import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, type SQL } from "drizzle-orm";
 
 import { getDb } from "@/server/db/client";
 import { products } from "@/server/db/schema";
-import type {
-  AdminOption,
-  AdminProduct,
-  AdminProductListItem,
-  AdminProductsQuery,
+import {
+  type AdminOption,
+  type AdminProduct,
+  type AdminProductListItem,
+  type AdminProductsQuery,
+  type AdminSort,
+  adminSorts,
 } from "@/types/admin";
 
 import { orderByIds } from "../db/mappers";
 import {
+  collatedName,
   iso,
   isoOrNull,
   mediaRefs,
   paginate,
   searchColumns,
+  sortedBy,
   toMediaRef,
   toMediaRefOrNull,
 } from "./shared";
+
+const orders: Record<AdminSort<"products">, SQL[]> = {
+  "updated-desc": [desc(products.updatedAt)],
+  "created-desc": [desc(products.createdAt)],
+  "name-asc": [asc(collatedName(products.name))],
+  "model-asc": [asc(products.modelCode)],
+};
 
 const whereOf = (query: Partial<AdminProductsQuery>) =>
   and(
@@ -87,7 +98,7 @@ export const productsAdmin = {
           .select({ id: products.id })
           .from(products)
           .where(where)
-          .orderBy(desc(products.updatedAt))
+          .orderBy(...sortedBy(orders, query.sort ?? adminSorts.products[0], products.id))
           .limit(limit)
           .offset(offset),
       async (rows) => {

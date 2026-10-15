@@ -1,12 +1,33 @@
 import "server-only";
 
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq, type SQL } from "drizzle-orm";
 
 import { getDb } from "@/server/db/client";
 import { guides } from "@/server/db/schema";
-import type { AdminGuide, AdminGuideListItem, AdminListQuery, AdminOption } from "@/types/admin";
+import {
+  type AdminGuide,
+  type AdminGuideListItem,
+  type AdminGuidesQuery,
+  type AdminOption,
+  type AdminSort,
+  adminSorts,
+} from "@/types/admin";
 
-import { iso, isoOrNull, mediaRefs, paginate, searchColumns } from "./shared";
+import {
+  collatedName,
+  iso,
+  isoOrNull,
+  mediaRefs,
+  paginate,
+  searchColumns,
+  sortedBy,
+} from "./shared";
+
+const orders: Record<AdminSort<"guides">, SQL[]> = {
+  "updated-desc": [desc(guides.updatedAt)],
+  "created-desc": [desc(guides.createdAt)],
+  "name-asc": [asc(collatedName(guides.title))],
+};
 
 type GuideRow = typeof guides.$inferSelect;
 
@@ -28,7 +49,7 @@ const guideMediaIds = (row: GuideRow) => [
 ];
 
 export const guidesAdmin = {
-  list: async (query: Partial<AdminListQuery & { published: boolean | null }> = {}) => {
+  list: async (query: Partial<AdminGuidesQuery> = {}) => {
     const where = and(
       searchColumns(query.q, { localized: [guides.title], text: [guides.slug] }),
       typeof query.published === "boolean" ? eq(guides.published, query.published) : undefined,
@@ -41,7 +62,7 @@ export const guidesAdmin = {
           .select()
           .from(guides)
           .where(where)
-          .orderBy(desc(guides.updatedAt))
+          .orderBy(...sortedBy(orders, query.sort ?? adminSorts.guides[0], guides.id))
           .limit(limit)
           .offset(offset),
       (rows) => rows.map(toListItem),

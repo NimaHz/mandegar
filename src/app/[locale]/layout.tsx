@@ -8,10 +8,20 @@ import { rootViewport } from "@/config/viewport";
 import { localeMeta, locales } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getLocale } from "@/i18n/get-locale";
+import { OG_HEIGHT, OG_WIDTH, ogImagePath } from "@/lib/seo/og/targets";
 import { themeBootScript } from "@/lib/theme";
 import { fontVariables } from "@/styles/fonts";
 
 export const dynamicParams = false;
+
+const siteVerification = (): Metadata["verification"] => {
+  const google = process.env.GOOGLE_SITE_VERIFICATION;
+  const bing = process.env.BING_SITE_VERIFICATION;
+  return {
+    ...(google && { google }),
+    ...(bing && { other: { "msvalidate.01": bing } }),
+  };
+};
 
 export const viewport = rootViewport;
 
@@ -28,6 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
     description: site.description,
     applicationName: site.name,
     creator: siteConfig.latinName,
+    publisher: siteConfig.latinName,
     openGraph: {
       type: "website",
       locale: localeMeta[locale].ogLocale,
@@ -37,9 +48,28 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: site.name,
       title: site.title,
       description: site.description,
+      images: [
+        {
+          url: ogImagePath(locale, { kind: "page", key: "home" }),
+          width: OG_WIDTH,
+          height: OG_HEIGHT,
+        },
+      ],
     },
-    robots: { index: true, follow: true },
-    formatDetection: { telephone: false },
+    twitter: { card: "summary_large_image" },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
+    },
+    formatDetection: { telephone: false, email: false, address: false },
+    verification: siteVerification(),
   };
 }
 

@@ -17,6 +17,7 @@ import type { Paginated } from "@/types/common";
 
 import { adminContent } from "../../content";
 import { faNumber, formatBytes } from "../../lib/format";
+import { sortOptions } from "../../lib/options";
 import { acceptFor, uploadMedia } from "../../lib/upload";
 import { notifyError } from "../../lib/use-admin-mutation";
 import { ListEmpty, ListFrame } from "../data/list-frame";
@@ -129,7 +130,11 @@ export function MediaLibrary({
       toolbar={
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <KindFilter />
-          <ListToolbar searchPlaceholder={copy.search} className="xl:w-[26rem]" />
+          <ListToolbar
+            searchPlaceholder={copy.search}
+            sort={sortOptions("media")}
+            className="xl:w-[34rem]"
+          />
         </div>
       }
     >

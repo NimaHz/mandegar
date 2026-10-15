@@ -17,8 +17,10 @@ import { EnergyBadge } from "@/features/catalog/components/energy-badge";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { localizePath } from "@/i18n/paths";
+import { formatDate, gregorianToJalaliYear } from "@/lib/dates";
 import { formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
+import { productAnswer } from "@/lib/seo/answers";
 import type { ProductDetail } from "@/types/catalog";
 
 import { productContent } from "../content";
@@ -30,9 +32,16 @@ interface ProductHeaderProps {
   locale: Locale;
   url: string;
   breadcrumbs: ReactNode;
+  updatedLabel: string;
 }
 
-export function ProductHeader({ product, locale, url, breadcrumbs }: ProductHeaderProps) {
+export function ProductHeader({
+  product,
+  locale,
+  url,
+  breadcrumbs,
+  updatedLabel,
+}: ProductHeaderProps) {
   const { header } = productContent[locale];
   const catalog = product.downloads.find((download) => download.kind === "catalog");
 
@@ -97,13 +106,26 @@ export function ProductHeader({ product, locale, url, breadcrumbs }: ProductHead
                   <span className="inline-flex items-center gap-1.5 text-label font-semibold text-muted">
                     <CalendarDays className="size-4" aria-hidden />
                     {fill(header.releaseYear, {
-                      year: formatNumber(locale, product.releaseYear, { useGrouping: false }),
+                      year: formatNumber(
+                        locale,
+                        locale === "fa"
+                          ? gregorianToJalaliYear(product.releaseYear)
+                          : product.releaseYear,
+                        { useGrouping: false },
+                      ),
                     })}
                   </span>
                 )}
               </div>
               <p className="max-w-xl text-lead leading-8 font-medium text-pretty text-ink-soft sm:text-lg sm:leading-9">
                 {product.tagline}
+              </p>
+              <p className="max-w-xl text-sm leading-7 text-pretty text-body">
+                {productAnswer(locale, product)}
+              </p>
+              <p className="text-caption font-semibold text-muted">
+                {updatedLabel}:{" "}
+                <time dateTime={product.updatedAt}>{formatDate(locale, product.updatedAt)}</time>
               </p>
             </div>
 

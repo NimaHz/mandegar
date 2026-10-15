@@ -22,6 +22,11 @@ export interface ImageAsset {
   height: number;
 }
 
+export interface GeoPoint {
+  lat: number;
+  lng: number;
+}
+
 export interface DocumentAsset {
   href: string;
   size: number;

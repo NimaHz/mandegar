@@ -1,16 +1,36 @@
 import "server-only";
 
-import { and, asc, count, desc, eq, inArray, isNull, lt, notInArray, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  inArray,
+  isNull,
+  lt,
+  notInArray,
+  or,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 
 import { formatTrackingCode } from "@/lib/tracking-code";
 import { formatWarrantyCode } from "@/lib/warranty-code";
 import { getDb } from "@/server/db/client";
 import { ticketMessages, tickets } from "@/server/db/schema";
-import type { AdminTicket, AdminTicketListItem, AdminTicketsQuery } from "@/types/admin";
+import {
+  type AdminAttachment,
+  type AdminSort,
+  adminSorts,
+  type AdminTicket,
+  type AdminTicketListItem,
+  type AdminTicketsQuery,
+} from "@/types/admin";
 import type { TicketStatus } from "@/types/support";
 
-import { orderByIds } from "../db/mappers";
-import { iso, isoOrNull, mediaRefs, paginate, searchColumns } from "./shared";
+import { mediaIndex, orderByIds } from "../db/mappers";
+import { collated, iso, isoOrNull, paginate, searchColumns, sortedBy, toMediaRef } from "./shared";
 
 export const closedTicketStatuses: TicketStatus[] = ["resolved", "closed", "rejected"];
 
@@ -28,6 +48,16 @@ export const breachingTickets = () => {
 };
 
 const priorityRank = sql`case ${tickets.priority} when 'urgent' then 0 when 'high' then 1 when 'normal' then 2 else 3 end`;
+
+const nextDue = sql`case when ${tickets.firstRespondedAt} is null then ${tickets.firstResponseDue} else ${tickets.resolutionDue} end`;
+
+const orders: Record<AdminSort<"tickets">, SQL[]> = {
+  "priority-desc": [asc(priorityRank), desc(tickets.createdAt)],
+  "due-asc": [asc(inArray(tickets.status, closedTicketStatuses)), asc(nextDue)],
+  "updated-desc": [desc(tickets.updatedAt)],
+  "created-desc": [desc(tickets.createdAt)],
+  "name-asc": [asc(collated(tickets.name)), desc(tickets.createdAt)],
+};
 
 const whereOf = (query: Partial<AdminTicketsQuery>) =>
   and(
@@ -89,7 +119,7 @@ const ticketIds = (query: Partial<AdminTicketsQuery>, limit: number, offset: num
     .select({ id: tickets.id })
     .from(tickets)
     .where(whereOf(query))
-    .orderBy(priorityRank, desc(tickets.createdAt))
+    .orderBy(...sortedBy(orders, query.sort ?? adminSorts.tickets[0], tickets.id))
     .limit(limit)
     .offset(offset);
 
@@ -99,14 +129,25 @@ const messagesOf = async (ticketId: string) => {
     orderBy: () => [asc(ticketMessages.createdAt)],
     with: { author: { columns: { id: true, name: true } } },
   });
-  const files = await mediaRefs(rows.flatMap((row) => row.attachmentMediaIds));
+  const files = await mediaIndex(rows.flatMap((row) => row.attachmentMediaIds));
   return rows.map((row) => ({
     id: row.id,
     authorType: row.authorType,
     author: row.author,
     body: row.body,
     internal: row.internal,
-    attachments: row.attachmentMediaIds.flatMap((id) => files[id] ?? []),
+    attachments: row.attachmentMediaIds.flatMap((id): AdminAttachment[] => {
+      const file = files.get(id);
+      return file
+        ? [
+            {
+              ...toMediaRef(file),
+              name: file.originalName ?? file.storageKey.split("/").at(-1) ?? file.storageKey,
+              size: file.size,
+            },
+          ]
+        : [];
+    }),
     createdAt: iso(row.createdAt),
   }));
 };

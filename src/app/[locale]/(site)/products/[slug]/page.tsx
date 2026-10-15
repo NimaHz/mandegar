@@ -108,6 +108,7 @@ export default async function ProductPage({ params }: PageProps<"/[locale]/produ
       <ProductHeader
         product={product}
         locale={locale}
+        updatedLabel={dictionary.common.updatedAt}
         url={absoluteUrl(localizePath(locale, path))}
         breadcrumbs={<Breadcrumbs label={dictionary.ui.breadcrumbsLabel} items={breadcrumbs} />}
       />

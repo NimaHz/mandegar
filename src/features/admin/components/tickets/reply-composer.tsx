@@ -1,7 +1,7 @@
 "use client";
 
-import { LoaderCircle, Lock, MessageSquareReply, Send, Sparkles } from "lucide-react";
-import { useId, useState } from "react";
+import { LoaderCircle, Lock, MessageSquareReply, Paperclip, Send, Sparkles } from "lucide-react";
+import { type DragEvent, useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
@@ -15,6 +15,7 @@ import { openTicketStatuses } from "../../config";
 import { adminContent } from "../../content";
 import { faNumber } from "../../lib/format";
 import { useAdminMutation } from "../../lib/use-admin-mutation";
+import { ReplyAttachments, useReplyAttachments } from "./reply-attachments";
 
 const copy = adminContent.tickets.composer;
 const { statuses } = adminContent;
@@ -33,12 +34,17 @@ const afterOptions: TicketStatus[] = [
 const isStatus = (value: string): value is TicketStatus =>
   ticketStatuses.some((status) => status === value);
 
+const carriesFiles = (event: DragEvent) => event.dataTransfer.types.includes("Files");
+
 export function ReplyComposer({ ticket }: { ticket: AdminTicket }) {
   const id = useId();
   const { run, pending } = useAdminMutation();
   const [mode, setMode] = useState<Mode>("reply");
   const [body, setBody] = useState("");
   const [after, setAfter] = useState<TicketStatus | "">("");
+  const [dragging, setDragging] = useState(false);
+  const attachments = useReplyAttachments();
+  const { files } = attachments;
   const internal = mode === "note";
   const open = openTicketStatuses.includes(ticket.status);
   const text = body.trim();
@@ -49,7 +55,12 @@ export function ReplyComposer({ ticket }: { ticket: AdminTicket }) {
   const send = async () => {
     if (!text || pending) return;
     const saved = await run(
-      () => apiClient.api.admin.tickets({ id: ticket.id }).messages.post({ body: text, internal }),
+      () =>
+        apiClient.api.admin.tickets({ id: ticket.id }).messages.post({
+          body: text,
+          internal,
+          ...(files.length > 0 ? { attachments: files } : {}),
+        }),
       {
         success: internal ? copy.noted : copy.sent,
         refresh: !(after && !internal),
@@ -57,20 +68,54 @@ export function ReplyComposer({ ticket }: { ticket: AdminTicket }) {
     );
     if (!saved) return;
     setBody("");
+    attachments.clear();
     if (after && !internal && after !== ticket.status) {
       await run(() => apiClient.api.admin.tickets({ id: ticket.id }).patch({ status: after }));
     }
     setAfter("");
   };
 
+  const onDragOver = (event: DragEvent<HTMLElement>) => {
+    if (!carriesFiles(event)) return;
+    event.preventDefault();
+    setDragging(true);
+  };
+
+  const onDragLeave = (event: DragEvent<HTMLElement>) => {
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+    setDragging(false);
+  };
+
+  const onDrop = (event: DragEvent<HTMLElement>) => {
+    if (!carriesFiles(event)) return;
+    event.preventDefault();
+    setDragging(false);
+    if (!pending) attachments.add([...event.dataTransfer.files]);
+  };
+
   return (
     <section
       aria-labelledby={`${id}-title`}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
       className={cn(
-        "flex flex-col gap-3 card p-4 shadow-card transition-colors sm:p-5",
+        "relative flex flex-col gap-3 card p-4 shadow-card transition-colors sm:p-5",
         internal && "border-warning/40 bg-warning-soft/40",
+        dragging && "border-primary ring-3 ring-primary/15",
       )}
     >
+      {dragging && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-2 z-10 grid place-items-center rounded-field border-2 border-dashed border-primary bg-primary-soft/85"
+        >
+          <span className="flex items-center gap-2 text-sm font-extrabold text-primary">
+            <Paperclip className="size-4.5" />
+            {copy.dropFiles}
+          </span>
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2
           id={`${id}-title`}
@@ -123,6 +168,12 @@ export function ReplyComposer({ ticket }: { ticket: AdminTicket }) {
         maxLength={MAX}
         rows={5}
         onChange={(event) => setBody(event.target.value)}
+        onPaste={(event) => {
+          const pasted = [...event.clipboardData.files];
+          if (pasted.length === 0) return;
+          event.preventDefault();
+          attachments.add(pasted);
+        }}
         onKeyDown={(event) => {
           if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
             event.preventDefault();
@@ -132,6 +183,7 @@ export function ReplyComposer({ ticket }: { ticket: AdminTicket }) {
         placeholder={internal ? copy.notePlaceholder : copy.replyPlaceholder}
         className="min-h-32 w-full resize-y rounded-field border border-line-strong bg-raised px-3.5 py-3 text-sm leading-7 text-ink outline-none focus:border-primary focus:ring-3 focus:ring-primary/15"
       />
+      <ReplyAttachments attachments={attachments} disabled={pending} />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <p className="flex-1 text-caption text-muted">
           {internal ? copy.noteHint : copy.shortcut} · {faNumber(body.length)}/{faNumber(MAX)}

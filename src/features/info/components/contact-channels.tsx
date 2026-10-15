@@ -9,7 +9,7 @@ import { fill } from "@/i18n/fill";
 import { cn } from "@/lib/cn";
 import type { SiteSettings } from "@/types/content";
 
-import { type ContactContent, contactLocation } from "../content";
+import type { ContactContent } from "../content";
 import { mapLinks } from "../map-links";
 
 interface ContactChannelsProps {
@@ -42,7 +42,7 @@ const rowClass = "flex items-center gap-3 rounded-field bg-raised px-3.5 py-2.5 
 export function ContactChannels({ locale, content, settings, className }: ContactChannelsProps) {
   const { channels } = content;
   const socials = socialLinksFor(settings.socials, locale);
-  const maps = mapLinks(contactLocation);
+  const maps = settings.location ? mapLinks(settings.location) : null;
 
   return (
     <aside aria-labelledby="contact-channels" className={cn("flex flex-col gap-4", className)}>
@@ -92,29 +92,33 @@ export function ContactChannels({ locale, content, settings, className }: Contac
             </ul>
           </ChannelGroup>
         )}
-        {settings.address && (
+        {(settings.address || maps) && (
           <ChannelGroup icon={MapPin} title={channels.address}>
-            <address className="text-sm leading-7 font-semibold text-ink not-italic">
-              {settings.address}
-            </address>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { href: maps.neshan, label: channels.neshan },
-                { href: maps.balad, label: channels.balad },
-              ].map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={channels.mapHint}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-control border border-line-strong bg-surface px-3 text-label font-bold text-ink transition-colors hover:border-primary hover:text-primary"
-                >
-                  {link.label}
-                  <ExternalLink className="size-3.5" aria-hidden />
-                </a>
-              ))}
-            </div>
+            {settings.address && (
+              <address className="text-sm leading-7 font-semibold text-ink not-italic">
+                {settings.address}
+              </address>
+            )}
+            {maps && (
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { href: maps.neshan, label: channels.neshan },
+                  { href: maps.balad, label: channels.balad },
+                ].map((link) => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={channels.mapHint}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-control border border-line-strong bg-surface px-3 text-label font-bold text-ink transition-colors hover:border-primary hover:text-primary"
+                  >
+                    {link.label}
+                    <ExternalLink className="size-3.5" aria-hidden />
+                  </a>
+                ))}
+              </div>
+            )}
           </ChannelGroup>
         )}
         {settings.hours && (

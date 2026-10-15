@@ -115,7 +115,7 @@ const copy: Record<Locale, LlmsCopy> = {
       guide: "Installation guide",
       faq: "Questions and answers",
       warrantyCodes:
-        "Warranty codes: every product carries a 9-character warranty code such as W5K-3M9-XT0, printed on the product label and the warranty card. Enter it at {url} to see the model, production year, warranty months, coverage and exclusions. Letters are not case-sensitive and dashes are optional.",
+        "Warranty codes: every product carries a 9-character warranty code such as W5K-3M9-XTS, printed on the product label and the warranty card. Enter it at {url} to see the model, production year, warranty months, coverage and exclusions. Letters are not case-sensitive and dashes are optional.",
       serviceRequest:
         "Service requests: fill in the form at {url} with your contact details, address, the warranty code if you have one, and a description. You get a tracking code such as T5K3-M9XT and a private link. Track the request at {track}. If you smell gas, close the gas valve, open the windows and call 194.",
       hours: "Hours",
@@ -185,7 +185,7 @@ const copy: Record<Locale, LlmsCopy> = {
       guide: "راهنمای نصب",
       faq: "پرسش و پاسخ",
       warrantyCodes:
-        "کد گارانتی: روی برچسب هر محصول و کارت گارانتی آن یک کد ۹ نویسه‌ای مثل W5K-3M9-XT0 چاپ شده است. این کد را در {url} وارد کنید تا مدل، سال تولید، مدت گارانتی، موارد تحت پوشش و استثناها را ببینید. حروف کوچک و بزرگ فرقی ندارند و خط تیره اختیاری است.",
+        "کد گارانتی: روی برچسب هر محصول و کارت گارانتی آن یک کد ۹ نویسه‌ای مثل W5K-3M9-XTS چاپ شده است. این کد را در {url} وارد کنید تا مدل، سال تولید، مدت گارانتی، موارد تحت پوشش و استثناها را ببینید. حروف کوچک و بزرگ فرقی ندارند و خط تیره اختیاری است.",
       serviceRequest:
         "درخواست خدمات: فرم {url} را با مشخصات تماس، نشانی، کد گارانتی (اگر دارید) و شرح مشکل پر کنید. یک کد پیگیری مثل T5K3-M9XT و یک لینک خصوصی دریافت می‌کنید. پیگیری درخواست از {track} انجام می‌شود. اگر بوی گاز حس می‌کنید، شیر گاز را ببندید، پنجره‌ها را باز کنید و با ۱۹۴ تماس بگیرید.",
       hours: "ساعت کاری",

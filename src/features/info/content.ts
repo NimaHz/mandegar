@@ -487,8 +487,6 @@ export const aboutContent: Record<Locale, AboutContent> = {
   },
 };
 
-export const contactLocation = { lat: 35.70095, lng: 51.40128 } as const;
-
 export interface ContactContent {
   metaTitle: string;
   metaDescription: string;

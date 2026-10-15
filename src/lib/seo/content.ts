@@ -10,7 +10,7 @@ interface SeoContent {
   minutes: string;
   readingMinutes: string;
   productAnswer: string;
-  productAnswerFacts: string;
+  productAnswerFact: string;
   listJoin: string;
   listLast: string;
   chooseQuestion: string;
@@ -19,6 +19,8 @@ interface SeoContent {
   rangeAnswer: string;
   warrantySame: string;
   warrantyRange: string;
+  afterSales: { name: string; description: string; serviceType: string };
+  warrantyServiceType: string;
 }
 
 export const seoContent: Record<Locale, SeoContent> = {
@@ -33,7 +35,8 @@ export const seoContent: Record<Locale, SeoContent> = {
     readingMinutes: "{count} دقیقه مطالعه",
     productAnswer:
       "{name} مدلی از {brand} در دسته {category} است و {months} ماه گارانتی رسمی دارد.",
-    productAnswerFacts: "مشخصات کلیدی: {facts}.",
+    productAnswerFact:
+      "{name} مدلی از {brand} در دسته {category} با {fact} است و {months} ماه گارانتی رسمی دارد.",
     listJoin: "، ",
     listLast: " و ",
     chooseQuestion: "چطور از میان مدل‌های {category} انتخاب کنم؟",
@@ -42,6 +45,13 @@ export const seoContent: Record<Locale, SeoContent> = {
     rangeAnswer: "{count} مدل: {models}. {warranty}",
     warrantySame: "همه این مدل‌ها {months} ماه گارانتی رسمی دارند.",
     warrantyRange: "گارانتی رسمی این مدل‌ها از {min} تا {max} ماه است.",
+    afterSales: {
+      name: "خدمات پس از فروش ماندگار",
+      description:
+        "تعمیر، کمک در نصب، قطعات یدکی و مشاوره فنی برای محصولات ماندگار و برندهای همکار در سراسر ایران.",
+      serviceType: "خدمات پس از فروش و گارانتی",
+    },
+    warrantyServiceType: "استعلام اصالت و پوشش گارانتی",
   },
   en: {
     homeKicker: "Durable home appliances, made in Iran",
@@ -53,8 +63,9 @@ export const seoContent: Record<Locale, SeoContent> = {
     minutes: "{count} min",
     readingMinutes: "{count} min read",
     productAnswer:
-      "{name} is a {brand} model in the {category} category with an official {months}-month warranty.",
-    productAnswerFacts: "Key figures: {facts}.",
+      "{name} is a {brand} model in the {category} category, with an official {months}-month warranty.",
+    productAnswerFact:
+      "{name} is a {brand} model in the {category} category, with {fact} and an official {months}-month warranty.",
     listJoin: ", ",
     listLast: " and ",
     chooseQuestion: "How do I choose a model in {category}?",
@@ -63,5 +74,12 @@ export const seoContent: Record<Locale, SeoContent> = {
     rangeAnswer: "{count} models: {models}. {warranty}",
     warrantySame: "All of them carry an official {months}-month warranty.",
     warrantyRange: "Their official warranty runs from {min} to {max} months.",
+    afterSales: {
+      name: "Mandegar after-sales service",
+      description:
+        "Repairs, installation help, spare parts and technical advice for Mandegar and partner-brand products across Iran.",
+      serviceType: "After-sales and warranty service",
+    },
+    warrantyServiceType: "Warranty verification and coverage check",
   },
 };

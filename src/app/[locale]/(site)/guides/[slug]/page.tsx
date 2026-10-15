@@ -2,6 +2,7 @@ import { CalendarCheck, Clock, ListOrdered } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { JsonLd } from "@/components/seo/json-ld";
 import { VideoPlayer } from "@/components/shared/video-player";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { GuideAside } from "@/features/guides/components/guide-aside";
@@ -16,6 +17,7 @@ import { localizePath } from "@/i18n/paths";
 import { formatDate } from "@/lib/dates";
 import { formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
+import { guideGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { api } from "@/services";
 
@@ -36,6 +38,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: routes.guide(guide.slug),
+    og: { kind: "guide", slug: guide.slug, updatedAt: guide.updatedAt },
     title: guide.title,
     description: guide.summary,
     type: "article",
@@ -80,24 +83,24 @@ export default async function GuidePage({ params }: PageProps<"/[locale]/guides/
       icon: ListOrdered,
       label: fill(content.card.steps, { count: formatNumber(locale, guide.steps.length) }),
     },
-    {
-      icon: CalendarCheck,
-      label: fill(detail.updated, { date: formatDate(locale, guide.updatedAt) }),
-    },
   ];
+  const breadcrumbs = [
+    { label: nav.home, href: localizePath(locale, routes.home) },
+    { label: nav.guides, href: localizePath(locale, routes.guides) },
+    { label: guide.title },
+  ];
+  const graph = await guideGraph(locale, {
+    guide,
+    breadcrumbs,
+    stepAnchor: (index) => `step-${index + 1}`,
+  });
 
   return (
     <article>
+      <JsonLd data={graph} />
       <header className="bg-glow bg-dots">
         <div className="container-page flex flex-col gap-4 pt-8 pb-8 sm:pt-12 sm:pb-10">
-          <Breadcrumbs
-            label={ui.breadcrumbsLabel}
-            items={[
-              { label: nav.home, href: localizePath(locale, routes.home) },
-              { label: nav.guides, href: localizePath(locale, routes.guides) },
-              { label: guide.title },
-            ]}
-          />
+          <Breadcrumbs label={ui.breadcrumbsLabel} items={breadcrumbs} />
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <span className="eyebrow">{detail.eyebrow}</span>
             {guide.categories.map((category) => (
@@ -122,6 +125,12 @@ export default async function GuidePage({ params }: PageProps<"/[locale]/guides/
                 {fact.label}
               </li>
             ))}
+            <li className="inline-flex items-center gap-1.5">
+              <CalendarCheck className="size-4 text-primary" aria-hidden />
+              <time dateTime={guide.updatedAt}>
+                {fill(detail.updated, { date: formatDate(locale, guide.updatedAt) })}
+              </time>
+            </li>
           </ul>
         </div>
       </header>

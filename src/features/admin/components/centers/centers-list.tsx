@@ -9,7 +9,7 @@ import type { AdminOption, AdminServiceCenter } from "@/types/admin";
 import type { Paginated } from "@/types/common";
 
 import { adminContent } from "../../content";
-import { enumOptions } from "../../lib/options";
+import { enumOptions, sortOptions } from "../../lib/options";
 import { useAdminMutation } from "../../lib/use-admin-mutation";
 import { useSheetTarget } from "../../lib/use-sheet-target";
 import { type Column, DataTable } from "../data/data-table";
@@ -116,6 +116,7 @@ export function CentersList({ result, categories, filtered, canWrite }: CentersL
             },
             { key: "kind", label: copy.columns.kind, options: enumOptions(statuses.centerKind) },
           ]}
+          sort={sortOptions("serviceCenters")}
         />
       }
     >

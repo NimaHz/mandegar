@@ -1,13 +1,26 @@
 import "server-only";
 
-import { asc, count, eq, inArray } from "drizzle-orm";
+import { asc, count, desc, eq, inArray, type SQL } from "drizzle-orm";
 
 import { getDb } from "@/server/db/client";
 import { categories, products } from "@/server/db/schema";
-import type { AdminCategory, AdminListQuery, AdminOption } from "@/types/admin";
+import {
+  type AdminCategoriesQuery,
+  type AdminCategory,
+  type AdminOption,
+  type AdminSort,
+  adminSorts,
+} from "@/types/admin";
 
 import { orderByIds } from "../db/mappers";
-import { iso, paginate, searchColumns, toMediaRefOrNull } from "./shared";
+import { collatedName, iso, paginate, searchColumns, sortedBy, toMediaRefOrNull } from "./shared";
+
+const orders: Record<AdminSort<"categories">, SQL[]> = {
+  "order-asc": [asc(categories.sortOrder), asc(categories.slug)],
+  "updated-desc": [desc(categories.updatedAt)],
+  "created-desc": [desc(categories.createdAt)],
+  "name-asc": [asc(collatedName(categories.name))],
+};
 
 const productCounts = async (ids: string[]) => {
   if (ids.length === 0) return new Map<string, number>();
@@ -45,7 +58,7 @@ const hydrate = async (ids: string[]) => {
 };
 
 export const categoriesAdmin = {
-  list: async (query: Partial<AdminListQuery> = {}) => {
+  list: async (query: Partial<AdminCategoriesQuery> = {}) => {
     const where = searchColumns(query.q, { localized: [categories.name], text: [categories.slug] });
     return paginate(
       query.page,
@@ -55,7 +68,7 @@ export const categoriesAdmin = {
           .select({ id: categories.id })
           .from(categories)
           .where(where)
-          .orderBy(asc(categories.sortOrder), asc(categories.slug))
+          .orderBy(...sortedBy(orders, query.sort ?? adminSorts.categories[0], categories.id))
           .limit(limit)
           .offset(offset),
       (rows) => hydrate(rows.map((row) => row.id)),

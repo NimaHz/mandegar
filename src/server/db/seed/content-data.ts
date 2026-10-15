@@ -1003,6 +1003,7 @@ const contact: ContactSettings = {
     rubika: null,
     linkedin: null,
   },
+  location: { lat: 35.7009, lng: 51.3899 },
 };
 
 export const settingsSeed = (models: number, serviceCenters: number): SettingsValues => ({

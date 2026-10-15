@@ -8,8 +8,9 @@ import {
   optionalFilter,
   optionalLocalizedText,
   slugSchema,
+  sortSchema,
 } from "@/server/lib/validation";
-import { contentStatuses } from "@/types/admin";
+import { adminSorts, contentStatuses } from "@/types/admin";
 import { downloadKinds, energyClasses } from "@/types/catalog";
 
 const specKey = z
@@ -113,6 +114,7 @@ export const productsQuerySchema = listQuerySchema.extend({
   status: optionalFilter(z.enum(contentStatuses)),
   categoryId: optionalFilter(z.uuid()),
   brandId: optionalFilter(z.uuid()),
+  sort: sortSchema(adminSorts.products),
 });
 
 export type ProductInput = z.input<typeof productInputSchema>;

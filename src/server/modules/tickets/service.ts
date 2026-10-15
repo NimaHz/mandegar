@@ -43,7 +43,7 @@ const OPEN_TICKETS_PER_PHONE = 3;
 const RESOLVED_STATUSES: TicketStatus[] = ["resolved", "closed", "rejected"];
 const TRACK_FAILURES = { limit: 20, windowSec: 600 };
 
-const ingestAttachments = async (files: File[]) => {
+const ingestAttachments = async (files: File[], uploadedBy: string | null = null) => {
   if (files.length > TICKET_ATTACHMENT_LIMIT) {
     throw new ValidationFailure({ attachments: `At most ${TICKET_ATTACHMENT_LIMIT} files` });
   }
@@ -53,6 +53,7 @@ const ingestAttachments = async (files: File[]) => {
       kinds: ["image", "document"],
       allowedMimes: ticketAttachmentTypes,
       limits: { image: TICKET_ATTACHMENT_MAX_BYTES, document: TICKET_ATTACHMENT_MAX_BYTES },
+      uploadedBy,
     });
     ids.push(row.id);
   }
@@ -296,8 +297,10 @@ export const replyAsStaff = async (
   actor: AdminActor,
   id: string,
   input: z.output<typeof staffMessageSchema>,
+  files: File[],
 ) => {
   const before = await requireTicket(id);
+  const attachmentMediaIds = await ingestAttachments(files, actor.id);
   const now = new Date();
   await getDb().transaction(async (tx) => {
     await tx.insert(ticketMessages).values({
@@ -306,6 +309,7 @@ export const replyAsStaff = async (
       authorId: actor.id,
       body: input.body,
       internal: input.internal,
+      attachmentMediaIds,
     });
     await tx
       .update(tickets)

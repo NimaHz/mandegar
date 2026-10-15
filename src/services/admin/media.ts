@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, type AnyColumn, count, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, type AnyColumn, asc, count, desc, eq, inArray, or, type SQL, sql } from "drizzle-orm";
 
 import { getDb } from "@/server/db/client";
 import {
@@ -16,11 +16,31 @@ import {
   ticketMessages,
   users,
 } from "@/server/db/schema";
-import type { AdminMedia, AdminMediaQuery, AdminMediaUsage } from "@/types/admin";
+import {
+  type AdminMedia,
+  type AdminMediaQuery,
+  type AdminMediaUsage,
+  type AdminSort,
+  adminSorts,
+} from "@/types/admin";
 import type { LocalizedText } from "@/types/common";
 
 import { orderByIds } from "../db/mappers";
-import { iso, type MediaRow, paginate, searchColumns, toMediaRef } from "./shared";
+import {
+  collated,
+  iso,
+  type MediaRow,
+  paginate,
+  searchColumns,
+  sortedBy,
+  toMediaRef,
+} from "./shared";
+
+const orders: Record<AdminSort<"media">, SQL[]> = {
+  "created-desc": [desc(media.createdAt)],
+  "updated-desc": [desc(media.updatedAt)],
+  "name-asc": [asc(collated(sql`coalesce(${media.originalName}, ${media.storageKey})`))],
+};
 
 const hydrate = async (rows: MediaRow[]): Promise<AdminMedia[]> => {
   const uploaderIds = [...new Set(rows.flatMap((row) => (row.uploadedBy ? [row.uploadedBy] : [])))];
@@ -73,7 +93,7 @@ export const mediaAdmin = {
           .select()
           .from(media)
           .where(where)
-          .orderBy(desc(media.createdAt))
+          .orderBy(...sortedBy(orders, query.sort ?? adminSorts.media[0], media.id))
           .limit(limit)
           .offset(offset),
       hydrate,

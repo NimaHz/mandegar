@@ -14,7 +14,7 @@ import type { Paginated } from "@/types/common";
 
 import { contactStatusTone } from "../../config";
 import { adminContent } from "../../content";
-import { enumOptions } from "../../lib/options";
+import { enumOptions, sortOptions } from "../../lib/options";
 import { useAdminMutation } from "../../lib/use-admin-mutation";
 import { type Column, DataTable } from "../data/data-table";
 import { ListEmpty, ListFrame } from "../data/list-frame";
@@ -179,6 +179,7 @@ export function MessagesList({ result, filtered, canWrite }: MessagesListProps) 
               options: enumOptions(statuses.department),
             },
           ]}
+          sort={sortOptions("messages")}
         />
       }
     >

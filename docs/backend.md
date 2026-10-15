@@ -40,7 +40,7 @@ Every error response has this shape:
 Security rules for every request:
 
 - Non-GET requests must send `Origin` equal to `APP_ORIGIN`, or `Sec-Fetch-Site: same-origin` when there is no `Origin`.
-- Bodies are capped at 1 MB. The caps are 30 MB for `POST /api/tickets` and ticket replies, and 210 MB for `POST /api/admin/media`.
+- Bodies are capped at 1 MB. The caps are 30 MB for `POST /api/tickets`, customer and staff ticket replies, and 210 MB for `POST /api/admin/media`.
 - The client IP is read from `X-Real-IP`, then the first `X-Forwarded-For` entry. It is hashed with HMAC(`SESSION_SECRET`) into a `clientKey` used for rate limits. The reverse proxy must set these headers.
 - API responses send `Cache-Control: no-store`.
 
@@ -231,9 +231,25 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
 
 `adminApi` (`src/services/admin/index.ts`, server-only) returns raw `LocalizedText` DTOs from `src/types/admin.ts`. Every `list` accepts a `Partial<…Query>` with defaults and returns `Paginated<T>` of 20 items. Every `get` returns `T | null`.
 
+Products, categories, guides, posts, tickets, service centres, media, contact messages and warranty codes accept a `sort` query (`?sort=` on the endpoint, `sort` in the `adminApi` query). The allowed values per entity are in `adminSorts` (`src/types/admin.ts`); the first one is the default, and a missing or unknown value falls back to it. Persian names sort with the `fa-x-icu` collation.
+
+| Entity           | Values (default first)                                                 |
+| ---------------- | ---------------------------------------------------------------------- |
+| `products`       | `updated-desc`, `created-desc`, `name-asc`, `model-asc`                |
+| `categories`     | `order-asc`, `updated-desc`, `created-desc`, `name-asc`                |
+| `guides`         | `updated-desc`, `created-desc`, `name-asc`                             |
+| `posts`          | `updated-desc`, `created-desc`, `name-asc`                             |
+| `tickets`        | `priority-desc`, `due-asc`, `updated-desc`, `created-desc`, `name-asc` |
+| `serviceCenters` | `province-asc`, `updated-desc`, `created-desc`, `name-asc`             |
+| `media`          | `created-desc`, `updated-desc`, `name-asc`                             |
+| `messages`       | `created-desc`, `updated-desc`, `name-asc`                             |
+| `warrantyCodes`  | `year-desc`, `updated-desc`, `created-desc`, `model-asc`               |
+
+`due-asc` orders open tickets by their next SLA deadline (first response until answered, then resolution) and puts finished tickets last. `name-asc` sorts tickets and messages by the sender's name, and media by file name.
+
 | Member             | Functions                                                                                                                       |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| `stats`            | `get(): DashboardStats`                                                                                                         |
+| `stats`            | `get(): DashboardStats`, `counts(): AdminCounts` (`{ openTickets, unreadMessages }`, two count queries for the sidebar)         |
 | `products`         | `list(AdminProductsQuery)`, `get(id): AdminProduct` (with `images` and a `media` map for downloads), `options(): AdminOption[]` |
 | `categories`       | `list(AdminListQuery)`, `get(id): AdminCategory`, `options()`, `childCount(id)`                                                 |
 | `brands`           | `list`, `get(id): AdminBrand`, `options()`                                                                                      |
@@ -342,7 +358,7 @@ Each module's Zod input schemas are in `src/server/modules/<name>/schema.ts` and
 | GET /api/admin/tickets                                              | tickets:read                 | `?q&page&type&status&priority&assigneeId&breaching=true&open=true`                                                                         | `Paginated<AdminTicketListItem>`, urgent first                                   |
 | GET /api/admin/tickets/:id                                          | tickets:read                 | none                                                                                                                                       | `AdminTicket` (includes internal notes)                                          |
 | PATCH /api/admin/tickets/:id                                        | tickets:write                | `{ status?, priority?, assigneeId? }`                                                                                                      | `AdminTicket`                                                                    |
-| POST /api/admin/tickets/:id/messages                                | tickets:write                | `{ body, internal }`                                                                                                                       | `AdminTicket`                                                                    |
+| POST /api/admin/tickets/:id/messages                                | tickets:write                | JSON `{ body, internal }`, or multipart `body`, `internal` (`"true"`/`"false"`) and `attachments` (ticket attachment rules)                | `AdminTicket`                                                                    |
 | GET /api/admin/messages, GET /:id                                   | messages:read                | `?q&page&status&department`                                                                                                                | `AdminContactMessage`                                                            |
 | PATCH /api/admin/messages/:id, DELETE /:id                          | messages:write               | `{ status: "new" \| "read" \| "archived" }`                                                                                                | `AdminContactMessage`                                                            |
 | GET/POST /api/admin/service-centers, GET/PATCH/DELETE /:id          | content:read / content:write | `serviceCenterInputSchema` (`?province&kind` filters)                                                                                      | `AdminServiceCenter`                                                             |
@@ -350,7 +366,7 @@ Each module's Zod input schemas are in `src/server/modules/<name>/schema.ts` and
 | GET/POST /api/admin/posts, GET/PATCH/DELETE /:id                    | content:read / content:write | `postInputSchema` (`?kind&status&authorId`); `publishedAt` is set on first publish unless given                                            | `AdminPost`                                                                      |
 | GET/POST /api/admin/authors, GET/PATCH/DELETE /:id, GET /options    | content:read / content:write | `authorInputSchema` (deleting is refused while posts exist)                                                                                | `AdminAuthor`                                                                    |
 | GET /api/admin/settings                                             | settings:write               | none                                                                                                                                       | `SettingsValues`                                                                 |
-| PUT /api/admin/settings/contact, /seo, /stats, /company             | settings:write               | the matching schema from `modules/settings/schema.ts`                                                                                      | the saved value                                                                  |
+| PUT /api/admin/settings/contact, /seo, /stats, /company             | settings:write               | the matching schema from `modules/settings/schema.ts`; `contact.location` is `{ lat, lng }` inside Iran or `null`                          | the saved value                                                                  |
 | GET /api/admin/users, GET /:id                                      | users:manage                 | `?q&page`                                                                                                                                  | `AdminUser`                                                                      |
 | GET /api/admin/users/assignees                                      | tickets:read                 | none                                                                                                                                       | `AdminOption[]` (active users who can work tickets)                              |
 | POST /api/admin/users                                               | users:manage                 | `{ name, email, role }`                                                                                                                    | `{ user: AdminUser, temporaryPassword }`; the user must change it on first login |
@@ -362,7 +378,7 @@ Each module's Zod input schemas are in `src/server/modules/<name>/schema.ts` and
 
 - **SLA due dates:** set at creation. First response is due in 1 business day. Resolution is due in 7 business days for warranty-repair, 10 for repair, 5 for spare-parts, 2 for technical, 3 for complaint and 10 for suggestion. Business days skip Friday, using Asia/Tehran time.
 - **Breaching:** an open ticket whose first response or resolution is overdue.
-- **Staff replies:** the first non-internal reply sets `firstRespondedAt` and moves `new` to `in-review`.
+- **Staff replies:** the first non-internal reply sets `firstRespondedAt` and moves `new` to `in-review`. Staff can attach up to 5 files with the same rules as customers (jpg/png/webp/pdf, 5 MB each, images re-encoded). Attachments on public replies appear in `PublicTicket.messages[].attachments`; internal notes and their files never do.
 - **Status changes:** setting `resolved` stamps `resolvedAt`, and `closed` or `rejected` stamps `closedAt`. Each change adds a public system message whose body is `status:<TicketStatus>`; render it as a localized status event.
 - **SMS:** the customer gets one on creation (`ticket-received`), on staff replies, and on status changes (`ticket-updated`).
 

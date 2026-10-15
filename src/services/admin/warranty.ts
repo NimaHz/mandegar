@@ -1,20 +1,33 @@
 import "server-only";
 
-import { and, asc, count, desc, eq, inArray, lte } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, lte, type SQL } from "drizzle-orm";
 
 import { formatWarrantyCode } from "@/lib/warranty-code";
 import { getDb } from "@/server/db/client";
 import { products, warrantyCodes, warrantyPolicies } from "@/server/db/schema";
-import type {
-  AdminListQuery,
-  AdminOption,
-  AdminWarrantyCode,
-  AdminWarrantyCodesQuery,
-  AdminWarrantyPolicy,
+import {
+  type AdminListQuery,
+  type AdminOption,
+  type AdminSort,
+  adminSorts,
+  type AdminWarrantyCode,
+  type AdminWarrantyCodesQuery,
+  type AdminWarrantyPolicy,
 } from "@/types/admin";
 
 import { orderByIds } from "../db/mappers";
-import { iso, paginate, searchColumns } from "./shared";
+import { iso, paginate, searchColumns, sortedBy } from "./shared";
+
+const codeOrders: Record<AdminSort<"warrantyCodes">, SQL[]> = {
+  "year-desc": [
+    desc(warrantyCodes.productionYear),
+    asc(products.modelCode),
+    asc(warrantyCodes.code),
+  ],
+  "updated-desc": [desc(warrantyCodes.updatedAt)],
+  "created-desc": [desc(warrantyCodes.createdAt)],
+  "model-asc": [asc(products.modelCode), desc(warrantyCodes.productionYear)],
+};
 
 const codeWhere = (query: Partial<AdminWarrantyCodesQuery>) =>
   and(
@@ -60,7 +73,7 @@ const codeIds = (query: Partial<AdminWarrantyCodesQuery>, limit: number, offset:
     .from(warrantyCodes)
     .innerJoin(products, eq(products.id, warrantyCodes.productId))
     .where(codeWhere(query))
-    .orderBy(desc(warrantyCodes.productionYear), asc(products.modelCode), asc(warrantyCodes.code))
+    .orderBy(...sortedBy(codeOrders, query.sort ?? adminSorts.warrantyCodes[0], warrantyCodes.id))
     .limit(limit)
     .offset(offset);
 
