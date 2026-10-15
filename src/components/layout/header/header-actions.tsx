@@ -30,22 +30,8 @@ export function HeaderActions() {
       <button
         type="button"
         onClick={openSearch}
-        className="group hidden h-10 w-56 items-center gap-2.5 rounded-control border border-line bg-surface px-3 text-sm text-muted transition-colors hover:border-line-strong hover:text-ink-soft 2xl:flex"
-      >
-        <Search className="size-4.5" aria-hidden />
-        <span className="flex-1 text-start">{header.search}</span>
-        <kbd
-          dir="ltr"
-          className="rounded-md border border-line bg-raised px-1.5 py-0.5 font-code text-2xs text-muted"
-        >
-          {header.searchShortcut}
-        </kbd>
-      </button>
-      <button
-        type="button"
-        onClick={openSearch}
         aria-label={header.search}
-        className={cn(iconButtonClass, "2xl:hidden")}
+        className={iconButtonClass}
       >
         <Search className="size-5" strokeWidth={1.8} aria-hidden />
       </button>

@@ -1,5 +1,28 @@
 import type { NextConfig } from "next";
 
+const isProduction = process.env.NODE_ENV === "production";
+const servesHttps = (process.env.NEXT_PUBLIC_SITE_URL ?? "").startsWith("https://");
+
+const contentSecurityPolicy = [
+  ["default-src", "'self'"],
+  ["script-src", "'self'", "'unsafe-inline'", ...(isProduction ? [] : ["'unsafe-eval'"])],
+  ["style-src", "'self'", "'unsafe-inline'"],
+  ["img-src", "'self'", "data:", "blob:"],
+  ["font-src", "'self'"],
+  ["connect-src", "'self'", ...(isProduction ? [] : ["ws:"])],
+  ["media-src", "'self'"],
+  ["frame-src", "https://www.aparat.com"],
+  ["worker-src", "'self'", "blob:"],
+  ["manifest-src", "'self'"],
+  ["object-src", "'none'"],
+  ["base-uri", "'self'"],
+  ["form-action", "'self'"],
+  ["frame-ancestors", "'none'"],
+  ...(isProduction && servesHttps ? [["upgrade-insecure-requests"]] : []),
+]
+  .map((directive) => directive.join(" "))
+  .join("; ");
+
 const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -13,14 +36,30 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   reactStrictMode: true,
   reactCompiler: true,
   typedRoutes: true,
   poweredByHeader: false,
   agentRules: false,
+  serverExternalPackages: ["@resvg/resvg-js"],
+  outputFileTracingIncludes: { "/og/**": ["./src/assets/fonts/vazirmatn/static/*.ttf"] },
+  outputFileTracingExcludes: {
+    "*": [
+      "./uploads/**",
+      "./public/**",
+      "./docs/**",
+      "./deploy/**",
+      "./drizzle/**",
+      "./.github/**",
+      "./*.md",
+    ],
+  },
   images: {
     formats: ["image/avif", "image/webp"],
+    localPatterns: [{ pathname: "/uploads/**" }],
     remotePatterns: [],
+    minimumCacheTTL: 2_592_000,
   },
   experimental: {
     globalNotFound: true,
@@ -29,6 +68,10 @@ const nextConfig: NextConfig = {
   headers() {
     return Promise.resolve([
       { source: "/:path*", headers: securityHeaders },
+      {
+        source: "/((?!uploads/).*)",
+        headers: [{ key: "Content-Security-Policy", value: contentSecurityPolicy }],
+      },
       {
         source: "/admin/:path*",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],

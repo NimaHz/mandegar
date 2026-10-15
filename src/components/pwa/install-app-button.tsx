@@ -7,7 +7,11 @@ import { cn } from "@/lib/cn";
 
 import { useInstallPrompt } from "./use-install-prompt";
 
-export function InstallAppButton({ className }: { className?: string }) {
+interface InstallAppButtonProps {
+  className?: string;
+}
+
+export function InstallAppButton({ className }: InstallAppButtonProps) {
   const { ui } = useDictionary();
   const { canInstall, install } = useInstallPrompt();
 

@@ -217,7 +217,7 @@ export function Toaster() {
     <section
       aria-label={ui.toastRegion}
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-70 flex flex-col items-center gap-2 px-4 lg:bottom-6 lg:items-start lg:ps-6"
+      className="pointer-events-none fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-70 flex flex-col items-center gap-2 px-4 lg:bottom-6 lg:items-end lg:pe-6"
     >
       <AnimatePresence initial={false} mode="popLayout">
         {items.map((item) => (

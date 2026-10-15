@@ -3,8 +3,10 @@ import "@/styles/globals.css";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { AppProviders } from "@/components/providers/app-providers";
 import { siteConfig } from "@/config/site";
 import { rootViewport } from "@/config/viewport";
+import { fa } from "@/i18n/dictionaries/fa";
 import { themeBootScript } from "@/lib/theme";
 import { fontVariables } from "@/styles/fonts";
 
@@ -29,7 +31,11 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
-      <body className="min-h-dvh overflow-x-clip">{children}</body>
+      <body className="min-h-dvh overflow-x-clip">
+        <AppProviders locale="fa" dictionary={fa}>
+          {children}
+        </AppProviders>
+      </body>
     </html>
   );
 }

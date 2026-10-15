@@ -1,0 +1,131 @@
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+
+import { apiClient } from "@/lib/api-client";
+import type { AdminWarrantyPolicy } from "@/types/admin";
+
+import { adminContent } from "../../content";
+import { applyFieldErrors } from "../../lib/server-errors";
+import { useAdminMutation } from "../../lib/use-admin-mutation";
+import { zodOptions } from "../../lib/zod";
+import {
+  blankText,
+  type PolicyFormInput,
+  policyFormSchema,
+  type PolicyFormValues,
+} from "../../schemas";
+import { NumberInput, TextInput } from "../form/fields";
+import { FormSection } from "../form/form-section";
+import { FormSheet } from "../form/form-sheet";
+import { LangScope } from "../form/lang-scope";
+import { LocalizedTextarea } from "../form/localized-field";
+import { Repeater } from "../form/repeater";
+
+const copy = adminContent.policies;
+
+interface PolicySheetProps {
+  policy: AdminWarrantyPolicy | null;
+  onClose: () => void;
+}
+
+export function PolicySheet({ policy, onClose }: PolicySheetProps) {
+  const { run, pending } = useAdminMutation();
+  const form = useForm<PolicyFormInput, unknown, PolicyFormValues>({
+    resolver: zodResolver(policyFormSchema, zodOptions),
+    defaultValues: {
+      name: policy?.name ?? "",
+      months: policy?.months ?? 18,
+      partsMonths: policy?.partsMonths ?? null,
+      startRule: policy?.startRule ?? blankText(),
+      coverage: policy?.coverage ?? [],
+      exclusions: policy?.exclusions ?? [],
+      effectiveFrom: policy?.effectiveFrom ?? new Date().toISOString().slice(0, 10),
+    },
+  });
+
+  const onSubmit = form.handleSubmit(async (values) => {
+    const saved = await run(
+      () =>
+        policy
+          ? apiClient.api.admin["warranty-policies"]({ id: policy.id }).patch(values)
+          : apiClient.api.admin["warranty-policies"].post(values),
+      { success: copy.saved, onError: (error) => applyFieldErrors(form.setError, error) },
+    );
+    if (saved) {
+      form.reset(form.getValues());
+      onClose();
+    }
+  });
+
+  return (
+    <FormSheet
+      open
+      wide
+      onClose={onClose}
+      title={policy ? copy.sheetEdit : copy.sheetCreate}
+      description={policy?.name}
+      form={form}
+      onSubmit={onSubmit}
+      pending={pending}
+    >
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <TextInput name="name" label={copy.fields.name} placeholder="Mandegar Care 18" />
+        <TextInput name="effectiveFrom" type="date" dir="ltr" label={copy.fields.effectiveFrom} />
+        <NumberInput name="months" label={copy.fields.months} />
+        <NumberInput
+          name="partsMonths"
+          label={copy.fields.partsMonths}
+          hint={copy.fields.partsHint}
+        />
+      </div>
+      <LangScope>
+        <LocalizedTextarea
+          name="startRule"
+          label={copy.fields.startRule}
+          maxLength={400}
+          rows={2}
+        />
+        <FormSection title={copy.fields.coverage} localized>
+          <Repeater
+            name="coverage"
+            addLabel={copy.addCoverage}
+            emptyLabel={copy.emptyCoverage}
+            newItem={() => ({ ...blankText() })}
+            max={30}
+            compact
+          >
+            {(index) => (
+              <LocalizedTextarea
+                name={`coverage.${index}`}
+                label={copy.fields.item}
+                maxLength={300}
+                rows={2}
+              />
+            )}
+          </Repeater>
+        </FormSection>
+        <FormSection title={copy.fields.exclusions} localized>
+          <Repeater
+            name="exclusions"
+            addLabel={copy.addExclusion}
+            emptyLabel={copy.emptyCoverage}
+            newItem={() => ({ ...blankText() })}
+            max={30}
+            compact
+          >
+            {(index) => (
+              <LocalizedTextarea
+                name={`exclusions.${index}`}
+                label={copy.fields.item}
+                maxLength={300}
+                rows={2}
+              />
+            )}
+          </Repeater>
+        </FormSection>
+      </LangScope>
+    </FormSheet>
+  );
+}

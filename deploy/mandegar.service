@@ -1,0 +1,37 @@
+[Unit]
+Description=Mandegar web application
+Documentation=file:///opt/mandegar/current/docs/deploy.md
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mandegar
+Group=mandegar
+WorkingDirectory=/opt/mandegar/current
+EnvironmentFile=/etc/mandegar/mandegar.env
+Environment=NODE_ENV=production
+Environment=HOSTNAME=127.0.0.1
+Environment=PORT=3000
+Environment=UPLOAD_DIR=/var/lib/mandegar/uploads
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+KillSignal=SIGTERM
+LimitNOFILE=65536
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+ReadWritePaths=/var/lib/mandegar /opt/mandegar/current/.next
+
+[Install]
+WantedBy=multi-user.target

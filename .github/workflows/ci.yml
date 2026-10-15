@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: mandegar
+          POSTGRES_PASSWORD: mandegar
+          POSTGRES_DB: mandegar
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mandegar -d mandegar"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://mandegar:mandegar@localhost:5432/mandegar
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      APP_ORIGIN: http://localhost:3000
+      SESSION_SECRET: ci-only-session-secret-0123456789abcdef
+      UPLOAD_DIR: uploads
+      SEED_OWNER_EMAIL: owner@mandegar.example
+      SEED_OWNER_PASSWORD: ci-only-owner-password
+      SMS_DRIVER: none
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Format
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Migrate
+        run: pnpm db:migrate
+
+      - name: Seed
+        run: pnpm db:seed
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Smoke test standalone server
+        run: |
+          pnpm standalone:assemble
+          PORT=3100 HOSTNAME=127.0.0.1 UPLOAD_DIR="$PWD/uploads" node .next/standalone/server.js &
+          for attempt in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:3100/api/health && break
+            sleep 1
+          done
+          for path in / /en /products /manifest.webmanifest /sw.js /robots.txt /sitemap.xml; do
+            curl -fsS -o /dev/null -w "%{http_code} $path\n" "http://127.0.0.1:3100$path"
+          done
