@@ -11,7 +11,7 @@ import { LogoMark } from "./logo-mark";
 interface LogoProps {
   locale: Locale;
   size?: "sm" | "md" | "lg";
-  tone?: "duo" | "light";
+  tone?: "color" | "light";
   homeLabel: string;
   className?: string;
 }
@@ -22,7 +22,7 @@ const sizes = {
   lg: { mark: "size-12", name: "text-[2rem]", latin: "text-[0.6875rem]" },
 } as const;
 
-export function Logo({ locale, size = "md", tone = "duo", homeLabel, className }: LogoProps) {
+export function Logo({ locale, size = "md", tone = "color", homeLabel, className }: LogoProps) {
   const name = siteConfig.name[locale];
   const light = tone === "light";
 
@@ -33,17 +33,17 @@ export function Logo({ locale, size = "md", tone = "duo", homeLabel, className }
       className={cn("group inline-flex shrink-0 items-center gap-2.5", className)}
     >
       <LogoMark
-        tone={light ? "mono" : "duo"}
+        tone={light ? "mono" : "color"}
         className={cn(
           sizes[size].mark,
           light && "text-white",
-          "transition-transform duration-700 ease-(--ease-out-expo) group-hover:rotate-[-8deg]",
+          "transition-transform duration-1000 ease-(--ease-out-expo) group-hover:rotate-[360deg]",
         )}
       />
       <span aria-hidden className="flex flex-col leading-none">
         <span
           className={cn(
-            "font-display font-extrabold tracking-tight",
+            "font-logo font-extrabold",
             sizes[size].name,
             light ? "text-white" : "text-ink",
           )}
@@ -54,7 +54,7 @@ export function Logo({ locale, size = "md", tone = "duo", homeLabel, className }
           <span
             dir="ltr"
             className={cn(
-              "mt-1 font-code font-medium tracking-[0.32em] uppercase",
+              "mt-1.5 font-logo font-extrabold tracking-[0.34em] uppercase",
               sizes[size].latin,
               light ? "text-white/70" : "text-muted",
             )}

@@ -8,6 +8,7 @@ import { AboutProcess } from "@/features/info/components/about-process";
 import { AboutQuality } from "@/features/info/components/about-quality";
 import { AboutStats } from "@/features/info/components/about-stats";
 import { AboutStory } from "@/features/info/components/about-story";
+import { AboutSymbol } from "@/features/info/components/about-symbol";
 import { AboutValues } from "@/features/info/components/about-values";
 import { CompanyFacts } from "@/features/info/components/company-facts";
 import { aboutContent } from "@/features/info/content";
@@ -49,6 +50,7 @@ export default async function AboutPage() {
       <JsonLd data={graph} />
       <AboutHero locale={locale} />
       <AboutStory locale={locale} />
+      <AboutSymbol locale={locale} />
       <AboutValues locale={locale} />
       <AboutStats locale={locale} stats={settings.stats} />
       <AboutProcess locale={locale} />

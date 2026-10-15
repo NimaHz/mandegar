@@ -18,6 +18,14 @@ export const estedad = localFont({
   src: [{ path: "../assets/fonts/estedad/estedad-variable.woff2", weight: "100 900" }],
 });
 
+export const kufam = localFont({
+  variable: "--font-kufam",
+  display: "swap",
+  preload: true,
+  fallback: ["Tahoma", "system-ui", "sans-serif"],
+  src: [{ path: "../assets/fonts/kufam/kufam-extrabold.woff2", weight: "800" }],
+});
+
 export const jetbrainsMono = localFont({
   variable: "--font-mono-code",
   display: "swap",
@@ -32,4 +40,9 @@ export const jetbrainsMono = localFont({
   ],
 });
 
-export const fontVariables = cn(vazirmatn.variable, estedad.variable, jetbrainsMono.variable);
+export const fontVariables = cn(
+  vazirmatn.variable,
+  estedad.variable,
+  kufam.variable,
+  jetbrainsMono.variable,
+);

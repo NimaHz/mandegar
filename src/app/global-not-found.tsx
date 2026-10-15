@@ -82,12 +82,12 @@ export default async function GlobalNotFound() {
           >
             <LogoMark className="size-11" />
             <span className="flex flex-col leading-none">
-              <span className="font-display text-2xl font-extrabold text-ink">
+              <span className="font-logo text-2xl font-extrabold text-ink">
                 {siteConfig.name[locale]}
               </span>
               <span
                 dir="ltr"
-                className="mt-1 font-code text-[0.625rem] font-medium tracking-[0.32em] text-muted uppercase"
+                className="mt-1.5 font-logo text-[0.625rem] font-extrabold tracking-[0.34em] text-muted uppercase"
               >
                 {siteConfig.latinName}
               </span>

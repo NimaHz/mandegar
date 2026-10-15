@@ -7,6 +7,7 @@
   --font-sans: var(--font-vazirmatn), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-estedad), var(--font-vazirmatn), ui-sans-serif, sans-serif;
   --font-code: var(--font-mono-code), ui-monospace, monospace;
+  --font-logo: var(--font-kufam), var(--font-estedad), ui-sans-serif, sans-serif;
 
   --color-primary: var(--primary);
   --color-primary-strong: var(--primary-strong);
@@ -16,6 +17,10 @@
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
   --color-on-accent: var(--on-accent);
+  --color-mark-warm: var(--mark-warm);
+  --color-mark-hot: var(--mark-hot);
+  --color-mark-cold: var(--mark-cold);
+  --color-mark-cool: var(--mark-cool);
 
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
@@ -341,6 +346,10 @@
     --accent: #e8a33d;
     --accent-strong: #a8521f;
     --on-accent: #2a1a05;
+    --mark-warm: #e8a33d;
+    --mark-hot: #d2692a;
+    --mark-cold: #083c47;
+    --mark-cool: #0e5e6f;
 
     --ink: #12232b;
     --ink-soft: #1f3640;
@@ -388,6 +397,10 @@
     --accent: #f0b357;
     --accent-strong: #e39a6a;
     --on-accent: #2a1a05;
+    --mark-warm: #f0b357;
+    --mark-hot: #e8814a;
+    --mark-cold: #2f9aa8;
+    --mark-cool: #6ccbd6;
 
     --ink: #eaf3f4;
     --ink-soft: #cfdfe2;

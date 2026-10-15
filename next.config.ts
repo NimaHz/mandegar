@@ -43,7 +43,12 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   agentRules: false,
   serverExternalPackages: ["@resvg/resvg-js"],
-  outputFileTracingIncludes: { "/og/**": ["./src/assets/fonts/vazirmatn/static/*.ttf"] },
+  outputFileTracingIncludes: {
+    "/og/**": [
+      "./src/assets/fonts/vazirmatn/static/*.ttf",
+      "./src/assets/fonts/kufam/static/*.ttf",
+    ],
+  },
   outputFileTracingExcludes: {
     "*": [
       "./uploads/**",

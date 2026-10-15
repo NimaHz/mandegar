@@ -20,11 +20,9 @@ export function AdminBrand({
       onClick={onNavigate}
       className={cn("group flex items-center gap-2.5 rounded-control", className)}
     >
-      <LogoMark className="size-9 transition-transform duration-700 ease-(--ease-out-expo) group-hover:rotate-[-8deg]" />
+      <LogoMark className="size-9 transition-transform duration-1000 ease-(--ease-out-expo) group-hover:rotate-[360deg]" />
       <span className="flex flex-col leading-none">
-        <span className="font-display text-xl font-extrabold tracking-tight text-ink">
-          {siteConfig.name.fa}
-        </span>
+        <span className="font-logo text-xl font-extrabold text-ink">{siteConfig.name.fa}</span>
         <span className="mt-1 text-caption font-bold text-muted">{adminContent.shell.title}</span>
       </span>
     </Link>

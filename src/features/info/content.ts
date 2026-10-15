@@ -66,6 +66,13 @@ export interface AboutContent {
     milestonesLabel: string;
     milestones: Milestone[];
   };
+  symbol: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    figureLabel: string;
+    items: { title: string; body: string }[];
+  };
   values: { eyebrow: string; title: string; items: IconCopy[] };
   stats: {
     eyebrow: string;
@@ -149,6 +156,31 @@ export const aboutContent: Record<Locale, AboutContent> = {
           year: 1404,
           title: "کد گارانتی قابل‌استعلام",
           body: "هر دستگاه با کدی یکتا عرضه می‌شود که وضعیت گارانتی را نشان می‌دهد.",
+        },
+      ],
+    },
+    symbol: {
+      eyebrow: "نشان ماندگار",
+      title: "چهار کاشی، یک چرخش",
+      description:
+        "نشان ماندگار از چهار کاشی یکسان ساخته شده که گرد یک مرکز می‌چرخند. هیچ حرفی در آن نیست؛ پس روی هر دستگاهی می‌نشیند و با هر نامی معنا دارد.",
+      figureLabel: "نشان ماندگار: چهار کاشی گرم و خنک که گرد یک مرکز می‌چرخند",
+      items: [
+        {
+          title: "بادگیر، از بالا",
+          body: "بادگیر چهارطرفه از بالا مربعی است که به چهار دریچه تقسیم شده و از هر سو باد می‌گیرد. قرن‌هاست خانه‌های یزد را بی‌برق خنک می‌کند؛ ماندگار یعنی همین.",
+        },
+        {
+          title: "پره‌های در حرکت",
+          body: "گوشه‌های گرد هر چهار کاشی به یک سو می‌چرخند؛ مثل پره‌هایی که هوا را در کولر و گرما را در بخاری به جریان می‌اندازند.",
+        },
+        {
+          title: "چهار فصل",
+          body: "دو کاشی گرم برای ماه‌های سرد و دو کاشی خنک برای ماه‌های گرم؛ ماندگار در هر فصل کنار خانه است، سال‌به‌سال.",
+        },
+        {
+          title: "چهار سوی ایران",
+          body: "چهار سو یعنی همه‌جا؛ از شمال تا جنوب و از شرق تا غرب، سرویس‌کار مجاز و قطعه اصلی نزدیک توست.",
         },
       ],
     },
@@ -344,6 +376,31 @@ export const aboutContent: Record<Locale, AboutContent> = {
           year: 1404,
           title: "Checkable warranty codes",
           body: "Each unit ships with a unique code that shows its warranty status.",
+        },
+      ],
+    },
+    symbol: {
+      eyebrow: "The Mandegar symbol",
+      title: "Four tiles, one turn",
+      description:
+        "The Mandegar symbol is four identical tiles turning around one centre. It has no letters, so it sits on any appliance and keeps its meaning under any name.",
+      figureLabel: "The Mandegar symbol: four warm and cool tiles turning around one centre",
+      items: [
+        {
+          title: "A windcatcher, from above",
+          body: "Seen from above, a four-sided Persian windcatcher is a square split into four shafts, each catching the wind from a different side. They have cooled homes in Yazd for centuries without power: lasting, by design.",
+        },
+        {
+          title: "Blades in motion",
+          body: "The rounded corners of all four tiles turn the same way, like the blades that move air through a cooler and warmth through a heater.",
+        },
+        {
+          title: "Four seasons",
+          body: "Two warm tiles for the cold months and two cool tiles for the hot months: Mandegar is there in every season, year after year.",
+        },
+        {
+          title: "Every side of Iran",
+          body: "Four sides mean everywhere: from north to south and east to west, an authorised technician and genuine parts are close to you.",
         },
       ],
     },

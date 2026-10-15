@@ -1,6 +1,6 @@
 import { createElement } from "react";
 
-import { LOGO_MARK_PATHS } from "@/components/brand/logo-mark";
+import { LOGO_MARK_TILES } from "@/components/brand/logo-mark";
 import { type Locale, localeMeta } from "@/i18n/config";
 
 import { ogPalette } from "./palette";
@@ -32,8 +32,9 @@ const titleSize = (title: string, compact: boolean) => {
 function Mark({ size }: { size: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 48 48">
-      <path d={LOGO_MARK_PATHS.warm} fill={ogPalette.warm} />
-      <path d={LOGO_MARK_PATHS.cool} fill={ogPalette.cool} />
+      {LOGO_MARK_TILES.map((tile) => (
+        <path key={tile.tone} d={tile.d} fill={ogPalette.mark[tile.tone]} />
+      ))}
     </svg>
   );
 }
@@ -108,10 +109,14 @@ export function OgCardView({ card }: { card: OgCard }) {
       >
         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
           <Mark size={60} />
-          <div style={{ display: "flex", fontSize: 36, fontWeight: 800 }}>{card.brand}</div>
+          <div style={{ display: "flex", fontFamily: "Kufam", fontSize: 38, fontWeight: 800 }}>
+            {card.brand}
+          </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ display: "flex", fontSize: 28, fontWeight: 500, color: ogPalette.warm }}>
+          <div
+            style={{ display: "flex", fontSize: 28, fontWeight: 500, color: ogPalette.mark.warm }}
+          >
             {card.kicker}
           </div>
           <div

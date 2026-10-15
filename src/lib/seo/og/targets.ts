@@ -3,7 +3,7 @@ import type { Dictionary } from "@/i18n/dictionaries/fa";
 
 export const OG_WIDTH = 1200;
 export const OG_HEIGHT = 630;
-const OG_VERSION = "1";
+const OG_VERSION = "2";
 
 const ogEntityKinds = ["product", "category", "brand", "guide", "post", "author"] as const;
 export type OgEntityKind = (typeof ogEntityKinds)[number];
