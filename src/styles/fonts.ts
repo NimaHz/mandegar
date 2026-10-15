@@ -1,0 +1,35 @@
+import localFont from "next/font/local";
+
+import { cn } from "@/lib/cn";
+
+export const vazirmatn = localFont({
+  variable: "--font-vazirmatn",
+  display: "swap",
+  preload: true,
+  fallback: ["Tahoma", "system-ui", "sans-serif"],
+  src: [{ path: "../assets/fonts/vazirmatn/vazirmatn-variable.woff2", weight: "100 900" }],
+});
+
+export const estedad = localFont({
+  variable: "--font-estedad",
+  display: "swap",
+  preload: true,
+  fallback: ["Tahoma", "system-ui", "sans-serif"],
+  src: [{ path: "../assets/fonts/estedad/estedad-variable.woff2", weight: "100 900" }],
+});
+
+export const jetbrainsMono = localFont({
+  variable: "--font-mono-code",
+  display: "swap",
+  preload: false,
+  adjustFontFallback: false,
+  fallback: ["ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"],
+  src: [
+    {
+      path: "../assets/fonts/jetbrains-mono/jetbrains-mono-latin-variable.woff2",
+      weight: "100 800",
+    },
+  ],
+});
+
+export const fontVariables = cn(vazirmatn.variable, estedad.variable, jetbrainsMono.variable);
