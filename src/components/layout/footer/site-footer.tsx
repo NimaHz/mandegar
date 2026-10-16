@@ -1,4 +1,4 @@
-import { BadgeCheck, Mail, MapPin, Phone, ShieldCheck } from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
 import Link from "next/link";
 
 import { Logo } from "@/components/brand/logo";
@@ -158,17 +158,6 @@ export async function SiteFooter({ locale }: { locale: Locale }) {
           <p className="max-w-3xl text-center text-xs leading-6 text-muted lg:text-start lg:text-label lg:leading-7">
             {footer.about}
           </p>
-          <ul className="flex shrink-0 gap-2" aria-label={footer.trustLabel}>
-            {[ShieldCheck, BadgeCheck].map((Icon, index) => (
-              <li
-                key={footer.trustBadges[index]}
-                className="flex size-20 flex-col items-center justify-center gap-1.5 rounded-field border border-line bg-raised p-2 text-center text-2xs leading-4 font-semibold text-muted"
-              >
-                <Icon className="size-6" strokeWidth={1.5} aria-hidden />
-                {footer.trustBadges[index]}
-              </li>
-            ))}
-          </ul>
         </div>
       </div>
 

@@ -186,7 +186,11 @@ export const seedServiceCenters = async (categoryIds: IdMap) => {
 };
 
 export const seedSettings = async (demo: boolean) => {
-  const values = settingsSeed(demo ? productSeeds.length : 0, demo ? serviceCenterSeeds.length : 0);
+  const values = settingsSeed(
+    demo,
+    demo ? productSeeds.length : 0,
+    demo ? serviceCenterSeeds.length : 0,
+  );
   await getDb()
     .insert(settings)
     .values(settingKeys.map((key) => ({ key, value: values[key] })))

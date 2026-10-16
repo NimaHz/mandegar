@@ -211,5 +211,6 @@ customer data: keep them on the server with mode 600, encrypt off-site copies, a
       reviewed.
 - [ ] `SMS_DRIVER` is `none` or a configured `kavenegar`, not `console`.
 - [ ] Enamad (eNamad) and Samandehi registrations are complete, and their trust seals are added
-      as required.
+      as required. The site shows no seals until then; adding one means placing its official
+      embed code in the footer and adding its host to `img-src` in `next.config.ts`.
 - [ ] `/api/health` is monitored externally.

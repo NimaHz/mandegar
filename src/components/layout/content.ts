@@ -41,8 +41,6 @@ export interface LayoutContent {
     contactTitle: string;
     socialTitle: string;
     socialLabel: string;
-    trustLabel: string;
-    trustBadges: [string, string];
     copyright: string;
     madeIn: string;
   };
@@ -107,8 +105,6 @@ export const layoutContent: Record<Locale, LayoutContent> = {
       contactTitle: "ارتباط با ما",
       socialTitle: "ماندگار در شبکه‌های اجتماعی",
       socialLabel: "شبکه‌های اجتماعی",
-      trustLabel: "نمادهای اعتماد",
-      trustBadges: ["نماد اعتماد الکترونیکی", "نشان ملی ثبت"],
       copyright: "تمامی حقوق برای ماندگار محفوظ است © {year}",
       madeIn: "ساخت ایران",
     },
@@ -172,8 +168,6 @@ export const layoutContent: Record<Locale, LayoutContent> = {
       contactTitle: "Contact",
       socialTitle: "Mandegar on social media",
       socialLabel: "Social media",
-      trustLabel: "Trust badges",
-      trustBadges: ["E-commerce trust seal", "National registration"],
       copyright: "© {year} Mandegar. All rights reserved.",
       madeIn: "Made in Iran",
     },

@@ -1006,7 +1006,11 @@ const contact: ContactSettings = {
   location: { lat: 35.7009, lng: 51.3899 },
 };
 
-export const settingsSeed = (models: number, serviceCenters: number): SettingsValues => ({
+export const settingsSeed = (
+  demo: boolean,
+  models: number,
+  serviceCenters: number,
+): SettingsValues => ({
   contact,
   seo: {
     defaultTitle: t("ماندگار | لوازم خانگی بادوام", "Mandegar | Durable Home Appliances"),
@@ -1015,7 +1019,7 @@ export const settingsSeed = (models: number, serviceCenters: number): SettingsVa
       "Mandegar evaporative coolers, heaters, water heaters and home appliances with an official warranty, installation guides and nationwide after-sales service.",
     ),
   },
-  stats: { years: 33, serviceCenters, models, warrantyMonths: 30 },
+  stats: { years: demo ? 33 : 0, serviceCenters, models, warrantyMonths: 30 },
   company: {
     legalName: t(
       "شرکت صنایع لوازم خانگی ماندگار (نام نمونه)",
@@ -1023,6 +1027,6 @@ export const settingsSeed = (models: number, serviceCenters: number): SettingsVa
     ),
     nationalId: null,
     registrationNo: null,
-    foundingYear: 1372,
+    foundingYear: demo ? 1372 : null,
   },
 });

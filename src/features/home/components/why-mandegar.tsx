@@ -1,6 +1,7 @@
 import { Gauge, MapPinned, ShieldCheck, Wrench } from "lucide-react";
 import Image from "next/image";
 
+import { LogoMark } from "@/components/brand/logo-mark";
 import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { SectionHeading } from "@/components/ui/section-heading";
 import type { Locale } from "@/i18n/config";
@@ -31,31 +32,37 @@ export function WhyMandegar({ image, warrantyMonths, locale }: WhyMandegarProps)
       <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-16">
         <div className="relative">
           <div className="relative aspect-4/5 overflow-hidden rounded-panel bg-sunken shadow-lift sm:aspect-5/4 lg:aspect-4/5">
-            {image && (
-              <Image
-                src={image.src}
-                alt={image.alt}
-                fill
-                sizes="(min-width: 1024px) 560px, 100vw"
-                className="object-cover"
-              />
+            {image ? (
+              <>
+                <Image
+                  src={image.src}
+                  alt={image.alt}
+                  fill
+                  sizes="(min-width: 1024px) 560px, 100vw"
+                  className="object-cover"
+                />
+                <span
+                  aria-hidden
+                  className="absolute inset-0 bg-linear-to-t from-night/55 via-transparent to-transparent"
+                />
+              </>
+            ) : (
+              <LogoMark className="absolute inset-0 m-auto size-2/5" />
             )}
-            <span
-              aria-hidden
-              className="absolute inset-0 bg-linear-to-t from-night/55 via-transparent to-transparent"
-            />
           </div>
-          <div className="absolute start-5 -bottom-6 flex items-center gap-3.5 panel bg-raised p-4 pe-6 shadow-lift sm:start-8 lg:start-auto lg:-end-8">
-            <span className="grid size-12 place-items-center rounded-full bg-accent text-on-accent">
-              <ShieldCheck className="size-6" strokeWidth={1.8} aria-hidden />
-            </span>
-            <span className="flex flex-col">
-              <span className="font-display text-xl font-black text-ink">
-                {fill(content.badge, { count: formatNumber(locale, warrantyMonths) })}
+          {warrantyMonths > 0 && (
+            <div className="absolute start-5 -bottom-6 flex items-center gap-3.5 panel bg-raised p-4 pe-6 shadow-lift sm:start-8 lg:start-auto lg:-end-8">
+              <span className="grid size-12 place-items-center rounded-full bg-accent text-on-accent">
+                <ShieldCheck className="size-6" strokeWidth={1.8} aria-hidden />
               </span>
-              <span className="text-xs font-semibold text-muted">{content.badgeCaption}</span>
-            </span>
-          </div>
+              <span className="flex flex-col">
+                <span className="font-display text-xl font-black text-ink">
+                  {fill(content.badge, { count: formatNumber(locale, warrantyMonths) })}
+                </span>
+                <span className="text-xs font-semibold text-muted">{content.badgeCaption}</span>
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-8 max-lg:pt-4">

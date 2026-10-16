@@ -239,7 +239,11 @@ codes and support tickets are seeded only on a local stack (`APP_ORIGIN` on `loc
 `NODE_ENV` not `production`), never on a server, so the placeholder products stay deletable.
 Replace or delete every placeholder in the admin before launch: archive or delete products,
 categories, brands, guides, posts, slides, FAQs and service centres, and edit the settings, which
-start with placeholder company details, contact details and statistics.
+start with placeholder company details and contact details. Without `SEED_DEMO` the statistics
+start at zero, which hides them, and the founding year is empty, so the site claims no figures
+until you enter them. The two seeded warranty policies are placeholders as well: edit their
+names, lengths, coverage and exclusions to match your real warranty before codes are issued,
+because a policy's terms lock once a code uses it.
 
 Content is only seeded into tables that are still empty, so a later run never overwrites,
 republishes or restores anything edited, archived or deleted in the admin, unless every row of a
