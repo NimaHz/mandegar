@@ -151,5 +151,6 @@ export interface SiteSettings {
     foundingYear: number | null;
   };
   seo: { title: string; description: string };
+  features: { blog: boolean };
   updatedAt: string | null;
 }

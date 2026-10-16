@@ -37,6 +37,7 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
                 icon,
                 productCount,
               }))}
+              features={settings.features}
             />
           </div>
           <div className="ms-auto lg:ms-0">
@@ -47,6 +48,7 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
       <MobileMenu
         categories={topLevel.map(({ slug, name, icon }) => ({ slug, name, icon }))}
         socials={socialLinksFor(settings.socials, locale)}
+        features={settings.features}
       />
       <SearchDialog />
     </>

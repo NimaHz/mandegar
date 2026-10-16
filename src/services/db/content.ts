@@ -95,6 +95,7 @@ const defaultSettings: SettingsValues = {
     registrationNo: null,
     foundingYear: null,
   },
+  features: { blog: true },
 };
 
 type SettingRow = typeof settings.$inferSelect;
@@ -123,6 +124,7 @@ const parseSettings = (rows: SettingRow[]): SettingsValues => {
     seo: value("seo"),
     stats: value("stats"),
     company: value("company"),
+    features: value("features"),
   };
 };
 
@@ -160,6 +162,7 @@ const toSiteSettings = (rows: SettingRow[], locale: Locale): SiteSettings => {
       title: pick(values.seo.defaultTitle, locale),
       description: pick(values.seo.defaultDescription, locale),
     },
+    features: values.features,
     updatedAt: isoOrNull(newestUpdate(rows)),
   };
 };

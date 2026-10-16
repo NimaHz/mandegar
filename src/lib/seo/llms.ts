@@ -52,7 +52,9 @@ export const llmsText = (snapshot: SiteSnapshot) => {
     "",
     fill(copy.en.languages, { fa: localeUrl("fa", routes.home), en: localeUrl("en", routes.home) }),
     fill(copy.en.fullFacts, { url: absoluteUrl("/llms-full.txt") }),
-    fill(copy.en.feeds, { fa: absoluteUrl(feedPath("fa")), en: absoluteUrl(feedPath("en")) }),
+    ...(fa.settings.features.blog
+      ? [fill(copy.en.feeds, { fa: absoluteUrl(feedPath("fa")), en: absoluteUrl(feedPath("en")) })]
+      : []),
     "",
     `## ${copy.en.sections.products} · ${copy.fa.sections.products}`,
     "",
@@ -82,7 +84,7 @@ export const llmsText = (snapshot: SiteSnapshot) => {
     pageLine("contact", routes.contact),
     pageLine("brands", routes.brands),
     pageLine("glossary", routes.glossary),
-    pageLine("blog", routes.blog),
+    ...(fa.settings.features.blog ? [pageLine("blog", routes.blog)] : []),
     "",
     "## Optional",
     "",

@@ -15,6 +15,7 @@ export async function GET(_request: Request, context: RouteContext<"/feeds/[name
   const locale = feedLocale(name);
   if (!locale) return new Response("Not found", { status: 404 });
   const [{ nav }, snapshot] = await Promise.all([getDictionary(locale), getSiteSnapshot()]);
+  if (!snapshot[locale].settings.features.blog) return new Response("Not found", { status: 404 });
   const content = blogContent[locale];
   return rssResponse(
     feedXml(locale, snapshot, {

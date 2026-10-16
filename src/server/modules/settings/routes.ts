@@ -7,6 +7,7 @@ import { settingsAdmin } from "@/services/admin/system";
 import {
   companySettingsSchema,
   contactSettingsSchema,
+  featureSettingsSchema,
   seoSettingsSchema,
   statsSettingsSchema,
 } from "./schema";
@@ -40,4 +41,11 @@ export const settingsAdminRoutes = new Elysia({ prefix: "/admin/settings" })
     "/company",
     ({ body: { expectedUpdatedAt, ...value } }) => saveSetting("company", value, expectedUpdatedAt),
     { can: "settings:write", body: companySettingsSchema.extend(versioned) },
+  )
+  .get("/features", () => readSetting("features"), { can: "settings:write" })
+  .put(
+    "/features",
+    ({ body: { expectedUpdatedAt, ...value } }) =>
+      saveSetting("features", value, expectedUpdatedAt),
+    { can: "settings:write", body: featureSettingsSchema.extend(versioned) },
   );

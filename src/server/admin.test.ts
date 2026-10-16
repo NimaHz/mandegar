@@ -1016,6 +1016,24 @@ describe("catalog administration", () => {
     assert.equal(fresh.status, 200, JSON.stringify(fresh.json));
   });
 
+  it("switches the journal off and back on", async () => {
+    const { cookie } = await login(accounts.owner.email);
+    const put = (body: unknown) =>
+      postJson("/admin/settings/features", body, { cookie, method: "PUT" });
+    try {
+      const off = await put({ blog: false });
+      assert.equal(off.status, 200, JSON.stringify(off.json));
+      assert.deepEqual(field(off.json, "value"), { blog: false });
+      const all = await request("/admin/settings", { cookie });
+      assert.deepEqual(field(all.json, "features"), { blog: false });
+      const invalid = await put({ blog: "no" });
+      assert.equal(invalid.status, 422);
+    } finally {
+      const on = await put({ blog: true });
+      assert.equal(on.status, 200, JSON.stringify(on.json));
+    }
+  });
+
   it("returns dashboard stats", async () => {
     const { cookie } = await login(accounts.owner.email);
     const stats = await request("/admin/stats", { cookie });

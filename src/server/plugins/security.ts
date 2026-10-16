@@ -20,8 +20,6 @@ const bodyLimitFor = (pathname: string) =>
 
 const DEV_TUNNEL_SUFFIXES = [".ngrok-free.dev", ".ngrok-free.app", ".ngrok.app", ".ngrok.io"];
 
-// Dev only: lets the app be reached through localhost or an ngrok tunnel. The hostname must end
-// with a tunnel suffix, so look-alikes such as https://ngrok.evil.com are still rejected.
 const isDevOrigin = (origin: string) => {
   if (isProduction()) return false;
   try {

@@ -158,6 +158,10 @@ export interface SeoSettings {
   defaultDescription: LocalizedText;
 }
 
+export interface FeatureSettings {
+  blog: boolean;
+}
+
 export interface StatsSettings {
   years: number;
   serviceCenters: number;
@@ -177,9 +181,10 @@ export interface SettingsValues {
   seo: SeoSettings;
   stats: StatsSettings;
   company: CompanySettings;
+  features: FeatureSettings;
 }
 
-export const settingKeys = ["contact", "seo", "stats", "company"] as const;
+export const settingKeys = ["contact", "seo", "stats", "company", "features"] as const;
 export type SettingKey = (typeof settingKeys)[number];
 
 export type SettingVersions = Record<SettingKey, string | null>;

@@ -17,6 +17,7 @@ import {
 
 import type { Dictionary } from "@/i18n/dictionaries/fa";
 import { routes } from "@/lib/routes";
+import type { SiteSettings } from "@/types/content";
 
 export type NavLabel = keyof Dictionary["nav"];
 
@@ -78,6 +79,11 @@ export const footerGroups: NavGroup[] = [
     ],
   },
 ];
+
+export const enabledNav = <TItem extends Pick<NavItem, "href">>(
+  items: TItem[],
+  features: SiteSettings["features"],
+) => (features.blog ? items : items.filter((item) => item.href !== routes.blog));
 
 export const isNavActive = (pathname: string, { href, exact }: Pick<NavItem, "href" | "exact">) =>
   exact || href === "/" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);

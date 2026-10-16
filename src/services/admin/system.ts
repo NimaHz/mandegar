@@ -215,6 +215,7 @@ const settingVersions = async (): Promise<SettingVersions> => {
     seo: versionOf("seo"),
     stats: versionOf("stats"),
     company: versionOf("company"),
+    features: versionOf("features"),
   };
 };
 

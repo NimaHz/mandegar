@@ -84,7 +84,8 @@ const loadLocale = async (
 };
 
 export const getSiteSnapshot = cache(async (): Promise<SiteSnapshot> => {
-  const [products, categories, brands, guides, posts, authors] = await Promise.all([
+  const [{ features }, products, categories, brands, guides, posts, authors] = await Promise.all([
+    api.content.settings("fa"),
     api.catalog.productSlugs(),
     api.catalog.categorySlugs(),
     api.catalog.brandSlugs(),
@@ -92,7 +93,14 @@ export const getSiteSnapshot = cache(async (): Promise<SiteSnapshot> => {
     api.content.postSlugs(),
     api.content.authorSlugs(),
   ]);
-  const slugs = { products, categories, brands, guides, posts, authors };
+  const slugs = {
+    products,
+    categories,
+    brands,
+    guides,
+    posts: features.blog ? posts : [],
+    authors: features.blog ? authors : [],
+  };
   const [fa, en] = await Promise.all([loadLocale("fa", slugs), loadLocale("en", slugs)]);
   return { fa, en };
 });

@@ -150,14 +150,16 @@ export const buildSitemaps = (snapshot: SiteSnapshot): Record<SitemapName, Sitem
         }),
       ),
     ],
-    posts: [
-      entry(routes.blog, postsModified),
-      ...fa.posts.map((post) =>
-        entry(routes.post(post.slug), post.updatedAt, {
-          images: post.cover ? [post.cover.src] : [],
-        }),
-      ),
-    ],
+    posts: fa.settings.features.blog
+      ? [
+          entry(routes.blog, postsModified),
+          ...fa.posts.map((post) =>
+            entry(routes.post(post.slug), post.updatedAt, {
+              images: post.cover ? [post.cover.src] : [],
+            }),
+          ),
+        ]
+      : [],
     authors: fa.authors.map(({ author, posts }) =>
       entry(routes.author(author.slug), latest(...posts.map((post) => post.publishedAt)), {
         images: author.avatar ? [author.avatar.src] : [],

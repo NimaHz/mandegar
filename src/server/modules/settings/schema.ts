@@ -73,9 +73,14 @@ export const companySettingsSchema = z.object({
     .nullable(),
 });
 
+export const featureSettingsSchema = z.object({
+  blog: z.boolean(),
+});
+
 export const settingsSchemas = {
   contact: contactSettingsSchema,
   seo: seoSettingsSchema,
   stats: statsSettingsSchema,
   company: companySettingsSchema,
+  features: featureSettingsSchema,
 };

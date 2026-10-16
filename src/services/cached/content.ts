@@ -65,5 +65,5 @@ export const cachedContent: ContentService = {
       ? centers(locale, query)
       : contentService.serviceCenters(locale, query),
   provinces: cached("content.provinces", [serviceCenters], contentService.provinces),
-  settings: cached("content.settings", [settings], contentService.settings),
+  settings: cached("content.settings.v2", [settings], contentService.settings),
 };

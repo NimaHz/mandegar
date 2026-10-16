@@ -8,13 +8,14 @@ import { useId } from "react";
 
 import { CategoryIcon } from "@/components/icons/category-icon";
 import { LinkPending, useTrackedNavigation } from "@/components/providers/navigation-progress";
-import { isNavActive, primaryNav, supportNav } from "@/config/navigation";
+import { enabledNav, isNavActive, primaryNav, supportNav } from "@/config/navigation";
 import { useDictionary, useLocale } from "@/i18n/locale-provider";
 import { localizePath, stripLocalePrefix } from "@/i18n/paths";
 import { pluralize } from "@/i18n/plural";
 import { cn } from "@/lib/cn";
 import { routes } from "@/lib/routes";
 import type { CategorySummary } from "@/types/catalog";
+import type { SiteSettings } from "@/types/content";
 
 import { layoutContent } from "../content";
 import { NavDropdown } from "./nav-dropdown";
@@ -25,7 +26,13 @@ const hideBelowClass = { xl: "max-xl:hidden", "2xl": "max-2xl:hidden" } as const
 
 type NavCategory = Pick<CategorySummary, "slug" | "name" | "summary" | "icon" | "productCount">;
 
-export function MainNav({ categories }: { categories: NavCategory[] }) {
+interface MainNavProps {
+  categories: NavCategory[];
+  features: SiteSettings["features"];
+}
+
+export function MainNav({ categories, features }: MainNavProps) {
+  const visibleNav = enabledNav(primaryNav, features);
   const locale = useLocale();
   const { nav } = useDictionary();
   const { header } = layoutContent[locale];
@@ -36,7 +43,7 @@ export function MainNav({ categories }: { categories: NavCategory[] }) {
     isNavActive(pathname, { href: routes.products }) ||
     pathname.startsWith(routes.category("")) ||
     isNavActive(pathname, { href: routes.compare });
-  const primaryActive = primaryNav.some((item) => isNavActive(pathname, item));
+  const primaryActive = visibleNav.some((item) => isNavActive(pathname, item));
   const supportActive = !primaryActive && supportNav.some((item) => isNavActive(pathname, item));
 
   return (
@@ -142,7 +149,7 @@ export function MainNav({ categories }: { categories: NavCategory[] }) {
           </ul>
         )}
       </NavDropdown>
-      {primaryNav.map((item) => {
+      {visibleNav.map((item) => {
         const isActive = isNavActive(pathname, item);
         return (
           <Link

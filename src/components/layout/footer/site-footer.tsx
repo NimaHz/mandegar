@@ -5,7 +5,7 @@ import { Logo } from "@/components/brand/logo";
 import { LogoMark } from "@/components/brand/logo-mark";
 import { SocialIcon } from "@/components/icons/social-icon";
 import { LinkPending } from "@/components/providers/navigation-progress";
-import { footerGroups } from "@/config/navigation";
+import { enabledNav, footerGroups } from "@/config/navigation";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { getDictionary } from "@/i18n/get-dictionary";
@@ -50,7 +50,7 @@ export async function SiteFooter({ locale }: { locale: Locale }) {
     },
     ...footerGroups.map((group) => ({
       title: nav[group.title],
-      links: group.links.map((link) => ({
+      links: enabledNav(group.links, settings.features).map((link) => ({
         href: localizePath(locale, link.href),
         label: nav[link.label],
       })),

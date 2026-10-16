@@ -1029,4 +1029,5 @@ export const settingsSeed = (
     registrationNo: null,
     foundingYear: demo ? 1372 : null,
   },
+  features: { blog: true },
 });

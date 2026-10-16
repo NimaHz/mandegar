@@ -19,6 +19,7 @@ import { apiClient } from "@/lib/api-client";
 import {
   companySettingsSchema,
   contactSettingsSchema,
+  featureSettingsSchema,
   officeLocationSchema,
   seoSettingsSchema,
   statsSettingsSchema,
@@ -32,7 +33,7 @@ import { type EdenResult, useAdminMutation } from "../../lib/use-admin-mutation"
 import { useEditorForm } from "../../lib/use-editor-form";
 import { zodOptions } from "../../lib/zod";
 import { blankText, blankToNull } from "../../schemas";
-import { CodeInput, NumberInput } from "../form/fields";
+import { CodeInput, NumberInput, SwitchInput } from "../form/fields";
 import { fieldGridClass, FormSection } from "../form/form-section";
 import { LocalizedField, LocalizedTextarea } from "../form/localized-field";
 import { Repeater } from "../form/repeater";
@@ -89,6 +90,7 @@ const resolvers = {
   stats: zodResolver(statsSettingsSchema, zodOptions),
   company: zodResolver(companyFormSchema, zodOptions),
   seo: zodResolver(seoSettingsSchema, zodOptions),
+  features: zodResolver(featureSettingsSchema, zodOptions),
 };
 
 interface SettingSection<TValue> {
@@ -374,6 +376,25 @@ function SeoForm({ value, version }: SectionProps<"seo">) {
   );
 }
 
+function FeaturesForm({ value, version }: SectionProps<"features">) {
+  return (
+    <SectionShell
+      value={value}
+      version={version}
+      toForm={(features): z.input<typeof featureSettingsSchema> => features}
+      resolver={resolvers.features}
+      save={(values, expectedUpdatedAt) =>
+        apiClient.api.admin.settings.features.put({ ...values, expectedUpdatedAt })
+      }
+      load={() => apiClient.api.admin.settings.features.get()}
+    >
+      <FormSection title={copy.features.section} description={copy.features.hint}>
+        <SwitchInput name="blog" label={copy.features.blog} description={copy.features.blogHint} />
+      </FormSection>
+    </SectionShell>
+  );
+}
+
 interface SettingsFormsProps {
   settings: SettingsValues;
   versions: SettingVersions;
@@ -391,6 +412,7 @@ export function SettingsForms({ settings, versions }: SettingsFormsProps) {
     stats: <StatsForm value={settings.stats} version={versions.stats} />,
     company: <CompanyForm value={settings.company} version={versions.company} />,
     seo: <SeoForm value={settings.seo} version={versions.seo} />,
+    features: <FeaturesForm value={settings.features} version={versions.features} />,
   };
 
   return (

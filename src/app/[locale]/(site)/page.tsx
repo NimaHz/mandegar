@@ -99,7 +99,7 @@ export default async function HomePage() {
       <PartnerBrands brands={brands} locale={locale} />
       <InstallationGuides guides={guides} locale={locale} />
       <ServiceJourney locale={locale} />
-      <LatestPosts posts={posts} locale={locale} />
+      {settings.features.blog && <LatestPosts posts={posts} locale={locale} />}
       <HomeFaq faqs={faqs} locale={locale} />
       <CompareTray products={toTrayItems([...featured, ...latest])} />
     </>

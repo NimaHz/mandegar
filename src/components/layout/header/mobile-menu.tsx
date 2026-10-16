@@ -19,7 +19,7 @@ import { LanguageSwitcher } from "@/components/shared/language-switcher";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
 import { Portal } from "@/components/ui/portal";
-import { isNavActive, type NavItem, primaryNav, supportNav } from "@/config/navigation";
+import { enabledNav, isNavActive, type NavItem, primaryNav, supportNav } from "@/config/navigation";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useModal } from "@/hooks/use-modal";
 import { localeMeta } from "@/i18n/config";
@@ -29,6 +29,7 @@ import { cn } from "@/lib/cn";
 import { routes } from "@/lib/routes";
 import { useUiStore } from "@/stores/ui";
 import type { CategorySummary } from "@/types/catalog";
+import type { SiteSettings } from "@/types/content";
 
 import { layoutContent } from "../content";
 import { MOBILE_MENU_ID } from "./mobile-menu-id";
@@ -36,6 +37,7 @@ import { MOBILE_MENU_ID } from "./mobile-menu-id";
 interface MobileMenuProps {
   categories: Pick<CategorySummary, "slug" | "name" | "icon">[];
   socials: { platform: SocialPlatform; href: string; label: string }[];
+  features: SiteSettings["features"];
 }
 
 const exploreNav = primaryNav.filter(({ href }) => !supportNav.some((item) => item.href === href));
@@ -82,7 +84,7 @@ function MenuSection({ title, items, navigateFrom }: MenuSectionProps) {
   );
 }
 
-export function MobileMenu({ categories, socials }: MobileMenuProps) {
+export function MobileMenu({ categories, socials, features }: MobileMenuProps) {
   const locale = useLocale();
   const { nav, ui } = useDictionary();
   const { mobileMenu, header, homeLabel, footer } = layoutContent[locale];
@@ -196,7 +198,7 @@ export function MobileMenu({ categories, socials }: MobileMenuProps) {
                 />
                 <MenuSection
                   title={mobileMenu.explore}
-                  items={exploreNav}
+                  items={enabledNav(exploreNav, features)}
                   navigateFrom={navigateFrom}
                 />
               </nav>
