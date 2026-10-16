@@ -41,7 +41,7 @@ export default function GlobalError({ error, retry }: GlobalErrorProps) {
       <head>
         <title>{`${common.errorTitle} | ${site.name}`}</title>
       </head>
-      <body className="min-h-dvh overflow-x-clip">
+      <body className="min-h-dvh overflow-x-clip" suppressHydrationWarning>
         <main className="flex min-h-dvh flex-col">
           <StatusScreen
             className="flex-1"

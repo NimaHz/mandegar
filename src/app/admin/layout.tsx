@@ -36,7 +36,7 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
       <head>
         <ThemeBootScript />
       </head>
-      <body className="min-h-dvh overflow-x-clip">
+      <body className="min-h-dvh overflow-x-clip" suppressHydrationWarning>
         <AppProviders locale="fa" dictionary={fa} toastPlacement="top">
           {children}
         </AppProviders>

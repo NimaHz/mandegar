@@ -73,7 +73,7 @@ export default async function GlobalNotFound() {
       <head>
         <ThemeBootScript />
       </head>
-      <body className="min-h-dvh overflow-x-clip">
+      <body className="min-h-dvh overflow-x-clip" suppressHydrationWarning>
         <main className="bg-glow bg-dots flex min-h-dvh flex-col items-center justify-center gap-10 px-4 py-14 sm:px-6">
           <a
             href={localizePath(locale, routes.home)}

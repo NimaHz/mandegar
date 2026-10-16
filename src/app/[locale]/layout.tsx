@@ -81,7 +81,7 @@ export default async function LocaleLayout({ children }: LayoutProps<"/[locale]"
       <head>
         <ThemeBootScript />
       </head>
-      <body className="min-h-dvh overflow-x-clip">
+      <body className="min-h-dvh overflow-x-clip" suppressHydrationWarning>
         <AppProviders locale={locale} dictionary={dictionary}>
           {children}
         </AppProviders>
