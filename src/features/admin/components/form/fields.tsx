@@ -13,50 +13,69 @@ import type { Option } from "@/types/common";
 
 import { adminContent } from "../../content";
 import { fromLocalInput } from "../../lib/datetime";
+import { useReadOnly } from "./read-only";
 import { useFieldError } from "./use-field-error";
 
 type InputProps = Omit<ComponentProps<typeof Field>, "name" | "error">;
 
-export function TextInput({ name, ...props }: InputProps & { name: string }) {
+export function TextInput({ name, readOnly, ...props }: InputProps & { name: string }) {
   const { register } = useFormContext();
   const error = useFieldError(name);
-  return <Field error={error} {...props} {...register(name)} />;
+  const locked = useReadOnly();
+  return <Field error={error} readOnly={readOnly || locked} {...props} {...register(name)} />;
 }
 
-export function CodeInput({ name, className, ...props }: InputProps & { name: string }) {
+const latinDigits = (value: unknown) => (typeof value === "string" ? toLatinDigits(value) : value);
+
+export function CodeInput({ name, className, readOnly, ...props }: InputProps & { name: string }) {
   const { register } = useFormContext();
   const error = useFieldError(name);
+  const locked = useReadOnly();
   return (
     <Field
       dir="ltr"
       autoComplete="off"
       spellCheck={false}
       error={error}
+      readOnly={readOnly || locked}
       className={cn("text-start font-code", className)}
       {...props}
-      {...register(name)}
+      {...register(name, { setValueAs: latinDigits })}
     />
   );
 }
 
+const GROUPED_NUMBER = /^[+-]?\d{1,3}(?:,\d{3})+(?:\.\d+)?$/;
+
 const toNumber = (value: unknown) => {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
   if (typeof value !== "string") return null;
-  const normalized = toLatinDigits(value).trim().replace(/[٫,]/g, ".");
+  const normalized = toLatinDigits(value)
+    .replace(/\s/g, "")
+    .replace(/[٬،]/g, ",")
+    .replace(/٫/g, ".");
   if (!normalized) return null;
-  const parsed = Number(normalized);
+  if (normalized.includes(",") && !GROUPED_NUMBER.test(normalized)) return Number.NaN;
+  const parsed = Number(normalized.replaceAll(",", ""));
   return Number.isFinite(parsed) ? parsed : Number.NaN;
 };
 
-export function NumberInput({ name, className, ...props }: InputProps & { name: string }) {
+export function NumberInput({
+  name,
+  className,
+  readOnly,
+  ...props
+}: InputProps & { name: string }) {
   const { register } = useFormContext();
   const error = useFieldError(name);
+  const locked = useReadOnly();
   return (
     <Field
       inputMode="decimal"
       dir="ltr"
       autoComplete="off"
       error={error}
+      readOnly={readOnly || locked}
       className={cn("text-start tabular-nums", className)}
       {...props}
       {...register(name, { setValueAs: toNumber })}
@@ -66,10 +85,13 @@ export function NumberInput({ name, className, ...props }: InputProps & { name: 
 
 type TextAreaProps = Omit<ComponentProps<typeof TextAreaField>, "name" | "error">;
 
-export function TextArea({ name, ...props }: TextAreaProps & { name: string }) {
+export function TextArea({ name, readOnly, ...props }: TextAreaProps & { name: string }) {
   const { register } = useFormContext();
   const error = useFieldError(name);
-  return <TextAreaField error={error} {...props} {...register(name)} />;
+  const locked = useReadOnly();
+  return (
+    <TextAreaField error={error} readOnly={readOnly || locked} {...props} {...register(name)} />
+  );
 }
 
 interface SelectInputProps extends Omit<ComponentProps<"select">, "name"> {
@@ -94,10 +116,12 @@ export function SelectInput({
   hideLabel,
   id,
   className,
+  disabled,
   ...props
 }: SelectInputProps) {
   const { register } = useFormContext();
   const error = useFieldError(name);
+  const locked = useReadOnly();
   const selectId = id ?? `field-${name}`;
   const messageId = `${selectId}-message`;
   const message = error ?? hint;
@@ -117,6 +141,7 @@ export function SelectInput({
         aria-invalid={error ? true : undefined}
         aria-describedby={message ? messageId : undefined}
         className={cn("h-12 rounded-field text-lead", error && "border-danger", className)}
+        disabled={disabled || locked}
         {...props}
         {...register(name, {
           setValueAs: (value: unknown) =>
@@ -143,6 +168,7 @@ interface SwitchInputProps {
 
 export function SwitchInput({ name, label, description }: SwitchInputProps) {
   const { control } = useFormContext();
+  const locked = useReadOnly();
   return (
     <Controller
       control={control}
@@ -153,6 +179,7 @@ export function SwitchInput({ name, label, description }: SwitchInputProps) {
           onCheckedChange={field.onChange}
           label={label}
           description={description}
+          disabled={locked}
         />
       )}
     />

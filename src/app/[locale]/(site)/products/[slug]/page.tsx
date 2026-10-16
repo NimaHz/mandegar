@@ -26,6 +26,7 @@ import { localizePath } from "@/i18n/paths";
 import { routes } from "@/lib/routes";
 import { productGraph } from "@/lib/seo/graphs";
 import { absoluteUrl, pageMetadata } from "@/lib/seo/metadata";
+import { ogEntityTarget } from "@/lib/seo/og/cards";
 import { api } from "@/services";
 
 export const revalidate = 3600;
@@ -55,7 +56,7 @@ export async function generateMetadata({
     image: image
       ? { url: image.src, width: image.width, height: image.height, alt: image.alt }
       : null,
-    og: { kind: "product", slug: product.slug, updatedAt: product.updatedAt },
+    og: await ogEntityTarget(locale, "product", product.slug),
   });
 }
 

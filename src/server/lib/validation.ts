@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { defaultLocale, locales } from "@/i18n/config";
-import { normalizeMobile } from "@/lib/persian";
+import { normalizeMobile, toLatinDigits } from "@/lib/persian";
 import { isProvinceCode } from "@/lib/provinces";
 
 const requiredText = (max: number) => z.string().trim().min(1).max(max);
@@ -19,6 +19,7 @@ export const localizedSeoSchema = z
 export const slugSchema = z
   .string()
   .trim()
+  .overwrite(toLatinDigits)
   .toLowerCase()
   .max(120)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
@@ -46,7 +47,7 @@ export const urlOrPathSchema = z
   .string()
   .trim()
   .max(500)
-  .refine((value) => value.startsWith("/") || /^https:\/\//.test(value), "Invalid link");
+  .refine((value) => /^\/(?![/\\])/.test(value) || /^https:\/\//.test(value), "Invalid link");
 
 export const iconSchema = z
   .string()
@@ -70,11 +71,14 @@ export const localeSchema = z.enum(locales).catch(defaultLocale);
 export const optionalText = <TSchema extends z.ZodType>(schema: TSchema) =>
   z.preprocess((value) => (value === "" || value === null ? undefined : value), schema.optional());
 
-export const emailSchema = z.email().trim().toLowerCase().max(120);
+export const expectedUpdatedAtSchema = z.iso.datetime({ offset: true }).optional();
+
+export const emailSchema = z.string().trim().toLowerCase().pipe(z.email().max(120));
 
 export const phoneNumberSchema = z
   .string()
   .trim()
+  .overwrite(toLatinDigits)
   .min(4)
   .max(30)
   .regex(/^[+\d][\d\s-]*$/);

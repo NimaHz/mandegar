@@ -41,7 +41,7 @@ const lookupCode = async (
 };
 
 export function ProductStep({ locale, models, copy }: ProductStepProps) {
-  const { control, getValues } = useFormContext<RequestValues>();
+  const { control, getValues, setValue } = useFormContext<RequestValues>();
   const code = useWatch<RequestValues, "warrantyCode">({ name: "warrantyCode" });
   const [lookup, setLookup] = useState<LookupState>({ status: "idle" });
 
@@ -50,12 +50,14 @@ export function ProductStep({ locale, models, copy }: ProductStepProps) {
     if (!inspectCode("warranty", initial).valid) return;
     let active = true;
     void lookupCode(locale, initial).then((state) => {
-      if (active) setLookup(state);
+      if (!active) return;
+      if (state.status === "found") setValue("productSlug", "");
+      setLookup(state);
     });
     return () => {
       active = false;
     };
-  }, [getValues, locale]);
+  }, [getValues, setValue, locale]);
 
   const onCodeChange = (inspection: CodeInspection) => {
     if (!inspection.valid) {
@@ -63,11 +65,14 @@ export function ProductStep({ locale, models, copy }: ProductStepProps) {
       return;
     }
     setLookup({ status: "loading", code: inspection.code });
-    void lookupCode(locale, inspection.code).then((state) =>
+    void lookupCode(locale, inspection.code).then((state) => {
+      if (state.status === "found" && getValues("warrantyCode") === state.code) {
+        setValue("productSlug", "");
+      }
       setLookup((current) =>
         current.status === "loading" && current.code === state.code ? state : current,
-      ),
-    );
+      );
+    });
   };
 
   const current = lookup.status !== "idle" && lookup.code === code ? lookup : null;

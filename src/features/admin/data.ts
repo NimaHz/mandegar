@@ -3,8 +3,11 @@ import "server-only";
 import { cache } from "react";
 
 import { adminApi } from "@/services/admin";
+import type { Permission } from "@/types/admin";
 
-export const getAdminStats = cache(() => adminApi.stats.get());
+export const getAdminStats = cache((permissions: readonly Permission[]) =>
+  adminApi.stats.get(permissions),
+);
 
 export const getAdminCounts = cache(() => adminApi.stats.counts());
 

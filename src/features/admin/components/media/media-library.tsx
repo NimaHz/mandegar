@@ -2,7 +2,7 @@
 
 import { FileText, Film, ImageIcon, LoaderCircle, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { parseAsString, useQueryState } from "nuqs";
+import { parseAsString, useQueryStates } from "nuqs";
 import { useId, useRef, useState } from "react";
 
 import { useSharedTransition } from "@/components/providers/transition-provider";
@@ -38,9 +38,9 @@ interface UploadItem {
 
 function KindFilter() {
   const { startTransition } = useSharedTransition();
-  const [kind, setKind] = useQueryState(
-    "kind",
-    parseAsString.withDefault("").withOptions({ shallow: false, startTransition }),
+  const [{ kind }, setFilter] = useQueryStates(
+    { kind: parseAsString.withDefault(""), page: parseAsString },
+    { shallow: false, startTransition },
   );
   const options = [
     { value: "", label: common.all },
@@ -53,7 +53,7 @@ function KindFilter() {
     <SegmentedControl
       options={options}
       value={kind}
-      onChange={(value) => void setKind(value || null)}
+      onChange={(value) => void setFilter({ kind: value || null, page: null })}
       label={adminContent.common.filters}
     />
   );
@@ -80,6 +80,9 @@ export function MediaLibrary({
   const [uploads, setUploads] = useState<UploadItem[]>([]);
   const [dragging, setDragging] = useState(false);
   const [selected, setSelected] = useState<AdminMedia | null>(null);
+  const detail = selected
+    ? (result.items.find((item) => item.id === selected.id) ?? selected)
+    : null;
 
   const onFiles = async (files: FileList | null) => {
     const list = Array.from(files ?? []);
@@ -132,6 +135,7 @@ export function MediaLibrary({
           <KindFilter />
           <ListToolbar
             searchPlaceholder={copy.search}
+            externalFilters={["kind"]}
             sort={sortOptions("media")}
             className="xl:w-[34rem]"
           />
@@ -250,10 +254,10 @@ export function MediaLibrary({
           <ListPagination page={result.page} pageCount={result.pageCount} total={result.total} />
         </>
       )}
-      {selected && (
+      {detail && (
         <MediaDetailSheet
-          key={selected.id}
-          media={selected}
+          key={detail.id}
+          media={detail}
           canWrite={canWrite}
           onClose={() => setSelected(null)}
         />

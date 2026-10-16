@@ -1,4 +1,17 @@
-import { and, asc, count, desc, eq, gt, inArray, isNull, lte, or, type SQL } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  or,
+  type SQL,
+} from "drizzle-orm";
 
 import { siteConfig } from "@/config/site";
 import type { Locale } from "@/i18n/config";
@@ -10,6 +23,8 @@ import {
   brands,
   categories,
   faqs,
+  guides,
+  heroSlides,
   posts,
   products,
   serviceCenters,
@@ -30,8 +45,10 @@ import type {
 } from "@/types/content";
 
 import type { ContentService } from "../contracts";
+import { visibleProduct } from "./catalog";
 import {
   clampLimit,
+  effectiveGuideId,
   guideMediaIds,
   iso,
   isoOrNull,
@@ -197,12 +214,6 @@ const findAuthorWithPosts = async (slug: string) => {
   return (await countLivePosts(eq(posts.authorId, author.id))) > 0 ? author : null;
 };
 
-const visibleProductsWhere = and(
-  eq(products.status, "published"),
-  eq(categories.published, true),
-  eq(brands.published, true),
-);
-
 const visibleProductRows = (where: SQL | undefined) =>
   getDb()
     .select({
@@ -210,11 +221,13 @@ const visibleProductRows = (where: SQL | undefined) =>
       slug: products.slug,
       name: products.name,
       modelCode: products.modelCode,
+      guideId: products.guideId,
+      categoryId: products.categoryId,
     })
     .from(products)
     .innerJoin(categories, eq(categories.id, products.categoryId))
     .innerJoin(brands, eq(brands.id, products.brandId))
-    .where(and(visibleProductsWhere, where))
+    .where(and(visibleProduct, where))
     .orderBy(asc(products.modelCode));
 
 const relatedProductRows = async (ids: string[]) =>
@@ -242,24 +255,52 @@ const publishedGuides = () =>
 
 type GuideRow = Awaited<ReturnType<typeof publishedGuides>>[number];
 
-const guideCategories = async () =>
+const listedCategories = async () =>
   getDb()
-    .select({
-      id: categories.id,
-      slug: categories.slug,
-      name: categories.name,
-      parentId: categories.parentId,
-      defaultGuideId: categories.defaultGuideId,
-    })
+    .select({ id: categories.id, slug: categories.slug, name: categories.name })
     .from(categories)
     .where(eq(categories.published, true))
     .orderBy(asc(categories.sortOrder));
 
-type GuideCategory = Awaited<ReturnType<typeof guideCategories>>[number];
+const categoryGuides = async (assumedGuideId?: string) => {
+  const [categoryRows, guideRows] = await Promise.all([
+    getDb()
+      .select({
+        id: categories.id,
+        slug: categories.slug,
+        name: categories.name,
+        parentId: categories.parentId,
+        defaultGuideId: categories.defaultGuideId,
+        published: categories.published,
+      })
+      .from(categories)
+      .orderBy(asc(categories.sortOrder)),
+    getDb().select({ id: guides.id }).from(guides).where(eq(guides.published, true)),
+  ]);
+  const published = new Set(guideRows.map((row) => row.id));
+  if (assumedGuideId) published.add(assumedGuideId);
+  const defaults = new Map(categoryRows.map((row) => [row.id, row.defaultGuideId]));
+  return {
+    published,
+    categories: categoryRows
+      .filter((row) => row.published)
+      .map((row) => ({
+        id: row.id,
+        slug: row.slug,
+        name: row.name,
+        guideId: effectiveGuideId(
+          [row.defaultGuideId, row.parentId ? defaults.get(row.parentId) : null],
+          published,
+        ),
+      })),
+  };
+};
+
+type CategoryGuides = Awaited<ReturnType<typeof categoryGuides>>;
 
 const toGuideListItem = (
   row: GuideRow,
-  categoryRows: GuideCategory[],
+  { categories: categoryRows }: CategoryGuides,
   index: Map<string, MediaRow>,
   locale: Locale,
 ): GuideListItem => ({
@@ -274,7 +315,7 @@ const toGuideListItem = (
   durationSec: row.durationSec,
   stepCount: row.steps.length,
   categories: categoryRows
-    .filter((category) => category.defaultGuideId === row.id)
+    .filter((category) => category.guideId === row.id)
     .map((category) => ({ slug: category.slug, name: pick(category.name, locale) })),
 });
 
@@ -296,21 +337,43 @@ const toGuideVideo = (
     : null;
 };
 
-const guideProducts = async (guideId: string, categoryRows: GuideCategory[]) => {
-  const direct = categoryRows.filter((category) => category.defaultGuideId === guideId);
-  const inherited = categoryRows.filter(
-    (category) =>
-      category.defaultGuideId === null && direct.some((parent) => parent.id === category.parentId),
+const guideProducts = async (guideId: string, { published, categories }: CategoryGuides) => {
+  const inherited = new Set(
+    categories.filter((category) => category.guideId === guideId).map((category) => category.id),
   );
-  const categoryIds = [...direct, ...inherited].map((category) => category.id);
-  return visibleProductRows(
+  const rows = await visibleProductRows(
     or(
       eq(products.guideId, guideId),
-      categoryIds.length > 0
-        ? and(isNull(products.guideId), inArray(products.categoryId, categoryIds))
-        : undefined,
+      inherited.size > 0 ? inArray(products.categoryId, [...inherited]) : undefined,
     ),
   );
+  return rows.filter((row) =>
+    row.guideId && published.has(row.guideId)
+      ? row.guideId === guideId
+      : inherited.has(row.categoryId),
+  );
+};
+
+export const guideProductSlugs = async (guideId: string) =>
+  (await guideProducts(guideId, await categoryGuides(guideId))).map((row) => row.slug);
+
+export const contentSchedules = {
+  posts: async () => {
+    const rows = await getDb()
+      .select({ publishedAt: posts.publishedAt })
+      .from(posts)
+      .where(and(eq(posts.status, "published"), isNotNull(posts.publishedAt)));
+    return rows.flatMap((row) => (row.publishedAt ? [row.publishedAt.getTime()] : []));
+  },
+  slides: async () => {
+    const rows = await getDb()
+      .select({ startsAt: heroSlides.startsAt, endsAt: heroSlides.endsAt })
+      .from(heroSlides)
+      .where(eq(heroSlides.active, true));
+    return rows.flatMap((row) =>
+      [row.startsAt, row.endsAt].flatMap((date) => (date ? [date.getTime()] : [])),
+    );
+  },
 };
 
 const matchesKind = (kind: ServiceCenterKind) =>
@@ -326,7 +389,7 @@ export const contentService: ContentService = {
           or(isNull(table.startsAt), lte(table.startsAt, now)),
           or(isNull(table.endsAt), gt(table.endsAt, now)),
         ),
-      orderBy: (table) => [asc(table.sortOrder), asc(table.createdAt)],
+      orderBy: (table) => [asc(table.sortOrder), asc(table.createdAt), asc(table.id)],
       with: { image: true, mobileImage: true },
     });
     return rows.flatMap((row) => {
@@ -351,7 +414,7 @@ export const contentService: ContentService = {
       .select()
       .from(faqs)
       .where(and(eq(faqs.published, true), group ? eq(faqs.group, group) : undefined))
-      .orderBy(asc(faqs.group), asc(faqs.sortOrder), asc(faqs.createdAt));
+      .orderBy(asc(faqs.group), asc(faqs.sortOrder), asc(faqs.createdAt), asc(faqs.id));
     return rows.map((row) => ({
       id: row.id,
       group: row.group,
@@ -361,25 +424,25 @@ export const contentService: ContentService = {
     }));
   },
   guides: async (locale) => {
-    const [rows, categoryRows] = await Promise.all([publishedGuides(), guideCategories()]);
+    const [rows, scope] = await Promise.all([publishedGuides(), categoryGuides()]);
     const index = await mediaIndex(rows.map((row) => row.video?.posterMediaId));
-    return rows.map((row) => toGuideListItem(row, categoryRows, index, locale));
+    return rows.map((row) => toGuideListItem(row, scope, index, locale));
   },
   guide: async (locale, slug) => {
-    const [row, categoryRows] = await Promise.all([
+    const [row, scope] = await Promise.all([
       getDb().query.guides.findFirst({
         where: (table, { and: all, eq: equals }) =>
           all(equals(table.slug, normalizeSlug(slug)), equals(table.published, true)),
       }),
-      guideCategories(),
+      categoryGuides(),
     ]);
     if (!row) return null;
     const [index, productRows] = await Promise.all([
       mediaIndex(guideMediaIds(row)),
-      guideProducts(row.id, categoryRows),
+      guideProducts(row.id, scope),
     ]);
     const detail: GuideDetail = {
-      ...toGuideListItem(row, categoryRows, index, locale),
+      ...toGuideListItem(row, scope, index, locale),
       video: toGuideVideo(row, index, locale),
       steps: row.steps.map((step) => ({
         title: pick(step.title, locale),
@@ -501,7 +564,7 @@ export const contentService: ContentService = {
           ),
         )
         .orderBy(asc(serviceCenters.province), asc(serviceCenters.slug)),
-      guideCategories(),
+      listedCategories(),
     ]);
     return rows.map((row) => ({
       slug: row.slug,

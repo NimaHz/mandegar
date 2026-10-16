@@ -131,6 +131,7 @@ export const ticketAdminRoutes = new Elysia({ prefix: "/admin/tickets" })
       body: t.Object({
         body: t.String({ maxLength: 10000 }),
         internal: t.Union([t.Boolean(), t.String({ maxLength: 5 })]),
+        status: text(40),
         attachments,
       }),
     },

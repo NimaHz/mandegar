@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { z } from "zod";
 
 import { routes } from "@/lib/routes";
@@ -8,12 +8,16 @@ import { getDb } from "@/server/db/client";
 import { heroSlides } from "@/server/db/schema";
 import { cacheTags } from "@/server/lib/cache-tags";
 import { guardDelete, guardWrite } from "@/server/lib/db-errors";
-import { notFound, orNotFound } from "@/server/lib/http-error";
+import { notFound, orNotFound, ValidationFailure } from "@/server/lib/http-error";
 import { revalidateContent } from "@/server/lib/revalidate";
 import { assertLibraryMedia } from "@/server/modules/media/service";
 import { slidesAdmin } from "@/services/admin/content";
 
 import type { slideInputSchema, slidePatchSchema } from "./schema";
+
+type SlideRow = typeof heroSlides.$inferSelect;
+
+type SlideWindow = Pick<SlideRow, "startsAt" | "endsAt">;
 
 const toDate = (value: string | null | undefined) =>
   value === undefined ? undefined : value === null ? null : new Date(value);
@@ -25,47 +29,102 @@ const toValues = <TInput extends z.output<typeof slidePatchSchema>>(input: TInpu
 });
 
 const assertSlideMedia = (input: z.output<typeof slidePatchSchema>) =>
-  assertLibraryMedia({
-    imageMediaId: input.imageMediaId,
-    mobileImageMediaId: input.mobileImageMediaId,
-  });
+  assertLibraryMedia(
+    {
+      imageMediaId: input.imageMediaId,
+      mobileImageMediaId: input.mobileImageMediaId,
+    },
+    "image",
+  );
+
+const assertWindow = ({ startsAt, endsAt }: SlideWindow) => {
+  if (startsAt && endsAt && endsAt <= startsAt) {
+    throw new ValidationFailure({ endsAt: "Must be after the start" });
+  }
+};
+
+const isShowing = (row: SlideRow, now: Date) =>
+  row.active && (!row.startsAt || row.startsAt <= now) && (!row.endsAt || row.endsAt > now);
+
+const revalidateSlides = (rows: SlideRow[]) => {
+  const now = new Date();
+  revalidateContent(
+    [cacheTags.slides],
+    rows.some((row) => isShowing(row, now)) ? [routes.home] : [],
+  );
+};
+
+const requireSlide = async (id: string) => {
+  const [row] = await getDb().select().from(heroSlides).where(eq(heroSlides.id, id));
+  if (!row) throw notFound("Slide not found");
+  return row;
+};
 
 export const createSlide = async (input: z.output<typeof slideInputSchema>) => {
+  const values = {
+    ...input,
+    startsAt: toDate(input.startsAt) ?? null,
+    endsAt: toDate(input.endsAt) ?? null,
+  };
+  assertWindow(values);
   await assertSlideMedia(input);
-  const [row] = await guardWrite(() =>
-    getDb()
-      .insert(heroSlides)
-      .values({
-        ...input,
-        startsAt: toDate(input.startsAt) ?? null,
-        endsAt: toDate(input.endsAt) ?? null,
-      })
-      .returning({ id: heroSlides.id }),
-  );
+  const [row] = await guardWrite(() => getDb().insert(heroSlides).values(values).returning());
   if (!row) throw new Error("Slide insert failed");
-  revalidateContent([cacheTags.slides], [routes.home]);
+  revalidateSlides([row]);
   return orNotFound(await slidesAdmin.get(row.id));
 };
 
 export const updateSlide = async (id: string, patch: z.output<typeof slidePatchSchema>) => {
+  const before = await requireSlide(id);
+  const values = toValues(patch);
+  assertWindow({
+    startsAt: values.startsAt === undefined ? before.startsAt : values.startsAt,
+    endsAt: values.endsAt === undefined ? before.endsAt : values.endsAt,
+  });
   await assertSlideMedia(patch);
   const [row] = await guardWrite(() =>
     getDb()
       .update(heroSlides)
-      .set(toValues(patch))
+      .set({ ...values, updatedAt: new Date() })
       .where(eq(heroSlides.id, id))
-      .returning({ id: heroSlides.id }),
+      .returning(),
   );
   if (!row) throw notFound("Slide not found");
-  revalidateContent([cacheTags.slides], [routes.home]);
+  revalidateSlides([before, row]);
   return orNotFound(await slidesAdmin.get(id));
+};
+
+export const reorderSlides = async (ids: string[]) => {
+  const rows = await getDb().transaction(async (tx) => {
+    const found = await tx
+      .select({ id: heroSlides.id })
+      .from(heroSlides)
+      .where(inArray(heroSlides.id, ids))
+      .for("update");
+    if (found.length !== ids.length) {
+      throw new ValidationFailure({ ids: "Referenced item not found" });
+    }
+    const updatedAt = new Date();
+    const updated: SlideRow[] = [];
+    for (const [index, id] of ids.entries()) {
+      const [row] = await tx
+        .update(heroSlides)
+        .set({ sortOrder: index * 10, updatedAt })
+        .where(eq(heroSlides.id, id))
+        .returning();
+      if (row) updated.push(row);
+    }
+    return updated;
+  });
+  revalidateSlides(rows);
+  return { ids };
 };
 
 export const deleteSlide = async (id: string) => {
   const [row] = await guardDelete(() =>
-    getDb().delete(heroSlides).where(eq(heroSlides.id, id)).returning({ id: heroSlides.id }),
+    getDb().delete(heroSlides).where(eq(heroSlides.id, id)).returning(),
   );
   if (!row) throw notFound("Slide not found");
-  revalidateContent([cacheTags.slides], [routes.home]);
+  revalidateSlides([row]);
   return { id };
 };

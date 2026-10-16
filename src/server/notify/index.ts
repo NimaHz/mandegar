@@ -57,8 +57,15 @@ const record = async (
     .catch((failure: unknown) => console.error(failure));
 };
 
+const messageOf = (error: unknown) => (error instanceof Error ? error.message : "Unknown error");
+
 export const notify = async (notification: Notification) => {
-  if (notifier === undefined) notifier = createNotifier();
+  try {
+    if (notifier === undefined) notifier = createNotifier();
+  } catch (error) {
+    await record(notification, "unconfigured", "failed", messageOf(error));
+    return;
+  }
   if (!notifier) {
     await record(notification, "none", "skipped");
     return;
@@ -67,11 +74,6 @@ export const notify = async (notification: Notification) => {
     await notifier.send(notification);
     await record(notification, notifier.driver, "sent");
   } catch (error) {
-    await record(
-      notification,
-      notifier.driver,
-      "failed",
-      error instanceof Error ? error.message : "Unknown error",
-    );
+    await record(notification, notifier.driver, "failed", messageOf(error));
   }
 };

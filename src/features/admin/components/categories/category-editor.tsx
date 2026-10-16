@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Trash } from "lucide-react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 
 import { ConfirmButton } from "@/components/ui/confirm-button";
@@ -27,6 +28,7 @@ import { NumberInput, SelectInput, SwitchInput } from "../form/fields";
 import { editorAsideClass, editorGridClass, FormSection } from "../form/form-section";
 import { categoryIcons, IconPicker } from "../form/icon-picker";
 import { LocalizedField, LocalizedTextarea } from "../form/localized-field";
+import { ReadOnlyScope } from "../form/read-only";
 import { SaveBar } from "../form/save-bar";
 import { SeoFields } from "../form/seo-fields";
 import { SlugField } from "../form/slug-field";
@@ -74,9 +76,12 @@ export function CategoryEditor({ category, categories, guides, canWrite }: Categ
     resolver: zodResolver(categoryFormSchema, zodOptions),
     defaultValues: toForm(category),
   });
-  const parentOptions = toOptions(
-    categories.filter((option) => option.id !== category?.id && !option.hint),
-  );
+  const [version, setVersion] = useState(category?.updatedAt);
+  const hasChildren =
+    Boolean(category) && categories.some((option) => option.hint === category?.slug);
+  const parentOptions = hasChildren
+    ? []
+    : toOptions(categories.filter((option) => option.id !== category?.id && !option.hint));
 
   const onSubmit = form.handleSubmit(async (values) => {
     const snapshot = form.getValues();
@@ -84,9 +89,13 @@ export function CategoryEditor({ category, categories, guides, canWrite }: Categ
       applyFieldErrors(form.setError, error);
     if (category) {
       const saved = await run(
-        () => apiClient.api.admin.categories({ id: category.id }).patch(values),
+        () =>
+          apiClient.api.admin
+            .categories({ id: category.id })
+            .patch({ ...values, expectedUpdatedAt: version }),
         {
           success: copy.saved,
+          onSuccess: (data) => setVersion(data.updatedAt),
           onError,
         },
       );
@@ -121,7 +130,7 @@ export function CategoryEditor({ category, categories, guides, canWrite }: Categ
     <FormProvider {...form}>
       <form noValidate onSubmit={onSubmit} className="flex flex-col gap-5">
         <PanelHeading eyebrow={copy.title} title={category ? category.name.fa : copy.createTitle} />
-        <fieldset disabled={!canWrite} className="contents">
+        <ReadOnlyScope readOnly={!canWrite}>
           <div className={editorGridClass}>
             <div className="flex min-w-0 flex-col gap-4">
               <FormSection
@@ -138,6 +147,8 @@ export function CategoryEditor({ category, categories, guides, canWrite }: Categ
                     label={copy.fields.parent}
                     options={parentOptions}
                     placeholder={copy.fields.noParent}
+                    hint={hasChildren ? copy.fields.parentLocked : undefined}
+                    disabled={hasChildren}
                     nullable
                   />
                 </div>
@@ -179,6 +190,7 @@ export function CategoryEditor({ category, categories, guides, canWrite }: Categ
                   pending={pending}
                   onDiscard={() => form.reset()}
                   submitLabel={category ? common.saveChanges : common.create}
+                  isNew={!category}
                 />
               )}
             </div>
@@ -215,7 +227,7 @@ export function CategoryEditor({ category, categories, guides, canWrite }: Categ
               )}
             </aside>
           </div>
-        </fieldset>
+        </ReadOnlyScope>
       </form>
     </FormProvider>
   );

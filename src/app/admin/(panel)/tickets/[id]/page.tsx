@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { TicketDetail } from "@/features/admin/components/tickets/ticket-detail";
 import { adminContent } from "@/features/admin/content";
 import { getRequestTime } from "@/features/admin/data";
-import { requireAdmin } from "@/server/auth/session";
+import { hasAdminPermission, requireAdmin } from "@/server/auth/session";
 import { idSchema } from "@/server/lib/validation";
 import { adminApi } from "@/services/admin";
 
@@ -12,7 +12,10 @@ export async function generateMetadata({
   params,
 }: PageProps<"/admin/tickets/[id]">): Promise<Metadata> {
   const { id } = await params;
-  const ticket = idSchema.safeParse(id).success ? await adminApi.tickets.get(id) : null;
+  const ticket =
+    idSchema.safeParse(id).success && (await hasAdminPermission("tickets:read"))
+      ? await adminApi.tickets.get(id)
+      : null;
   return {
     title: ticket
       ? `${ticket.formattedTrackingCode} · ${ticket.subject}`
@@ -32,10 +35,10 @@ export default async function AdminTicketPage({ params }: PageProps<"/admin/tick
 
   return (
     <TicketDetail
-      key={ticket.updatedAt}
       ticket={ticket}
       assignees={assignees}
       canWrite={permissions.includes("tickets:write")}
+      canViewWarranty={permissions.includes("warranty:read")}
       now={getRequestTime()}
     />
   );

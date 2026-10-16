@@ -85,6 +85,7 @@ export const staffMessageSchema = z.object({
     z.boolean(),
     z.enum(["true", "false"]).transform((value) => value === "true"),
   ]),
+  status: optionalText(z.enum(ticketStatuses)),
 });
 
 export const ticketAttachmentParamsSchema = z.object({ id: z.uuid(), mediaId: z.uuid() });

@@ -10,11 +10,11 @@ export const metadata: Metadata = { title: adminContent.slides.title };
 
 export default async function AdminSlidesPage() {
   const { permissions } = await requireAdmin("content:read");
-  const result = await adminApi.slides.list({ page: 1 });
+  const slides = await adminApi.slides.all();
   return (
     <SlidesBoard
-      key={result.items.map((slide) => `${slide.id}:${slide.updatedAt}`).join("|")}
-      slides={result.items}
+      key={slides.map((slide) => `${slide.id}:${slide.updatedAt}`).join("|")}
+      slides={slides}
       canWrite={permissions.includes("content:write")}
       now={getRequestTime()}
     />

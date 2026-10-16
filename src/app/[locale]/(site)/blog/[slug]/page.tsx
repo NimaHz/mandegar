@@ -20,6 +20,7 @@ import { localizePath } from "@/i18n/paths";
 import { routes } from "@/lib/routes";
 import { postGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
+import { ogEntityTarget } from "@/lib/seo/og/cards";
 import { api } from "@/services";
 
 export const revalidate = 3600;
@@ -40,7 +41,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: routes.post(post.slug),
-    og: { kind: "post", slug: post.slug, updatedAt: post.updatedAt },
+    og: await ogEntityTarget(locale, "post", post.slug),
     title: post.seo.title ?? post.title,
     description: post.seo.description ?? post.excerpt,
     image: post.cover && {

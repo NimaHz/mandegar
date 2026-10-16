@@ -135,7 +135,7 @@ export const toTicketFields = (values: RequestValues): TicketFieldsInput => ({
   city: values.city.trim(),
   address: values.address.trim(),
   warrantyCode: values.warrantyCode,
-  productSlug: values.warrantyCode ? "" : values.productSlug,
+  productSlug: values.productSlug,
   purchaseDate: values.purchaseDate,
   subject: values.subject.trim(),
   description: values.description.trim(),

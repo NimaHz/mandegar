@@ -48,10 +48,12 @@ export const warrantyCodeStatusSchema = z.object({
   note: z.string().trim().max(300).nullable().optional(),
 });
 
+export const LABELS_PER_PRINT = 100;
+
 export const warrantyLabelsQuerySchema = z.object({
   ids: z
     .string()
     .max(20_000)
     .transform((value) => value.split(",").filter(Boolean))
-    .pipe(z.array(z.uuid()).max(500)),
+    .pipe(z.array(z.uuid()).max(LABELS_PER_PRINT)),
 });

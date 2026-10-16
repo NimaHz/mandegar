@@ -43,14 +43,14 @@ export function MessagesList({ result, filtered, canWrite }: MessagesListProps) 
   const { run } = useAdminMutation();
   const [open, setOpen] = useState<AdminContactMessage | null>(null);
 
-  const setStatus = (message: AdminContactMessage, status: ContactStatus) =>
+  const setStatus = (message: AdminContactMessage, status: ContactStatus, announce = true) =>
     run(() => apiClient.api.admin.messages({ id: message.id }).patch({ status }), {
-      success: copy.updated,
+      success: announce ? copy.updated : undefined,
     });
 
   const openMessage = (message: AdminContactMessage) => {
     setOpen(message);
-    if (canWrite && message.status === "new") void setStatus(message, "read");
+    if (canWrite && message.status === "new") void setStatus(message, "read", false);
   };
 
   const columns: Column<AdminContactMessage>[] = [

@@ -17,7 +17,7 @@ import { createTotpSecret, verifyTotp } from "@/server/auth/totp";
 import { getDb } from "@/server/db/client";
 import { users } from "@/server/db/schema";
 import { sha256 } from "@/server/lib/crypto";
-import { conflict, tooManyRequests, unauthorized } from "@/server/lib/http-error";
+import { conflict, notFound, tooManyRequests, unauthorized } from "@/server/lib/http-error";
 import {
   claimOnce,
   countAttempt,
@@ -28,7 +28,12 @@ import { recordAudit } from "@/server/plugins/audit";
 import { type AdminActor } from "@/server/plugins/auth";
 import type { AdminIdentity, AdminSession } from "@/types/admin";
 
-import type { changePasswordSchema, loginSchema, totpDisableSchema } from "./schema";
+import type {
+  changePasswordSchema,
+  loginSchema,
+  totpDisableSchema,
+  totpEnableSchema,
+} from "./schema";
 
 const LOCKOUT_WINDOW_SEC = 900;
 const DAY_SEC = 86_400;
@@ -46,12 +51,30 @@ const emailLimits = (emailKey: string): RateLimitRule[] => [
   { key: `login-email-day:${emailKey}`, limit: 20, windowSec: DAY_SEC },
 ];
 
+const secondFactorLimits = (userId: string): RateLimitRule[] => [
+  { key: `login-totp:${userId}`, limit: 10, windowSec: LOCKOUT_WINDOW_SEC },
+  { key: `login-totp-day:${userId}`, limit: 50, windowSec: DAY_SEC },
+];
+
+const reauthLimits = (userId: string): RateLimitRule[] => [
+  { key: `reauth:${userId}`, limit: 5, windowSec: LOCKOUT_WINDOW_SEC },
+  { key: `reauth-day:${userId}`, limit: 20, windowSec: DAY_SEC },
+];
+
 const throttleDelay = (excess: number) =>
   Math.min(THROTTLE_MAX_MS, THROTTLE_STEP_MS * 2 ** (excess - 1));
 
 const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 const invalidCredentials = () => unauthorized("Invalid email or password", "INVALID_CREDENTIALS");
+
+const limitedCheck = async (rules: RateLimitRule[], check: () => Promise<boolean>) => {
+  const reservation = await reserveAttempts(rules);
+  if (!reservation.allowed) throw tooManyRequests(reservation.retryAfterSec);
+  const passed = await check();
+  if (passed) await reservation.release();
+  return passed;
+};
 
 type LoginResult = { status: "ok"; user: AdminIdentity } | { status: "totp-required" };
 
@@ -116,11 +139,15 @@ export const login = async (
     : await burnPasswordCheck(input.password);
   if (!user || !user.active || !passwordOk) throw invalidCredentials();
   if (user.totpEnabled) {
-    if (!input.totp) {
+    const code = input.totp;
+    if (!code) {
       await release();
       return { result: { status: "totp-required" }, token: null };
     }
-    if (!(await verifyTotp(user.id, user.totpSecret, input.totp))) throw invalidCredentials();
+    const verified = await limitedCheck(secondFactorLimits(user.id), () =>
+      verifyTotp(user.id, user.totpSecret, code),
+    );
+    if (!verified) throw invalidCredentials();
   }
   await release();
   if (meta.previousToken) await revokeSession(sessionIdOf(meta.previousToken));
@@ -140,9 +167,10 @@ export const changePassword = async (
   input: z.output<typeof changePasswordSchema>,
 ) => {
   const user = await findUser(actor.id);
-  if (!(await verifyPassword(user.passwordHash, input.currentPassword))) {
-    throw unauthorized("Current password is wrong", "INVALID_CREDENTIALS");
-  }
+  const verified = await limitedCheck(reauthLimits(user.id), () =>
+    verifyPassword(user.passwordHash, input.currentPassword),
+  );
+  if (!verified) throw unauthorized("Current password is wrong", "INVALID_CREDENTIALS");
   await getDb()
     .update(users)
     .set({ passwordHash: await hashPassword(input.newPassword), mustChangePassword: false })
@@ -161,11 +189,23 @@ export const setupTotp = async (actor: AdminActor) => {
   return { secret, uri };
 };
 
-export const enableTotp = async (actor: AdminActor, code: string) => {
+const confirmFactors = (
+  user: typeof users.$inferSelect,
+  input: { password: string; code: string },
+) =>
+  limitedCheck(
+    reauthLimits(user.id),
+    async () =>
+      (await verifyPassword(user.passwordHash, input.password)) &&
+      (await verifyTotp(user.id, user.totpSecret, input.code)),
+  );
+
+export const enableTotp = async (actor: AdminActor, input: z.output<typeof totpEnableSchema>) => {
   const user = await findUser(actor.id);
   if (user.totpEnabled) throw conflict("Two-factor authentication is already enabled");
-  if (!(await verifyTotp(user.id, user.totpSecret, code))) throw invalidCredentials();
+  if (!(await confirmFactors(user, input))) throw invalidCredentials();
   await getDb().update(users).set({ totpEnabled: true }).where(eq(users.id, user.id));
+  await revokeUserSessions(user.id, actor.sessionId);
   await auditAuth(actor, "totp.enable");
   return { ok: true as const };
 };
@@ -173,14 +213,12 @@ export const enableTotp = async (actor: AdminActor, code: string) => {
 export const disableTotp = async (actor: AdminActor, input: z.output<typeof totpDisableSchema>) => {
   const user = await findUser(actor.id);
   if (!user.totpEnabled) throw conflict("Two-factor authentication is not enabled");
-  const valid =
-    (await verifyPassword(user.passwordHash, input.password)) &&
-    (await verifyTotp(user.id, user.totpSecret, input.code));
-  if (!valid) throw invalidCredentials();
+  if (!(await confirmFactors(user, input))) throw invalidCredentials();
   await getDb()
     .update(users)
     .set({ totpEnabled: false, totpSecret: null })
     .where(eq(users.id, user.id));
+  await revokeUserSessions(user.id, actor.sessionId);
   await auditAuth(actor, "totp.disable");
   return { ok: true as const };
 };
@@ -197,7 +235,7 @@ export const sessionsOf = async (actor: AdminActor): Promise<AdminSession[]> =>
   }));
 
 export const revokeOwnSession = async (actor: AdminActor, id: string) => {
-  if (!(await revokeSession(id, actor.id))) throw unauthorized("Session not found");
+  if (!(await revokeSession(id, actor.id))) throw notFound("Session not found");
   await auditAuth(actor, "session.revoke");
   return { ok: true as const, current: id === actor.sessionId };
 };

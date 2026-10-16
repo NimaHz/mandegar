@@ -54,37 +54,25 @@ interface SlidesBoardProps {
 }
 
 export function SlidesBoard({ slides, canWrite, now }: SlidesBoardProps) {
-  const { run } = useAdminMutation();
+  const { run, pending } = useAdminMutation();
   const [order, setOrder] = useState(slides.map((slide) => slide.id));
   const sheet = useSheetTarget<AdminSlide>();
   const editing = sheet.target?.mode === "edit" ? sheet.target.item : null;
   const ordered = order.flatMap((id) => slides.find((slide) => slide.id === id) ?? []);
   const visible = [...ordered, ...slides.filter((slide) => !order.includes(slide.id))];
 
-  const persist = async (ids: string[]) => {
-    const changes = ids.flatMap((id, index) => {
-      const slide = slides.find((item) => item.id === id);
-      return slide && slide.sortOrder !== index * 10 ? [{ id, sortOrder: index * 10 }] : [];
-    });
-    for (const [index, change] of changes.entries()) {
-      const last = index === changes.length - 1;
-      await run(
-        () => apiClient.api.admin.slides({ id: change.id }).patch({ sortOrder: change.sortOrder }),
-        {
-          success: last ? copy.orderSaved : undefined,
-          refresh: last,
-        },
-      );
-    }
-  };
-
   const move = (from: number, to: number) => {
+    if (pending) return;
     const ids = visible.map((slide) => slide.id);
     const [moved] = ids.splice(from, 1);
     if (!moved) return;
     ids.splice(to, 0, moved);
+    const previous = order;
     setOrder(ids);
-    void persist(ids);
+    void run(() => apiClient.api.admin.slides.order.put({ ids }), {
+      success: copy.orderSaved,
+      onError: () => setOrder(previous),
+    });
   };
 
   const { itemProps, handleProps } = useDragReorder(move);
@@ -132,14 +120,14 @@ export function SlidesBoard({ slides, canWrite, now }: SlidesBoardProps) {
                     <span className="grid size-7 place-items-center rounded-md bg-chip text-caption font-black text-ink">
                       {faNumber(index + 1)}
                     </span>
-                    <span className="flex sm:flex-col">
+                    <fieldset disabled={pending} className="flex sm:flex-col">
                       <ReorderButtons
                         label={slide.title.fa}
                         isFirst={index === 0}
                         isLast={index === visible.length - 1}
                         onMove={(offset) => move(index, index + offset)}
                       />
-                    </span>
+                    </fieldset>
                   </div>
                 )}
                 <SlidePreview
@@ -209,7 +197,7 @@ export function SlidesBoard({ slides, canWrite, now }: SlidesBoardProps) {
         <SlideSheet
           key={editing?.id ?? "new"}
           slide={editing}
-          nextOrder={visible.length * 10}
+          nextOrder={Math.max(-10, ...visible.map((slide) => slide.sortOrder)) + 10}
           onClose={sheet.close}
           readOnly={!canWrite}
         />

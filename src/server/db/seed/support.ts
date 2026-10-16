@@ -7,7 +7,7 @@ import { ticketDeadlines } from "@/server/lib/sla";
 import type { TicketPriority, TicketStatus, TicketType } from "@/types/support";
 
 import type { IdMap } from "./catalog";
-import { seedId } from "./helpers";
+import { isEmpty, seedId } from "./helpers";
 
 export const seedOwner = async () => {
   const email = process.env.SEED_OWNER_EMAIL?.trim().toLowerCase();
@@ -134,8 +134,9 @@ const ticketSeeds: TicketSeed[] = [
 ];
 
 export const seedTickets = async (productIds: IdMap, ownerId: string) => {
-  const now = Date.now();
   const created: { trackingCode: string; phone: string }[] = [];
+  if (!(await isEmpty(tickets))) return created;
+  const now = Date.now();
   for (const seed of ticketSeeds) {
     const createdAt = new Date(now - seed.daysAgo * 86_400_000);
     const deadlines = ticketDeadlines(seed.type, createdAt);

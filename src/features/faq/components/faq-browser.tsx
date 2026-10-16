@@ -16,7 +16,7 @@ import type { FaqContent } from "../content";
 
 interface FaqSection {
   group: FaqGroup;
-  items: Faq[];
+  items: (Faq & { answerHtml: string })[];
 }
 
 interface FaqBrowserProps {
@@ -154,9 +154,10 @@ export function FaqBrowser({ sections, content }: FaqBrowserProps) {
                         <Plus className="size-4" />
                       </span>
                     </summary>
-                    <p className="pe-11 pb-5 text-sm leading-8 text-body sm:text-lead">
-                      {faq.answer}
-                    </p>
+                    <div
+                      className="prose-mandegar pe-11 pb-5 text-sm leading-8 sm:text-lead"
+                      dangerouslySetInnerHTML={{ __html: faq.answerHtml }}
+                    />
                   </details>
                 ))}
               </div>

@@ -31,7 +31,11 @@ export const createFaq = async (input: z.output<typeof faqInputSchema>) => {
 
 export const updateFaq = async (id: string, patch: z.output<typeof faqPatchSchema>) => {
   const [row] = await guardWrite(() =>
-    getDb().update(faqs).set(patch).where(eq(faqs.id, id)).returning({ id: faqs.id }),
+    getDb()
+      .update(faqs)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(eq(faqs.id, id))
+      .returning({ id: faqs.id }),
   );
   if (!row) throw notFound("FAQ not found");
   revalidateFaqs();

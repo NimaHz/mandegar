@@ -118,7 +118,7 @@ export function ReviewStep({
               empty
             ),
           },
-          ...(values.warrantyCode
+          ...(values.warrantyCode && !values.productSlug
             ? []
             : [
                 {

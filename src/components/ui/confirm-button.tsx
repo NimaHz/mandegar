@@ -12,6 +12,7 @@ interface ConfirmButtonProps {
   children: ReactNode;
   className?: string;
   armedClassName?: string;
+  disabled?: boolean;
 }
 
 export function ConfirmButton({
@@ -21,6 +22,7 @@ export function ConfirmButton({
   children,
   className,
   armedClassName,
+  disabled,
 }: ConfirmButtonProps) {
   const { ui } = useDictionary();
   const prompt = confirmLabel ?? ui.confirm;
@@ -44,11 +46,12 @@ export function ConfirmButton({
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       onBlur={() => setArmed(false)}
       aria-label={armed ? `${prompt} ${label}` : label}
       className={cn(
         "inline-flex shrink-0 items-center justify-center gap-1.5 font-bold whitespace-nowrap transition-colors duration-200",
-        "text-muted hover:bg-danger-soft hover:text-danger",
+        "text-muted hover:bg-danger-soft hover:text-danger disabled:pointer-events-none disabled:opacity-30",
         className,
         armed && [
           "bg-danger text-on-primary hover:bg-danger hover:text-on-primary",

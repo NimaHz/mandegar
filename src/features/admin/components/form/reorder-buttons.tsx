@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp } from "lucide-react";
 import { fill } from "@/i18n/fill";
 
 import { adminContent } from "../../content";
+import { useReadOnly } from "./read-only";
 
 interface ReorderButtonsProps {
   label: string;
@@ -15,12 +16,13 @@ const buttonClass =
   "grid size-8 place-items-center rounded-lg text-muted transition-colors hover:bg-chip hover:text-ink disabled:pointer-events-none disabled:opacity-30";
 
 export function ReorderButtons({ label, isFirst, isLast, onMove }: ReorderButtonsProps) {
+  const locked = useReadOnly();
   return (
     <>
       <button
         type="button"
         onClick={() => onMove(-1)}
-        disabled={isFirst}
+        disabled={isFirst || locked}
         aria-label={fill(adminContent.common.moveUp, { label })}
         className={buttonClass}
       >
@@ -29,7 +31,7 @@ export function ReorderButtons({ label, isFirst, isLast, onMove }: ReorderButton
       <button
         type="button"
         onClick={() => onMove(1)}
-        disabled={isLast}
+        disabled={isLast || locked}
         aria-label={fill(adminContent.common.moveDown, { label })}
         className={buttonClass}
       >

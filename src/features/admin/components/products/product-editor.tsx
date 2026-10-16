@@ -5,7 +5,7 @@ import { ExternalLink, Trash, Wand2 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useEffectEvent } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -41,6 +41,7 @@ import {
 import { IconPicker } from "../form/icon-picker";
 import { LocalizedField, LocalizedTextarea } from "../form/localized-field";
 import { MultiSelect } from "../form/multi-select";
+import { ReadOnlyScope } from "../form/read-only";
 import { Repeater } from "../form/repeater";
 import { SaveBar } from "../form/save-bar";
 import { SeoFields } from "../form/seo-fields";
@@ -70,7 +71,7 @@ const toForm = (product: AdminProduct | null): ProductFormInput => ({
   status: product?.status ?? "draft",
   featured: product?.featured ?? false,
   isNew: product?.isNew ?? true,
-  releaseYear: product?.releaseYear ?? new Date().getFullYear(),
+  releaseYear: product ? product.releaseYear : new Date().getFullYear(),
   energyClass: product?.energyClass ?? null,
   name: product?.name ?? blankText(),
   tagline: product?.tagline ?? blankText(),
@@ -120,17 +121,23 @@ export function ProductEditor({
     getValues,
     setValue,
     setError,
-    formState: { isDirty, isSubmitting, dirtyFields },
+    formState: { isDirty, isSubmitting },
   } = form;
+  const [version, setVersion] = useState(product?.updatedAt);
+  const prefilled = useRef<string | null>(null);
   const [categoryId, nameEn] = useWatch({ control, name: ["categoryId", "name.en"] });
   const initialMedia = Object.fromEntries([
     ...(product?.images ?? []).map((image) => [image.mediaId, image.media] as const),
   ]);
 
   const prefillSpecs = useEffectEvent(async (id: string) => {
-    if (product || getValues("specs").length > 0) return;
+    const untouched = () => {
+      const specs = getValues("specs");
+      return specs.length === 0 || JSON.stringify(specs) === prefilled.current;
+    };
+    if (product || !untouched()) return;
     const { data } = await apiClient.api.admin.categories({ id }).get();
-    if (!data || getValues("specs").length > 0) return;
+    if (!data || id !== getValues("categoryId") || !untouched()) return;
     setValue(
       "specs",
       data.specTemplate.map((group) => ({
@@ -145,6 +152,7 @@ export function ProductEditor({
       })),
       { shouldDirty: true },
     );
+    prefilled.current = JSON.stringify(getValues("specs"));
   });
 
   useEffect(() => {
@@ -153,23 +161,21 @@ export function ProductEditor({
 
   const applyServerErrors = (error: AdminApiError) => applyFieldErrors(setError, error);
 
-  const onSubmit = handleSubmit(async ({ images, ...values }) => {
+  const onSubmit = handleSubmit(async (values) => {
     const snapshot = getValues();
-    const imagesChanged = Boolean(dirtyFields.images);
-    const saveImages = (id: string) =>
-      run(() => apiClient.api.admin.products({ id }).images.put({ images }), { refresh: false });
     if (product) {
       const saved = await run(
-        () => apiClient.api.admin.products({ id: product.id }).patch(values),
+        () =>
+          apiClient.api.admin
+            .products({ id: product.id })
+            .patch({ ...values, expectedUpdatedAt: version }),
         {
           success: copy.savedToast,
-          refresh: !imagesChanged,
+          onSuccess: (data) => setVersion(data.updatedAt),
           onError: applyServerErrors,
         },
       );
-      if (!saved) return;
-      if (imagesChanged && (await saveImages(product.id))) router.refresh();
-      reset(snapshot);
+      if (saved) reset(snapshot);
       return;
     }
     const created = await run(() => apiClient.api.admin.products.post(values), {
@@ -178,7 +184,6 @@ export function ProductEditor({
       onError: applyServerErrors,
     });
     if (!created) return;
-    if (images.length > 0) await saveImages(created.id);
     reset(snapshot);
     router.replace(adminRoutes.product(created.id) as Route);
   });
@@ -218,7 +223,7 @@ export function ProductEditor({
             )
           }
         />
-        <fieldset disabled={!canWrite} className="contents">
+        <ReadOnlyScope readOnly={!canWrite}>
           <div className={editorGridClass}>
             <div className="flex min-w-0 flex-col gap-4">
               <FormSection
@@ -250,6 +255,7 @@ export function ProductEditor({
                       className="mt-[1.6875rem]"
                       aria-label={copy.fields.suggestSlug}
                       title={copy.fields.suggestSlug}
+                      disabled={!canWrite}
                       onClick={() =>
                         setValue("slug", slugify(nameEn || getValues("modelCode")), {
                           shouldDirty: true,
@@ -466,6 +472,7 @@ export function ProductEditor({
                   pending={isSubmitting || pending}
                   onDiscard={() => reset()}
                   submitLabel={product ? common.saveChanges : copy.createSubmit}
+                  isNew={!product}
                 />
               )}
             </div>
@@ -544,7 +551,7 @@ export function ProductEditor({
               )}
             </aside>
           </div>
-        </fieldset>
+        </ReadOnlyScope>
       </form>
     </FormProvider>
   );

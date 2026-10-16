@@ -46,6 +46,7 @@ export const mediaUsageEntities = [
   "slide",
   "author",
   "post",
+  "faq",
   "ticket",
 ] as const;
 export type MediaUsageEntity = (typeof mediaUsageEntities)[number];

@@ -36,7 +36,7 @@ export function UserMenu({ user }: { user: AdminIdentity }) {
         aria-expanded={open}
         aria-controls={menuId}
         aria-label={shell.userMenu}
-        className="flex h-10 items-center gap-2 rounded-full p-0.5 pe-2 transition-colors hover:bg-sunken sm:pe-3"
+        className="group flex h-10 items-center gap-2 rounded-full p-0.5 pe-2 transition-colors hover:bg-sunken sm:pe-3"
       >
         <UserAvatar name={user.name} />
         <span className="flex flex-col items-start leading-tight max-sm:hidden">
@@ -44,7 +44,7 @@ export function UserMenu({ user }: { user: AdminIdentity }) {
           <span className="text-caption text-muted">{roles[user.role]}</span>
         </span>
         <ChevronDown
-          className="size-4 text-muted transition-transform duration-200 aria-expanded:rotate-180"
+          className="size-4 text-muted transition-transform duration-200 group-aria-expanded:rotate-180"
           aria-hidden
         />
       </button>

@@ -40,6 +40,7 @@ import { cn } from "@/lib/cn";
 import { isRtl } from "@/lib/dom";
 
 import { adminContent } from "../../content";
+import { useReadOnly } from "./read-only";
 import { useFieldError } from "./use-field-error";
 
 const { names } = adminContent.iconPicker;
@@ -101,6 +102,8 @@ export function IconPicker({ name, label, set = featureIcons }: IconPickerProps)
     isIconName(key) ? [{ key, Icon, label: names[key] }] : [],
   );
 
+  const locked = useReadOnly();
+
   return (
     <Controller
       control={control}
@@ -154,9 +157,10 @@ export function IconPicker({ name, label, set = featureIcons }: IconPickerProps)
                     aria-label={optionLabel}
                     title={optionLabel}
                     tabIndex={index === focusable ? 0 : -1}
+                    disabled={locked}
                     onClick={() => field.onChange(key)}
                     className={cn(
-                      "grid size-10 place-items-center rounded-control border transition-colors",
+                      "grid size-10 place-items-center rounded-control border transition-colors disabled:pointer-events-none",
                       checked
                         ? "border-primary bg-primary text-on-primary shadow-primary"
                         : "border-line bg-raised text-ink-soft hover:border-ink/40 hover:text-ink",

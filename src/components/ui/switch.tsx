@@ -10,16 +10,18 @@ interface SwitchProps {
   onCheckedChange: (checked: boolean) => void;
   label: string;
   description?: string;
+  disabled?: boolean;
 }
 
-export function Switch({ checked, onCheckedChange, label, description }: SwitchProps) {
+export function Switch({ checked, onCheckedChange, label, description, disabled }: SwitchProps) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
-      className="flex w-full items-center justify-between gap-4 rounded-field border border-line bg-raised px-4 py-3 text-start"
+      className="flex w-full items-center justify-between gap-4 rounded-field border border-line bg-raised px-4 py-3 text-start disabled:cursor-not-allowed disabled:opacity-60"
     >
       <span className="flex flex-col gap-0.5">
         <span className="text-sm font-bold text-ink">{label}</span>

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { ProductEditor } from "@/features/admin/components/products/product-editor";
 import { adminContent } from "@/features/admin/content";
-import { requireAdmin } from "@/server/auth/session";
+import { hasAdminPermission, requireAdmin } from "@/server/auth/session";
 import { idSchema } from "@/server/lib/validation";
 import { adminApi } from "@/services/admin";
 
@@ -11,7 +11,10 @@ export async function generateMetadata({
   params,
 }: PageProps<"/admin/products/[id]">): Promise<Metadata> {
   const { id } = await params;
-  const product = idSchema.safeParse(id).success ? await adminApi.products.get(id) : null;
+  const product =
+    idSchema.safeParse(id).success && (await hasAdminPermission("catalog:read"))
+      ? await adminApi.products.get(id)
+      : null;
   return { title: product?.name.fa ?? adminContent.products.title };
 }
 

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, gt, ne } from "drizzle-orm";
+import { and, desc, eq, gt, lte, ne } from "drizzle-orm";
 
 import { getDb } from "@/server/db/client";
 import { sessions, users } from "@/server/db/schema";
@@ -22,10 +22,13 @@ const slidingExpiry = (createdAt: Date, now: number) =>
 
 export const sessionIdOf = (token: string) => sha256(token);
 
+const pruneExpired = (now: Date) => getDb().delete(sessions).where(lte(sessions.expiresAt, now));
+
 export const createSession = async (userId: string, meta: SessionMeta) => {
   const token = randomToken(32);
   const now = Date.now();
   const createdAt = new Date(now);
+  await pruneExpired(createdAt);
   await getDb()
     .insert(sessions)
     .values({

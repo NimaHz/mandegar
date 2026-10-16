@@ -3,20 +3,28 @@ import { after, before, describe, it } from "node:test";
 
 import { solveChallenge } from "altcha-lib";
 import { deriveKey } from "altcha-lib/algorithms/pbkdf2";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 
+import { mentionsGasSmell } from "@/lib/tickets";
+import { createTrackingCode } from "@/lib/tracking-code";
 import { createWarrantyCode, formatWarrantyCode } from "@/lib/warranty-code";
 import { closeDb, getDb } from "@/server/db/client";
 import {
   brands,
   categories,
   contactMessages,
+  media,
   products,
+  ticketMessages,
   tickets,
   warrantyCodes,
   warrantyPolicies,
 } from "@/server/db/schema";
+import { foldSearch, toFoldedKey } from "@/server/db/search";
+import { randomToken, sha256 } from "@/server/lib/crypto";
+import { isUniqueViolation } from "@/server/lib/db-errors";
 import { issueFormToken } from "@/server/lib/form-guard";
+import { getStorage } from "@/server/storage";
 import { field, loadTestEnv, postJson, request, testIp } from "@/server/testing/http";
 
 process.env.ALTCHA_COST = "1";
@@ -88,9 +96,25 @@ const createFixtures = async () => {
   });
 };
 
+const removeTicketMedia = async (ids: string[]) => {
+  if (ids.length === 0) return;
+  const rows = await getDb()
+    .delete(media)
+    .where(inArray(media.id, ids))
+    .returning({ storageKey: media.storageKey });
+  const storage = await getStorage();
+  await Promise.all(rows.map((row) => storage.remove(row.storageKey)));
+};
+
 const removeFixtures = async () => {
   const db = getDb();
+  const attachments = await db
+    .select({ ids: ticketMessages.attachmentMediaIds })
+    .from(ticketMessages)
+    .innerJoin(tickets, eq(tickets.id, ticketMessages.ticketId))
+    .where(eq(tickets.phone, phone));
   await db.delete(tickets).where(eq(tickets.phone, phone));
+  await removeTicketMedia(attachments.flatMap((row) => row.ids));
   await db.delete(contactMessages).where(eq(contactMessages.phone, phone));
   await db.delete(warrantyCodes).where(eq(warrantyCodes.productId, fixture.productId));
   await db.delete(warrantyPolicies).where(eq(warrantyPolicies.id, fixture.policyId));
@@ -106,10 +130,27 @@ after(async () => {
 });
 
 describe("health and search", () => {
+  it("reports degraded while the server environment is invalid", async (t) => {
+    const errors = t.mock.method(console, "error", () => undefined);
+    const cost = process.env.ALTCHA_COST;
+    process.env.ALTCHA_COST = "2k";
+    try {
+      const response = await request("/health");
+      assert.equal(response.status, 503);
+      assert.equal(field(response.json, "status"), "degraded");
+      assert.equal(field(response.json, "configuration"), false);
+      assert.equal(field(response.json, "database"), true);
+      assert.match(String(errors.mock.calls[0]?.arguments[0]), /ALTCHA_COST/);
+    } finally {
+      process.env.ALTCHA_COST = cost;
+    }
+  });
+
   it("reports healthy", async () => {
     const response = await request("/health");
     assert.equal(response.status, 200);
     assert.equal(field(response.json, "status"), "ok");
+    assert.equal(field(response.json, "configuration"), true);
   });
 
   it("returns localized hits and nothing for an empty query", async () => {
@@ -120,6 +161,23 @@ describe("health and search", () => {
     assert.equal(field(list[0], "href"), `/en/products/test-product-${suffix}`);
     const empty = await request("/search?q=", { ip: testIp() });
     assert.deepEqual(empty.json, { hits: [] });
+  });
+
+  it("folds stored text exactly like the query key", async () => {
+    const samples = [
+      "معمولاً نصب",
+      "کولر\u00a0آبی",
+      "کولر\u200fآبی\u200e",
+      "بخاري\tگازی\nكوچك",
+      "ـفن‌کویلـ MEH-2000",
+      "۱۲۳٤ Fan",
+    ];
+    for (const sample of samples) {
+      const [row] = await getDb().execute<{ key: string }>(
+        sql`select ${foldSearch(sql`${sample}::text`)} as key`,
+      );
+      assert.equal(row?.key, toFoldedKey(sample), JSON.stringify(sample));
+    }
   });
 });
 
@@ -153,6 +211,47 @@ describe("warranty lookup", () => {
     const match = field(response.json, "match");
     assert.equal(field(match, "productionYear"), 1405);
     assert.equal(field(field(match, "product"), "slug"), `test-product-${suffix}`);
+  });
+
+  it("keeps codes of archived or hidden products valid but unlinked", async () => {
+    const lookup = async () => {
+      const response = await postJson(
+        "/warranty/lookup",
+        { code: fixture.code, locale: "en" },
+        { ip: testIp() },
+      );
+      return response.json;
+    };
+    const db = getDb();
+    try {
+      await db
+        .update(products)
+        .set({ status: "archived" })
+        .where(eq(products.id, fixture.productId));
+      const archived = await lookup();
+      assert.equal(field(archived, "status"), "found");
+      const product = field(field(archived, "match"), "product");
+      assert.equal(field(product, "listed"), false);
+      assert.equal(field(field(product, "category"), "listed"), true);
+      await db
+        .update(products)
+        .set({ status: "published" })
+        .where(eq(products.id, fixture.productId));
+      await db.update(brands).set({ published: false }).where(eq(brands.id, fixture.brandId));
+      const hidden = await lookup();
+      assert.equal(field(hidden, "status"), "found");
+      assert.equal(field(field(field(hidden, "match"), "product"), "listed"), false);
+      await db.update(brands).set({ published: true }).where(eq(brands.id, fixture.brandId));
+      await db.update(products).set({ status: "draft" }).where(eq(products.id, fixture.productId));
+      assert.deepEqual(await lookup(), { status: "not-found" });
+    } finally {
+      await db.update(brands).set({ published: true }).where(eq(brands.id, fixture.brandId));
+      await db
+        .update(products)
+        .set({ status: "published" })
+        .where(eq(products.id, fixture.productId));
+    }
+    assert.equal(field(field(field(await lookup(), "match"), "product"), "listed"), true);
   });
 
   it("returns an identical response for every miss", async () => {
@@ -360,6 +459,102 @@ describe("tickets", () => {
     assert.ok(Array.isArray(messages));
     assert.equal(field(messages.at(-1), "body"), "Any news?");
     assert.ok(messages.every((message) => field(message, "author") !== "system"));
+  });
+
+  it("reopens a resolved ticket when the customer replies", async () => {
+    await getDb()
+      .update(tickets)
+      .set({ status: "resolved", resolvedAt: new Date() })
+      .where(eq(tickets.trackingCode, state.trackingCode));
+    const form = new FormData();
+    form.set("token", state.accessToken);
+    form.set("body", "It stopped working again.");
+    const response = await request(`/tickets/${state.trackingCode}/messages`, {
+      method: "POST",
+      body: form,
+      ip,
+    });
+    assert.equal(response.status, 200, JSON.stringify(response.json));
+    assert.equal(field(response.json, "status"), "in-review");
+    const messages = field(response.json, "messages");
+    assert.ok(Array.isArray(messages));
+    assert.deepEqual(
+      messages.slice(-2).map((message) => [field(message, "author"), field(message, "status")]),
+      [
+        ["customer", undefined],
+        ["system", "in-review"],
+      ],
+    );
+    const [row] = await getDb()
+      .select({ status: tickets.status, resolvedAt: tickets.resolvedAt })
+      .from(tickets)
+      .where(eq(tickets.trackingCode, state.trackingCode));
+    assert.deepEqual(row, { status: "in-review", resolvedAt: null });
+  });
+
+  it("removes stored attachments when a later file is rejected", async () => {
+    const name = `kept-${suffix}.pdf`;
+    const form = new FormData();
+    form.set("token", state.accessToken);
+    form.set("body", "Two files, one broken.");
+    const pdf = new TextEncoder().encode(`%PDF-1.4\n% ${suffix}\n1 0 obj << >> endobj\n%%EOF\n`);
+    form.append("attachments", new File([pdf], name, { type: "application/pdf" }));
+    form.append("attachments", new File(["not an image"], "bad.png", { type: "image/png" }));
+    const response = await request(`/tickets/${state.trackingCode}/messages`, {
+      method: "POST",
+      body: form,
+      ip,
+    });
+    assert.equal(response.status, 415);
+    const left = await getDb()
+      .select({ id: media.id })
+      .from(media)
+      .where(eq(media.originalName, name));
+    assert.deepEqual(left, []);
+  });
+
+  it("recognises a tracking-code collision by its real constraint", async () => {
+    const values = {
+      trackingCode: createTrackingCode(),
+      type: "repair" as const,
+      name: "Test Customer",
+      phone,
+      province: "23",
+      city: "Tehran",
+      address: "Test street, number 1",
+      subject: "Collision",
+      description: "A ticket that reuses a tracking code.",
+      firstResponseDue: new Date(),
+      resolutionDue: new Date(),
+    };
+    await getDb()
+      .insert(tickets)
+      .values({ ...values, accessTokenHash: sha256(randomToken(32)) });
+    const duplicate = await getDb()
+      .insert(tickets)
+      .values({ ...values, accessTokenHash: sha256(randomToken(32)) })
+      .then(() => null)
+      .catch((error: unknown) => error);
+    assert.ok(duplicate);
+    assert.equal(isUniqueViolation(duplicate, tickets.trackingCode.uniqueName), true);
+  });
+
+  it("flags gas leak wording in Persian and English", () => {
+    for (const text of [
+      "بوی گاز می‌آید",
+      "نشت گاز داریم",
+      "نشتی گاز از شیر",
+      "گاز نشت می‌کند",
+      "گاز بو می‌دهد",
+      "gas leak in the kitchen",
+      "it smells like gas",
+      "leaking gas near the heater",
+    ]) {
+      assert.equal(mentionsGasSmell(text), true, text);
+    }
+    for (const text of ["گاز بوتان", "پیلوت خاموش می‌شود", "the gas bill is high"]) {
+      assert.equal(mentionsGasSmell(text), false, text);
+    }
   });
 
   it("refuses replies with a wrong token", async () => {

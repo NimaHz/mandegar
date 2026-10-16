@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { CategoryIcon } from "@/components/icons/category-icon";
+import { Markdown } from "@/components/shared/markdown";
 import type { Locale } from "@/i18n/config";
 import { localizePath } from "@/i18n/paths";
 import { formatNumber } from "@/lib/format";
@@ -45,9 +46,10 @@ export function CategoryHero({ category, locale, breadcrumbs }: CategoryHeroProp
               {category.summary}
             </p>
             {category.description && (
-              <p className="max-w-xl text-sm leading-7 text-pretty text-body sm:text-lead sm:leading-8">
-                {category.description}
-              </p>
+              <Markdown
+                source={category.description}
+                className="max-w-xl text-sm leading-7 text-pretty sm:text-lead sm:leading-8"
+              />
             )}
             {category.children.length > 0 && (
               <nav aria-label={content.subcategories} className="flex flex-wrap gap-2">

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, exists, type SQL, sql } from "drizzle-orm";
+import { and, arrayContains, eq, exists, type SQL } from "drizzle-orm";
 
 import { getDb } from "@/server/db/client";
 import { media, ticketMessages } from "@/server/db/schema";
@@ -43,7 +43,7 @@ const attachmentOf = async (mediaId: string, message: SQL) => {
           db
             .select({ id: ticketMessages.id })
             .from(ticketMessages)
-            .where(and(message, sql`${media.id} = any(${ticketMessages.attachmentMediaIds})`)),
+            .where(and(message, arrayContains(ticketMessages.attachmentMediaIds, [mediaId]))),
         ),
       ),
     )
@@ -52,8 +52,15 @@ const attachmentOf = async (mediaId: string, message: SQL) => {
   return row;
 };
 
+const fileNameOf = (row: { kind: string; storageKey: string; originalName: string | null }) => {
+  const stored = row.storageKey.split("/").at(-1) ?? "attachment";
+  if (!row.originalName) return stored;
+  if (row.kind !== "image") return row.originalName;
+  return `${row.originalName.replace(/\.[^.]*$/, "")}.${stored.split(".").at(-1) ?? "webp"}`;
+};
+
 const dispositionOf = (row: { kind: string; storageKey: string; originalName: string | null }) => {
-  const name = row.originalName ?? row.storageKey.split("/").at(-1) ?? "attachment";
+  const name = fileNameOf(row);
   const fallback = name.replace(/[^\w.-]/g, "_");
   return `${row.kind === "image" ? "inline" : "attachment"}; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(name)}`;
 };

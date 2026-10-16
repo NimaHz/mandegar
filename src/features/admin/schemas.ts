@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { isRecord } from "@/lib/guards";
+import { toLatinDigits } from "@/lib/persian";
 import { localizedText } from "@/server/lib/validation";
 import { authorInputSchema } from "@/server/modules/authors/schema";
 import { brandInputSchema } from "@/server/modules/brands/schema";
@@ -12,6 +13,7 @@ import {
   productImagesSchema,
   productInputSchema,
   specTemplateItemSchema,
+  uniqueSpecKeys,
 } from "@/server/modules/products/schema";
 import { serviceCenterInputSchema } from "@/server/modules/service-centers/schema";
 import { slideInputSchema } from "@/server/modules/slides/schema";
@@ -19,7 +21,8 @@ import { warrantyPolicyInputSchema } from "@/server/modules/warranty/schema";
 import type { LocalizedSeo } from "@/types/admin";
 import type { LocalizedText } from "@/types/common";
 
-import { CLOCK_PATTERN } from "./lib/format";
+import { adminContent } from "./content";
+import { CLOCK_PATTERN, parseClock } from "./lib/format";
 
 export const blankText = (): LocalizedText => ({ fa: "", en: "" });
 
@@ -72,7 +75,7 @@ const specGroupForm = z.object({
 });
 
 export const productFormSchema = productInputSchema.extend({
-  specs: z.array(specGroupForm).max(20),
+  specs: z.array(specGroupForm).max(20).superRefine(uniqueSpecKeys(adminContent.validation.taken)),
   seo: seoFormSchema,
   images: productImagesSchema.shape.images,
 });
@@ -81,7 +84,10 @@ export type ProductFormInput = z.input<typeof productFormSchema>;
 export type ProductFormValues = z.output<typeof productFormSchema>;
 
 export const categoryFormSchema = categoryInputSchema.extend({
-  specTemplate: z.array(specGroupTemplateForm).max(20),
+  specTemplate: z
+    .array(specGroupTemplateForm)
+    .max(20)
+    .superRefine(uniqueSpecKeys(adminContent.validation.taken)),
   seo: seoFormSchema,
 });
 
@@ -102,23 +108,51 @@ const guideVideoForm = z.object({
   posterMediaId: z.string().nullable(),
 });
 
-const clock = z.string().trim().regex(CLOCK_PATTERN);
+const clock = z.string().trim().overwrite(toLatinDigits).regex(CLOCK_PATTERN);
 
-export const guideFormSchema = guideInputSchema.omit({ video: true }).extend({
-  video: guideVideoForm,
-  durationSec: z.union([z.literal(""), clock]),
-  chapters: z.array(z.object({ title: localizedText(120), startSec: clock })).max(60),
-});
+export const guideFormSchema = guideInputSchema
+  .omit({ video: true })
+  .extend({
+    video: guideVideoForm,
+    durationSec: z.union([z.literal(""), clock]),
+    chapters: z.array(z.object({ title: localizedText(120), startSec: clock })).max(60),
+  })
+  .superRefine(({ durationSec, chapters }, context) => {
+    const duration = parseClock(durationSec);
+    const starts = chapters.map((chapter) => parseClock(chapter.startSec));
+    starts.forEach((start, index) => {
+      if (start === null) return;
+      const message =
+        duration && start >= duration
+          ? adminContent.validation.afterDuration
+          : starts.indexOf(start) < index
+            ? adminContent.validation.taken
+            : null;
+      if (message) {
+        context.addIssue({ code: "custom", path: ["chapters", index, "startSec"], message });
+      }
+    });
+  });
 
 export type GuideFormInput = z.input<typeof guideFormSchema>;
 export type GuideFormValues = z.output<typeof guideFormSchema>;
 
-export const slideFormSchema = slideInputSchema.extend({
-  ctaLabel: nullableText(40),
-  ctaHref: nullableString(slideInputSchema.shape.ctaHref.unwrap()),
-  startsAt: z.string().nullable(),
-  endsAt: z.string().nullable(),
-});
+export const slideFormSchema = slideInputSchema
+  .extend({
+    ctaLabel: nullableText(40),
+    ctaHref: nullableString(slideInputSchema.shape.ctaHref.unwrap()),
+    startsAt: z.string().nullable(),
+    endsAt: z.string().nullable(),
+  })
+  .superRefine(({ startsAt, endsAt }, context) => {
+    if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
+      context.addIssue({
+        code: "custom",
+        path: ["endsAt"],
+        message: adminContent.validation.endBeforeStart,
+      });
+    }
+  });
 
 export type SlideFormInput = z.input<typeof slideFormSchema>;
 export type SlideFormValues = z.output<typeof slideFormSchema>;

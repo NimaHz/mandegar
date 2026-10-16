@@ -1,5 +1,7 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
+
 import sharp from "sharp";
 
 import type { Locale } from "@/i18n/config";
@@ -14,7 +16,7 @@ import { seoContent } from "../content";
 import { plainText, truncate } from "../text";
 import { siteUrl } from "../urls";
 import { ogPalette } from "./palette";
-import { ogPages, type OgTarget } from "./targets";
+import { type OgEntityKind, ogImagePath, ogPages, type OgTarget } from "./targets";
 import type { OgCard } from "./template";
 
 const UPLOAD_PREFIX = "/uploads/";
@@ -139,18 +141,51 @@ const cardBody = async (locale: Locale, target: OgTarget): Promise<CardBody | nu
   }
 };
 
-export const loadOgCard = async (locale: Locale, target: OgTarget): Promise<OgCard | null> => {
-  const [body, { site }] = await Promise.all([cardBody(locale, target), getDictionary(locale)]);
+const fingerprint = (body: CardBody) =>
+  createHash("sha256")
+    .update(
+      JSON.stringify([
+        body.kicker,
+        body.title,
+        body.subtitle ?? null,
+        body.code ?? null,
+        body.meta ?? [],
+        body.image?.src ?? null,
+        body.fit ?? null,
+      ]),
+    )
+    .digest("base64url")
+    .slice(0, 12);
+
+export const ogEntityTarget = async (
+  locale: Locale,
+  kind: OgEntityKind,
+  slug: string,
+): Promise<OgTarget> => {
+  const body = await cardBody(locale, { kind, slug });
+  return { kind, slug, version: body ? fingerprint(body) : null };
+};
+
+export const loadOgCard = async (locale: Locale, target: OgTarget) => {
+  const body = await cardBody(locale, target);
   if (!body) return null;
-  return {
+  const path = ogImagePath(
     locale,
-    brand: site.name,
-    kicker: body.kicker,
-    title: truncate(body.title, TITLE_MAX),
-    subtitle: body.subtitle ? truncate(body.subtitle, SUBTITLE_MAX) : null,
-    code: body.code ?? null,
-    meta: body.meta ?? [],
-    image: await imageDataUri(body.image, body.fit ?? "cover"),
-    host: new URL(siteUrl).host,
+    target.kind === "page" ? target : { ...target, version: fingerprint(body) },
+  );
+  const card = async (): Promise<OgCard> => {
+    const { site } = await getDictionary(locale);
+    return {
+      locale,
+      brand: site.name,
+      kicker: body.kicker,
+      title: truncate(body.title, TITLE_MAX),
+      subtitle: body.subtitle ? truncate(body.subtitle, SUBTITLE_MAX) : null,
+      code: body.code ?? null,
+      meta: body.meta ?? [],
+      image: await imageDataUri(body.image, body.fit ?? "cover"),
+      host: new URL(siteUrl).host,
+    };
   };
+  return { path, card };
 };

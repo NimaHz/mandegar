@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { adminContent } from "../../content";
 import { slugify } from "../../lib/slug";
 import { CodeInput } from "./fields";
+import { useReadOnly } from "./read-only";
 
 interface SlugFieldProps {
   source: string;
@@ -18,6 +19,7 @@ interface SlugFieldProps {
 export function SlugField({ source, name = "slug", placeholder }: SlugFieldProps) {
   const { getValues, setValue } = useFormContext();
   const { common } = adminContent;
+  const locked = useReadOnly();
 
   const suggest = () => {
     const value: unknown = getValues(source);
@@ -44,6 +46,7 @@ export function SlugField({ source, name = "slug", placeholder }: SlugFieldProps
         aria-label={common.suggestSlug}
         title={common.suggestSlug}
         onClick={suggest}
+        disabled={locked}
       >
         <Wand2 className="size-4" aria-hidden />
       </Button>

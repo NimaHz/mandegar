@@ -16,6 +16,8 @@ export function useDragReorder(onMove: (from: number, to: number) => void) {
   const itemProps = (index: number) => ({
     draggable: armed === index,
     onDragStart: (event: DragEvent<HTMLElement>) => {
+      if (armed !== index) return;
+      event.stopPropagation();
       event.dataTransfer.effectAllowed = "move";
       event.dataTransfer.setData("text/plain", String(index));
       setDragging(index);
@@ -23,15 +25,22 @@ export function useDragReorder(onMove: (from: number, to: number) => void) {
     onDragOver: (event: DragEvent<HTMLElement>) => {
       if (dragging === null) return;
       event.preventDefault();
+      event.stopPropagation();
       event.dataTransfer.dropEffect = "move";
       if (over !== index) setOver(index);
     },
     onDrop: (event: DragEvent<HTMLElement>) => {
+      if (dragging === null) return;
       event.preventDefault();
-      if (dragging !== null && dragging !== index) onMove(dragging, index);
+      event.stopPropagation();
+      if (dragging !== index) onMove(dragging, index);
       reset();
     },
-    onDragEnd: reset,
+    onDragEnd: (event: DragEvent<HTMLElement>) => {
+      if (dragging === null) return;
+      event.stopPropagation();
+      reset();
+    },
     "data-dragging": dragging === index || undefined,
     "data-over": (over === index && dragging !== null && dragging !== index) || undefined,
   });

@@ -18,8 +18,9 @@ export interface WarrantyMatch extends WarrantyCoverage {
     slug: string;
     name: string;
     modelCode: string;
+    listed: boolean;
     image: ImageAsset | null;
-    category: { slug: string; name: string };
+    category: { slug: string; name: string; listed: boolean };
     brand: { slug: string; name: string; isOwn: boolean };
   };
 }

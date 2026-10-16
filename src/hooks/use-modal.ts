@@ -1,7 +1,7 @@
 "use client";
 
 import { useLenis } from "lenis/react";
-import { type RefObject, useEffect, useEffectEvent } from "react";
+import { type RefObject, useEffect, useEffectEvent, useId } from "react";
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -11,6 +11,8 @@ const focusableIn = (container: HTMLElement) =>
     (element) => element.getClientRects().length > 0,
   );
 
+const openModals: string[] = [];
+
 export function useModal(
   dialogRef: RefObject<HTMLElement | null>,
   open: boolean,
@@ -18,6 +20,16 @@ export function useModal(
 ) {
   const lenis = useLenis();
   const close = useEffectEvent(onClose);
+  const modalId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    openModals.push(modalId);
+    return () => {
+      const index = openModals.lastIndexOf(modalId);
+      if (index >= 0) openModals.splice(index, 1);
+    };
+  }, [open, modalId]);
 
   useEffect(() => {
     if (!open) return;
@@ -26,7 +38,7 @@ export function useModal(
     const previousOverflow = root.style.overflow;
     root.style.overflow = "hidden";
     return () => {
-      lenis?.start();
+      if (openModals.length === 0) lenis?.start();
       root.style.overflow = previousOverflow;
     };
   }, [open, lenis]);
@@ -42,6 +54,7 @@ export function useModal(
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
+      if (openModals.at(-1) !== modalId) return;
       if (event.key === "Escape") {
         close();
         return;
@@ -71,5 +84,5 @@ export function useModal(
       document.removeEventListener("keydown", onKeyDown);
       if (trigger?.isConnected) trigger.focus({ preventScroll: true });
     };
-  }, [open, dialogRef]);
+  }, [open, dialogRef, modalId]);
 }

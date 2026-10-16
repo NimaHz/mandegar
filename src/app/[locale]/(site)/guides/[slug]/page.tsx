@@ -19,6 +19,7 @@ import { formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
 import { guideGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
+import { ogEntityTarget } from "@/lib/seo/og/cards";
 import { api } from "@/services";
 
 export const revalidate = 3600;
@@ -38,7 +39,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: routes.guide(guide.slug),
-    og: { kind: "guide", slug: guide.slug, updatedAt: guide.updatedAt },
+    og: await ogEntityTarget(locale, "guide", guide.slug),
     title: guide.title,
     description: guide.summary,
     type: "article",

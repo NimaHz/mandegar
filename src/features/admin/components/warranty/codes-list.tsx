@@ -11,6 +11,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { fill } from "@/i18n/fill";
 import { formatDate } from "@/lib/dates";
 import { adminRoutes } from "@/lib/routes";
+import { LABELS_PER_PRINT } from "@/server/modules/warranty/schema";
 import type { AdminOption, AdminWarrantyCode } from "@/types/admin";
 import type { Paginated } from "@/types/common";
 
@@ -45,18 +46,21 @@ function Checkbox({
   checked,
   onChange,
   label,
+  disabled = false,
 }: {
   checked: boolean;
   onChange: () => void;
   label: string;
+  disabled?: boolean;
 }) {
   return (
     <input
       type="checkbox"
       checked={checked}
       onChange={onChange}
+      disabled={disabled}
       aria-label={label}
-      className="size-4.5 cursor-pointer rounded accent-primary"
+      className="size-4.5 cursor-pointer rounded accent-primary disabled:cursor-not-allowed disabled:opacity-50"
     />
   );
 }
@@ -75,21 +79,23 @@ export function CodesList({
   const [statusCode, setStatusCode] = useState<AdminWarrantyCode | null>(null);
   const pageIds = result.items.map((item) => item.id);
   const allSelected = pageIds.length > 0 && pageIds.every((id) => selected.includes(id));
+  const full = selected.length >= LABELS_PER_PRINT;
   const exportQuery = new URLSearchParams(params);
   exportQuery.delete("page");
   exportQuery.delete("generate");
   const exportHref = `/api/admin/warranty-codes/export${exportQuery.size ? `?${exportQuery}` : ""}`;
 
   const toggle = (id: string) =>
-    setSelected((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
-    );
+    setSelected((current) => {
+      if (current.includes(id)) return current.filter((item) => item !== id);
+      return current.length >= LABELS_PER_PRINT ? current : [...current, id];
+    });
 
   const toggleAll = () =>
     setSelected((current) =>
       allSelected
         ? current.filter((id) => !pageIds.includes(id))
-        : [...new Set([...current, ...pageIds])],
+        : [...new Set([...current, ...pageIds])].slice(0, LABELS_PER_PRINT),
     );
 
   const columns: Column<AdminWarrantyCode>[] = [
@@ -189,8 +195,15 @@ export function CodesList({
           role="status"
           className="sticky top-[4.75rem] z-20 flex items-center gap-3 rounded-field border border-primary/30 bg-primary-soft px-4 py-2.5 shadow-card"
         >
-          <span className="flex-1 text-label font-bold text-ink">
-            {fill(copy.selectedCount, { count: faNumber(selected.length) })}
+          <span className="flex flex-1 flex-col gap-0.5">
+            <span className="text-label font-bold text-ink">
+              {fill(copy.selectedCount, { count: faNumber(selected.length) })}
+            </span>
+            {full && (
+              <span className="text-caption text-muted">
+                {fill(copy.selectionLimit, { count: faNumber(LABELS_PER_PRINT) })}
+              </span>
+            )}
           </span>
           <Button variant="ghost" size="sm" onClick={() => setSelected([])}>
             {copy.clearSelection}
@@ -237,6 +250,7 @@ export function CodesList({
                 checked={selected.includes(code.id)}
                 onChange={() => toggle(code.id)}
                 label={fill(copy.selectCode, { code: code.formatted })}
+                disabled={full && !selected.includes(code.id)}
               />
             )}
             leadingHeader={

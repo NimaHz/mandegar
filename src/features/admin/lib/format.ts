@@ -1,5 +1,6 @@
 import { fill } from "@/i18n/fill";
 import { formatBytes, formatClock, formatNumber } from "@/lib/format";
+import { toLatinDigits } from "@/lib/persian";
 
 export const faNumber = (value: number) => formatNumber("fa", value);
 
@@ -10,7 +11,7 @@ export const CLOCK_PATTERN = /^(?:\d{1,2}:[0-5]\d|\d{1,3}):[0-5]\d$/;
 export const clockValue = (totalSec: number) => formatClock("en", totalSec);
 
 export const parseClock = (value: string) => {
-  const clock = value.trim();
+  const clock = toLatinDigits(value.trim());
   if (!CLOCK_PATTERN.test(clock)) return null;
   return clock.split(":").reduce((total, part) => total * 60 + Number(part), 0);
 };

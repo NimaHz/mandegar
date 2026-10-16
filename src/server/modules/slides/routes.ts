@@ -5,8 +5,8 @@ import { idParamsSchema } from "@/server/lib/validation";
 import { auth } from "@/server/plugins/auth";
 import { slidesAdmin } from "@/services/admin/content";
 
-import { slideInputSchema, slidePatchSchema, slidesQuerySchema } from "./schema";
-import { createSlide, deleteSlide, updateSlide } from "./service";
+import { slideInputSchema, slideOrderSchema, slidePatchSchema, slidesQuerySchema } from "./schema";
+import { createSlide, deleteSlide, reorderSlides, updateSlide } from "./service";
 
 export const slideAdminRoutes = new Elysia({ prefix: "/admin/slides" })
   .use(auth)
@@ -19,6 +19,10 @@ export const slideAdminRoutes = new Elysia({ prefix: "/admin/slides" })
     params: idParamsSchema,
   })
   .post("/", ({ body }) => createSlide(body), { can: "content:write", body: slideInputSchema })
+  .put("/order", ({ body }) => reorderSlides(body.ids), {
+    can: "content:write",
+    body: slideOrderSchema,
+  })
   .patch("/:id", ({ params, body }) => updateSlide(params.id, body), {
     can: "content:write",
     params: idParamsSchema,

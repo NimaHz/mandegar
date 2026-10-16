@@ -1,10 +1,13 @@
 import "server-only";
 
+import { isDeepStrictEqual } from "node:util";
+
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
 
 import { getEnv } from "@/config/env";
 import type { Locale } from "@/i18n/config";
+import { todayIsoDate } from "@/lib/dates";
 import { routes } from "@/lib/routes";
 import { createWarrantyCode } from "@/lib/warranty-code";
 import { getDb } from "@/server/db/client";
@@ -39,13 +42,29 @@ export const createWarrantyPolicy = async (input: z.output<typeof warrantyPolicy
   return orNotFound(await warrantyPoliciesAdmin.get(row.id));
 };
 
+const policyTerms = ["months", "partsMonths", "startRule", "coverage", "exclusions"] as const;
+
 export const updateWarrantyPolicy = async (
   id: string,
   patch: z.output<typeof warrantyPolicyPatchSchema>,
 ) => {
-  orNotFound(await warrantyPoliciesAdmin.get(id), "Policy not found");
+  const current = orNotFound(await warrantyPoliciesAdmin.get(id), "Policy not found");
+  const locked =
+    current.codeCount > 0
+      ? policyTerms.filter(
+          (key) => patch[key] !== undefined && !isDeepStrictEqual(patch[key], current[key]),
+        )
+      : [];
+  if (locked.length > 0) {
+    throw new ValidationFailure(
+      Object.fromEntries(locked.map((key) => [key, "Locked once codes are issued"])),
+    );
+  }
   await guardWrite(() =>
-    getDb().update(warrantyPolicies).set(patch).where(eq(warrantyPolicies.id, id)),
+    getDb()
+      .update(warrantyPolicies)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(eq(warrantyPolicies.id, id)),
   );
   revalidateContent([cacheTags.warranty], [routes.warranty]);
   return orNotFound(await warrantyPoliciesAdmin.get(id));
@@ -61,7 +80,7 @@ export const deleteWarrantyPolicy = async (id: string) => {
 const resolvePolicyId = async (policyId: string | undefined, warrantyMonths: number) => {
   if (policyId) return policyId;
   const policy = await warrantyPoliciesAdmin.defaultFor(warrantyMonths);
-  if (!policy) throw new ValidationFailure({ policyId: "Create a warranty policy first" });
+  if (!policy) throw new ValidationFailure({ policyId: "No policy matches the product warranty" });
   return policy.id;
 };
 
@@ -136,7 +155,7 @@ export const exportWarrantyCodes = async (query: Partial<AdminWarrantyCodesQuery
       code.productionYear,
       code.status,
       code.policy.name,
-      code.issuedAt.slice(0, 10),
+      todayIsoDate(new Date(code.issuedAt)),
       `${origin}${routes.warrantyShort(code.code)}`,
     ]),
   ]);

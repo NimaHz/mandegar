@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { PageHero } from "@/components/layout/page-hero";
 import { JsonLd } from "@/components/seo/json-ld";
+import { renderMarkdown } from "@/components/shared/markdown";
 import { buttonVariants } from "@/components/ui/button";
 import { FaqBrowser } from "@/features/faq/components/faq-browser";
 import { faqContent } from "@/features/faq/content";
@@ -33,7 +34,12 @@ export default async function FaqPage() {
   const faqs = await api.content.faqs(locale);
   const content = faqContent[locale];
   const sections = faqGroups
-    .map((group) => ({ group, items: faqs.filter((faq) => faq.group === group) }))
+    .map((group) => ({
+      group,
+      items: faqs
+        .filter((faq) => faq.group === group)
+        .map((faq) => ({ ...faq, answerHtml: renderMarkdown(faq.answer) })),
+    }))
     .filter((section) => section.items.length > 0);
   const graph = await faqGraph(
     locale,

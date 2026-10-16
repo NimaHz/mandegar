@@ -15,6 +15,7 @@ import { localizePath } from "@/i18n/paths";
 import { routes } from "@/lib/routes";
 import { authorGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
+import { ogEntityTarget } from "@/lib/seo/og/cards";
 import { api } from "@/services";
 
 export const revalidate = 3600;
@@ -37,7 +38,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: routes.author(author.slug),
-    og: { kind: "author", slug: author.slug },
+    og: await ogEntityTarget(locale, "author", author.slug),
     title: author.name,
     description: fill(blogContent[locale].authorMetaDescription, {
       name: author.name,

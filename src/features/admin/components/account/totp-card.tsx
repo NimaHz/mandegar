@@ -31,12 +31,13 @@ export function TotpCard({ enabled }: { enabled: boolean }) {
     void run(() => apiClient.api.auth.totp.setup.post(), { refresh: false, onSuccess: setSetup });
 
   const enable = async () => {
-    const done = await run(() => apiClient.api.auth.totp.enable.post({ code }), {
+    const done = await run(() => apiClient.api.auth.totp.enable.post({ password, code }), {
       success: copy.enabledToast,
     });
     if (done) {
       setSetup(null);
       setCode("");
+      setPassword("");
     }
   };
 
@@ -50,6 +51,17 @@ export function TotpCard({ enabled }: { enabled: boolean }) {
       setPassword("");
     }
   };
+
+  const passwordField = (
+    <Field
+      label={adminContent.account.password.current}
+      type="password"
+      dir="ltr"
+      autoComplete="current-password"
+      value={password}
+      onChange={(event) => setPassword(event.target.value)}
+    />
+  );
 
   const codeField = (
     <Field
@@ -103,9 +115,13 @@ export function TotpCard({ enabled }: { enabled: boolean }) {
               </bdi>
               <CopyButton value={setup.secret} label={copy.secret} className="size-8" />
             </div>
+            {passwordField}
             {codeField}
             <div className="flex gap-2">
-              <Button onClick={() => void enable()} disabled={code.length !== 6 || pending}>
+              <Button
+                onClick={() => void enable()}
+                disabled={!password || code.length !== 6 || pending}
+              >
                 {pending && <LoaderCircle className="size-4 animate-spin" aria-hidden />}
                 {copy.verify}
               </Button>
@@ -126,14 +142,7 @@ export function TotpCard({ enabled }: { enabled: boolean }) {
         <div className="flex flex-col gap-3">
           <p className="text-xs text-muted">{copy.disableHint}</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field
-              label={adminContent.account.password.current}
-              type="password"
-              dir="ltr"
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
+            {passwordField}
             {codeField}
           </div>
           <div className="flex gap-2">

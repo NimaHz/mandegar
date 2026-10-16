@@ -35,6 +35,9 @@ export const todayIsoDate = (date = new Date()) => {
   return `${part("year")}-${part("month")}-${part("day")}`;
 };
 
+export const startOfTehranDay = (date = new Date()) =>
+  new Date(`${todayIsoDate(date)}T00:00:00+03:30`);
+
 export const currentJalaliYear = (date = new Date()) =>
   Number(
     new Intl.DateTimeFormat("en-u-ca-persian", { timeZone: TIME_ZONE, year: "numeric" })

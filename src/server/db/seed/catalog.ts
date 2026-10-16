@@ -21,7 +21,7 @@ import {
   productSeeds,
 } from "./catalog-data";
 import { policySeeds } from "./content-data";
-import { fromExcluded, idsBySlug, seedId, t, updatableKeys } from "./helpers";
+import { idsBySlug, isEmpty, seedId, t } from "./helpers";
 
 export type IdMap = Map<string, string>;
 
@@ -49,6 +49,7 @@ const required = (map: IdMap, key: string) => {
 };
 
 export const seedPolicies = async () => {
+  if (!(await isEmpty(warrantyPolicies))) return;
   const rows = policySeeds.map((seed) => ({
     id: seedId(`policy:${seed.key}`),
     name: seed.name,
@@ -59,16 +60,14 @@ export const seedPolicies = async () => {
     exclusions: seed.exclusions,
     effectiveFrom: "2024-03-20",
   }));
-  const [first] = rows;
-  if (!first) return new Map<string, string>();
-  await getDb()
-    .insert(warrantyPolicies)
-    .values(rows)
-    .onConflictDoUpdate({ target: warrantyPolicies.id, set: fromExcluded(updatableKeys(first)) });
-  return new Map(policySeeds.map((seed) => [seed.key, seedId(`policy:${seed.key}`)]));
+  if (rows.length === 0) return;
+  await getDb().insert(warrantyPolicies).values(rows);
 };
 
 export const seedBrands = async () => {
+  if (!(await isEmpty(brands))) {
+    return idsBySlug(await getDb().select({ id: brands.id, slug: brands.slug }).from(brands));
+  }
   const rows = [];
   for (const seed of brandSeeds) {
     const logo = await logoMedia(logoSvg(seed), seed.name, `logo-${seed.slug}`);
@@ -81,21 +80,23 @@ export const seedBrands = async () => {
       website: seed.website,
       isOwn: seed.isOwn,
       sortOrder: seed.sortOrder,
-      seo: seed.metaDescription ? { title: t("", ""), description: seed.metaDescription } : null,
       published: true,
     });
   }
-  const [first] = rows;
-  if (!first) return new Map<string, string>();
+  if (rows.length === 0) return new Map<string, string>();
   const saved = await getDb()
     .insert(brands)
     .values(rows)
-    .onConflictDoUpdate({ target: brands.slug, set: fromExcluded(updatableKeys(first, ["slug"])) })
     .returning({ id: brands.id, slug: brands.slug });
   return idsBySlug(saved);
 };
 
 export const seedCategories = async (photos: IdMap, guideIds: IdMap) => {
+  if (!(await isEmpty(categories))) {
+    return idsBySlug(
+      await getDb().select({ id: categories.id, slug: categories.slug }).from(categories),
+    );
+  }
   const rows = categorySeeds.map((seed, index) => ({
     id: seedId(`category:${seed.slug}`),
     slug: seed.slug,
@@ -117,15 +118,10 @@ export const seedCategories = async (photos: IdMap, guideIds: IdMap) => {
     sortOrder: index,
     published: true,
   }));
-  const [first] = rows;
-  if (!first) return new Map<string, string>();
+  if (rows.length === 0) return new Map<string, string>();
   const saved = await getDb()
     .insert(categories)
     .values(rows)
-    .onConflictDoUpdate({
-      target: categories.slug,
-      set: fromExcluded(updatableKeys(first, ["slug"])),
-    })
     .returning({ id: categories.id, slug: categories.slug });
   return idsBySlug(saved);
 };
@@ -178,6 +174,9 @@ const seedProductImages = async (
 };
 
 export const seedProducts = async (photos: IdMap, categoryIds: IdMap, brandIds: IdMap) => {
+  if (!(await isEmpty(products))) {
+    return idsBySlug(await getDb().select({ id: products.id, slug: products.slug }).from(products));
+  }
   const now = Date.now();
   const rows = [];
   for (const [index, seed] of productSeeds.entries()) {
@@ -209,15 +208,10 @@ export const seedProducts = async (photos: IdMap, categoryIds: IdMap, brandIds: 
       publishedAt: new Date(now - (productSeeds.length - index) * 86_400_000 * 7),
     });
   }
-  const [first] = rows;
-  if (!first) return new Map<string, string>();
+  if (rows.length === 0) return new Map<string, string>();
   const saved = await getDb()
     .insert(products)
     .values(rows)
-    .onConflictDoUpdate({
-      target: products.slug,
-      set: fromExcluded(updatableKeys(first, ["slug"])),
-    })
     .returning({ id: products.id, slug: products.slug, categoryId: products.categoryId });
   const productIds = idsBySlug(saved);
   for (const seed of productSeeds) {
@@ -237,17 +231,28 @@ export const seedProducts = async (photos: IdMap, categoryIds: IdMap, brandIds: 
   return productIds;
 };
 
-export const seedWarrantyCodes = async (productIds: IdMap, policyIds: IdMap) => {
+const policyIdFor = (months: number) => {
+  const policy = policySeeds.find((seed) => seed.months === months);
+  if (!policy) throw new Error(`No seeded warranty policy lasts ${months} months`);
+  return seedId(`policy:${policy.key}`);
+};
+
+const insertWarrantyCodes = async (productIds: IdMap) => {
+  const policies = await getDb().select({ id: warrantyPolicies.id }).from(warrantyPolicies);
+  const policyIds = new Set(policies.map((policy) => policy.id));
   const rows = productSeeds.flatMap((seed) => {
-    const category = categorySeeds.find((entry) => entry.slug === seed.category);
+    const productId = productIds.get(seed.slug);
+    const policyId = policyIdFor(seed.warrantyMonths);
+    if (!productId || !policyIds.has(policyId)) return [];
     return [1404, 1405].map((year) => ({
       code: createWarrantyCode(year),
       kind: "batch" as const,
-      productId: required(productIds, seed.slug),
+      productId,
       productionYear: year,
-      policyId: required(policyIds, category?.policy ?? "care"),
+      policyId,
     }));
   });
+  if (rows.length === 0) return;
   await getDb()
     .insert(warrantyCodes)
     .values(rows)
@@ -255,6 +260,10 @@ export const seedWarrantyCodes = async (productIds: IdMap, policyIds: IdMap) => 
       target: [warrantyCodes.productId, warrantyCodes.productionYear],
       where: sql`kind = 'batch'`,
     });
+};
+
+export const seedWarrantyCodes = async (productIds: IdMap) => {
+  if (await isEmpty(warrantyCodes)) await insertWarrantyCodes(productIds);
   return getDb().query.warrantyCodes.findMany({
     where: (table) => inArray(table.productId, [...productIds.values()]),
     with: { product: { columns: { modelCode: true } } },

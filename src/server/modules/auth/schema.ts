@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { emailSchema } from "@/server/lib/validation";
 
-const passwordSchema = z
+export const passwordSchema = z
   .string()
   .min(12)
   .max(200)
@@ -26,11 +26,11 @@ export const changePasswordSchema = z
     message: "Choose a different password",
   });
 
-export const totpEnableSchema = z.object({ code: totpCodeSchema });
-
-export const totpDisableSchema = z.object({
+export const totpEnableSchema = z.object({
   password: z.string().min(1).max(200),
   code: totpCodeSchema,
 });
+
+export const totpDisableSchema = totpEnableSchema;
 
 export const sessionParamsSchema = z.object({ id: z.string().regex(/^[0-9a-f]{64}$/) });

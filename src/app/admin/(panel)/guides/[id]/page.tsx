@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { GuideEditor } from "@/features/admin/components/guides/guide-editor";
 import { adminContent } from "@/features/admin/content";
-import { requireAdmin } from "@/server/auth/session";
+import { hasAdminPermission, requireAdmin } from "@/server/auth/session";
 import { idSchema } from "@/server/lib/validation";
 import { adminApi } from "@/services/admin";
 
@@ -11,7 +11,10 @@ export async function generateMetadata({
   params,
 }: PageProps<"/admin/guides/[id]">): Promise<Metadata> {
   const { id } = await params;
-  const guide = idSchema.safeParse(id).success ? await adminApi.guides.get(id) : null;
+  const guide =
+    idSchema.safeParse(id).success && (await hasAdminPermission("content:read"))
+      ? await adminApi.guides.get(id)
+      : null;
   return { title: guide?.title.fa ?? adminContent.guides.title };
 }
 

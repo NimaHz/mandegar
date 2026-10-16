@@ -21,9 +21,24 @@ import {
   settingsSeed,
   slideSeeds,
 } from "./content-data";
-import { fromExcluded, idsBySlug, seedId, updatableKeys } from "./helpers";
+import { idsBySlug, isEmpty, seedId } from "./helpers";
+
+const guideIdsByCategory = (saved: readonly { id: string; slug: string }[]) => {
+  const guideIds = idsBySlug(saved);
+  return new Map(
+    guideSeeds.flatMap((seed) => {
+      const id = guideIds.get(seed.slug);
+      return id ? [[seed.category, id] as const] : [];
+    }),
+  );
+};
 
 export const seedGuides = async (photos: IdMap) => {
+  if (!(await isEmpty(guides))) {
+    return guideIdsByCategory(
+      await getDb().select({ id: guides.id, slug: guides.slug }).from(guides),
+    );
+  }
   const now = Date.now();
   const rows = guideSeeds.map((seed, index) => ({
     id: seedId(`guide:${seed.slug}`),
@@ -47,23 +62,14 @@ export const seedGuides = async (photos: IdMap) => {
     published: true,
     publishedAt: new Date(now - (index + 1) * 86_400_000 * 20),
   }));
-  const [first] = rows;
-  if (!first) return new Map<string, string>();
-  const saved = await getDb()
-    .insert(guides)
-    .values(rows)
-    .onConflictDoUpdate({ target: guides.slug, set: fromExcluded(updatableKeys(first, ["slug"])) })
-    .returning({ id: guides.id, slug: guides.slug });
-  const guideIds = idsBySlug(saved);
-  return new Map(
-    guideSeeds.flatMap((seed) => {
-      const id = guideIds.get(seed.slug);
-      return id ? [[seed.category, id] as const] : [];
-    }),
+  if (rows.length === 0) return new Map<string, string>();
+  return guideIdsByCategory(
+    await getDb().insert(guides).values(rows).returning({ id: guides.id, slug: guides.slug }),
   );
 };
 
 export const seedSlides = async (photos: IdMap) => {
+  if (!(await isEmpty(heroSlides))) return;
   const rows = slideSeeds.flatMap((seed, index) => {
     const imageMediaId = photos.get(seed.photo);
     if (!imageMediaId) return [];
@@ -84,15 +90,12 @@ export const seedSlides = async (photos: IdMap) => {
       },
     ];
   });
-  const [first] = rows;
-  if (!first) return;
-  await getDb()
-    .insert(heroSlides)
-    .values(rows)
-    .onConflictDoUpdate({ target: heroSlides.id, set: fromExcluded(updatableKeys(first)) });
+  if (rows.length === 0) return;
+  await getDb().insert(heroSlides).values(rows);
 };
 
 export const seedFaqs = async () => {
+  if (!(await isEmpty(faqs))) return;
   const rows = faqSeeds.map((seed, index) => ({
     id: seedId(`faq:${seed.key}`),
     group: seed.group,
@@ -101,16 +104,15 @@ export const seedFaqs = async () => {
     sortOrder: index,
     published: true,
   }));
-  const [first] = rows;
-  if (!first) return;
-  await getDb()
-    .insert(faqs)
-    .values(rows)
-    .onConflictDoUpdate({ target: faqs.id, set: fromExcluded(updatableKeys(first)) });
+  if (rows.length === 0) return;
+  await getDb().insert(faqs).values(rows);
 };
 
-export const seedPosts = async (photos: IdMap, productIds: IdMap) => {
-  const authorRows = authorSeeds.map((seed) => ({
+const seedAuthors = async (photos: IdMap) => {
+  if (!(await isEmpty(authors))) {
+    return idsBySlug(await getDb().select({ id: authors.id, slug: authors.slug }).from(authors));
+  }
+  const rows = authorSeeds.map((seed) => ({
     id: seedId(`author:${seed.slug}`),
     slug: seed.slug,
     name: seed.name,
@@ -119,17 +121,15 @@ export const seedPosts = async (photos: IdMap, productIds: IdMap) => {
     avatarMediaId: photos.get(seed.photo) ?? null,
     sameAs: [],
   }));
-  const [firstAuthor] = authorRows;
-  if (!firstAuthor) return;
-  const savedAuthors = await getDb()
-    .insert(authors)
-    .values(authorRows)
-    .onConflictDoUpdate({
-      target: authors.slug,
-      set: fromExcluded(updatableKeys(firstAuthor, ["slug"])),
-    })
-    .returning({ id: authors.id, slug: authors.slug });
-  const authorIds = idsBySlug(savedAuthors);
+  if (rows.length === 0) return new Map<string, string>();
+  return idsBySlug(
+    await getDb().insert(authors).values(rows).returning({ id: authors.id, slug: authors.slug }),
+  );
+};
+
+export const seedPosts = async (photos: IdMap, productIds: IdMap) => {
+  const authorIds = await seedAuthors(photos);
+  if (!(await isEmpty(posts))) return;
   const now = Date.now();
   const postRows = postSeeds.flatMap((seed) => {
     const authorId = authorIds.get(seed.author);
@@ -151,18 +151,12 @@ export const seedPosts = async (photos: IdMap, productIds: IdMap) => {
       },
     ];
   });
-  const [firstPost] = postRows;
-  if (!firstPost) return;
-  await getDb()
-    .insert(posts)
-    .values(postRows)
-    .onConflictDoUpdate({
-      target: posts.slug,
-      set: fromExcluded(updatableKeys(firstPost, ["slug"])),
-    });
+  if (postRows.length === 0) return;
+  await getDb().insert(posts).values(postRows);
 };
 
 export const seedServiceCenters = async (categoryIds: IdMap) => {
+  if (!(await isEmpty(serviceCenters))) return;
   const allCategories = categorySeeds.flatMap((seed) => categoryIds.get(seed.slug) ?? []);
   const rows = serviceCenterSeeds.map((seed, index) => ({
     id: seedId(`center:${seed.slug}`),
@@ -187,15 +181,8 @@ export const seedServiceCenters = async (categoryIds: IdMap) => {
         : seed.categories.flatMap((slug) => categoryIds.get(slug) ?? []),
     active: true,
   }));
-  const [first] = rows;
-  if (!first) return;
-  await getDb()
-    .insert(serviceCenters)
-    .values(rows)
-    .onConflictDoUpdate({
-      target: serviceCenters.slug,
-      set: fromExcluded(updatableKeys(first, ["slug"])),
-    });
+  if (rows.length === 0) return;
+  await getDb().insert(serviceCenters).values(rows);
 };
 
 export const seedSettings = async () => {

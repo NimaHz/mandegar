@@ -49,10 +49,13 @@ export const uploadMedia = (file: File, { onProgress, signal }: UploadOptions = 
   });
 
 const acceptByKind: Record<MediaKind, string> = {
-  image: "image/jpeg,image/png,image/webp,image/avif,image/gif",
+  image: "image/jpeg,image/png,image/webp,image/avif",
   video: "video/mp4,video/webm",
   document: "application/pdf",
 };
 
 export const acceptFor = (kinds: readonly MediaKind[]) =>
   kinds.map((kind) => acceptByKind[kind]).join(",");
+
+export const acceptsFile = (kind: MediaKind, file: File) =>
+  acceptByKind[kind].split(",").includes(file.type);

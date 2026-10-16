@@ -36,7 +36,7 @@ export const updateServiceCenter = async (
   const [row] = await guardWrite(() =>
     getDb()
       .update(serviceCenters)
-      .set(patch)
+      .set({ ...patch, updatedAt: new Date() })
       .where(eq(serviceCenters.id, id))
       .returning({ id: serviceCenters.id }),
   );

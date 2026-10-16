@@ -85,11 +85,19 @@ export const buildSitemaps = (snapshot: SiteSnapshot): Record<SitemapName, Sitem
       entry(routes.terms, contentDates.terms),
       entry(routes.privacy, contentDates.privacy),
     ],
-    categories: fa.categories.map((category) =>
-      entry(routes.category(category.slug), category.updatedAt, {
-        images: category.image ? [category.image.src] : [],
-      }),
-    ),
+    categories: fa.categories.map((category) => {
+      const members = [category.slug, ...category.children.map((child) => child.slug)];
+      return entry(
+        routes.category(category.slug),
+        latest(
+          category.updatedAt,
+          ...fa.products
+            .filter((product) => members.includes(product.category.slug))
+            .map((product) => product.updatedAt),
+        ),
+        { images: category.image ? [category.image.src] : [] },
+      );
+    }),
     products: fa.products.map((product) =>
       entry(routes.product(product.slug), product.updatedAt, {
         images: unique([
@@ -101,9 +109,16 @@ export const buildSitemaps = (snapshot: SiteSnapshot): Record<SitemapName, Sitem
     brands: [
       entry(routes.brands, brandsModified),
       ...fa.brands.map((brand) =>
-        entry(routes.brand(brand.slug), brand.updatedAt, {
-          images: brand.logo ? [brand.logo.src] : [],
-        }),
+        entry(
+          routes.brand(brand.slug),
+          latest(
+            brand.updatedAt,
+            ...fa.products
+              .filter((product) => product.brand.slug === brand.slug)
+              .map((product) => product.updatedAt),
+          ),
+          { images: brand.logo ? [brand.logo.src] : [] },
+        ),
       ),
     ],
     guides: [

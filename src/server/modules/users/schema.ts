@@ -9,10 +9,15 @@ export const userInputSchema = z.object({
   role: z.enum(userRoles),
 });
 
-export const userPatchSchema = z.object({
-  name: z.string().trim().min(2).max(80).optional(),
-  role: z.enum(userRoles).optional(),
-  active: z.boolean().optional(),
-});
+export const userPatchSchema = z
+  .object({
+    name: z.string().trim().min(2).max(80).optional(),
+    role: z.enum(userRoles).optional(),
+    active: z.boolean().optional(),
+  })
+  .refine(
+    (patch) => Object.values(patch).some((value) => value !== undefined),
+    "Nothing to update",
+  );
 
 export const usersQuerySchema = listQuerySchema;

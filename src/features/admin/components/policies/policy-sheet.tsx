@@ -1,12 +1,16 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Lock } from "lucide-react";
 import { useForm } from "react-hook-form";
 
+import { fill } from "@/i18n/fill";
 import { apiClient } from "@/lib/api-client";
+import { todayIsoDate } from "@/lib/dates";
 import type { AdminWarrantyPolicy } from "@/types/admin";
 
 import { adminContent } from "../../content";
+import { faNumber } from "../../lib/format";
 import { applyFieldErrors } from "../../lib/server-errors";
 import { useAdminMutation } from "../../lib/use-admin-mutation";
 import { zodOptions } from "../../lib/zod";
@@ -21,6 +25,7 @@ import { FormSection } from "../form/form-section";
 import { FormSheet } from "../form/form-sheet";
 import { LangScope } from "../form/lang-scope";
 import { LocalizedTextarea } from "../form/localized-field";
+import { ReadOnlyScope } from "../form/read-only";
 import { Repeater } from "../form/repeater";
 
 const copy = adminContent.policies;
@@ -32,6 +37,8 @@ interface PolicySheetProps {
 
 export function PolicySheet({ policy, onClose }: PolicySheetProps) {
   const { run, pending } = useAdminMutation();
+  const codeCount = policy?.codeCount ?? 0;
+  const locked = codeCount > 0;
   const form = useForm<PolicyFormInput, unknown, PolicyFormValues>({
     resolver: zodResolver(policyFormSchema, zodOptions),
     defaultValues: {
@@ -41,7 +48,7 @@ export function PolicySheet({ policy, onClose }: PolicySheetProps) {
       startRule: policy?.startRule ?? blankText(),
       coverage: policy?.coverage ?? [],
       exclusions: policy?.exclusions ?? [],
-      effectiveFrom: policy?.effectiveFrom ?? new Date().toISOString().slice(0, 10),
+      effectiveFrom: policy?.effectiveFrom ?? todayIsoDate(),
     },
   });
 
@@ -70,62 +77,71 @@ export function PolicySheet({ policy, onClose }: PolicySheetProps) {
       onSubmit={onSubmit}
       pending={pending}
     >
+      {locked && (
+        <p className="flex items-start gap-3 rounded-card border border-warning/40 bg-warning-soft px-4 py-3 text-sm leading-7 font-bold text-warning">
+          <Lock className="mt-1.5 size-4 shrink-0" aria-hidden />
+          {fill(copy.locked, { count: faNumber(codeCount) })}
+        </p>
+      )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <TextInput name="name" label={copy.fields.name} placeholder="Mandegar Care 18" />
+        <TextInput name="name" label={copy.fields.name} placeholder={copy.fields.namePlaceholder} />
         <TextInput name="effectiveFrom" type="date" dir="ltr" label={copy.fields.effectiveFrom} />
-        <NumberInput name="months" label={copy.fields.months} />
+        <NumberInput name="months" label={copy.fields.months} readOnly={locked} />
         <NumberInput
           name="partsMonths"
           label={copy.fields.partsMonths}
           hint={copy.fields.partsHint}
+          readOnly={locked}
         />
       </div>
-      <LangScope>
-        <LocalizedTextarea
-          name="startRule"
-          label={copy.fields.startRule}
-          maxLength={400}
-          rows={2}
-        />
-        <FormSection title={copy.fields.coverage} localized>
-          <Repeater
-            name="coverage"
-            addLabel={copy.addCoverage}
-            emptyLabel={copy.emptyCoverage}
-            newItem={() => ({ ...blankText() })}
-            max={30}
-            compact
-          >
-            {(index) => (
-              <LocalizedTextarea
-                name={`coverage.${index}`}
-                label={copy.fields.item}
-                maxLength={300}
-                rows={2}
-              />
-            )}
-          </Repeater>
-        </FormSection>
-        <FormSection title={copy.fields.exclusions} localized>
-          <Repeater
-            name="exclusions"
-            addLabel={copy.addExclusion}
-            emptyLabel={copy.emptyCoverage}
-            newItem={() => ({ ...blankText() })}
-            max={30}
-            compact
-          >
-            {(index) => (
-              <LocalizedTextarea
-                name={`exclusions.${index}`}
-                label={copy.fields.item}
-                maxLength={300}
-                rows={2}
-              />
-            )}
-          </Repeater>
-        </FormSection>
-      </LangScope>
+      <ReadOnlyScope readOnly={locked}>
+        <LangScope>
+          <LocalizedTextarea
+            name="startRule"
+            label={copy.fields.startRule}
+            maxLength={400}
+            rows={2}
+          />
+          <FormSection title={copy.fields.coverage} localized>
+            <Repeater
+              name="coverage"
+              addLabel={copy.addCoverage}
+              emptyLabel={copy.emptyCoverage}
+              newItem={() => ({ ...blankText() })}
+              max={30}
+              compact
+            >
+              {(index) => (
+                <LocalizedTextarea
+                  name={`coverage.${index}`}
+                  label={copy.fields.item}
+                  maxLength={300}
+                  rows={2}
+                />
+              )}
+            </Repeater>
+          </FormSection>
+          <FormSection title={copy.fields.exclusions} localized>
+            <Repeater
+              name="exclusions"
+              addLabel={copy.addExclusion}
+              emptyLabel={copy.emptyCoverage}
+              newItem={() => ({ ...blankText() })}
+              max={30}
+              compact
+            >
+              {(index) => (
+                <LocalizedTextarea
+                  name={`exclusions.${index}`}
+                  label={copy.fields.item}
+                  maxLength={300}
+                  rows={2}
+                />
+              )}
+            </Repeater>
+          </FormSection>
+        </LangScope>
+      </ReadOnlyScope>
     </FormSheet>
   );
 }

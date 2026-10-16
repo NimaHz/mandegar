@@ -18,12 +18,10 @@ export const mediaAdminRoutes = new Elysia({ prefix: "/admin/media" })
   })
   .get(
     "/:id/usages",
-    async ({ params, actor }) => {
-      orNotFound(await mediaAdmin.get(params.id));
-      return mediaAdmin.usages(params.id, {
+    async ({ params, actor }) =>
+      mediaAdmin.usages(orNotFound(await mediaAdmin.get(params.id)), {
         ticketLabels: actor.permissions.includes("tickets:read"),
-      });
-    },
+      }),
     { can: "media:read", params: idParamsSchema },
   )
   .post(

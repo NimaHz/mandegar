@@ -30,17 +30,19 @@ interface MediaDetailSheetProps {
 export function MediaDetailSheet({ media, canWrite, onClose }: MediaDetailSheetProps) {
   const { run, pending } = useAdminMutation();
   const [alt, setAlt] = useState(media.alt);
-  const [usages, setUsages] = useState<AdminMediaUsage[] | null>(null);
+  const [savedAlt, setSavedAlt] = useState(media.alt);
+  const [usages, setUsages] = useState<AdminMediaUsage[] | "failed" | null>(null);
   const absoluteUrl = new URL(media.url, siteConfig.url).toString();
-  const changed = alt.fa !== media.alt.fa || alt.en !== media.alt.en;
+  const changed = alt.fa !== savedAlt.fa || alt.en !== savedAlt.en;
 
   useEffect(() => {
     let cancelled = false;
     void apiClient.api.admin
       .media({ id: media.id })
       .usages.get()
+      .catch(() => ({ data: null }))
       .then(({ data }) => {
-        if (!cancelled) setUsages(data ?? []);
+        if (!cancelled) setUsages(data ?? "failed");
       });
     return () => {
       cancelled = true;
@@ -64,7 +66,7 @@ export function MediaDetailSheet({ media, canWrite, onClose }: MediaDetailSheetP
     { label: copy.uploadedBy, value: media.uploadedBy?.name ?? adminContent.common.system },
     { label: copy.uploadedAt, value: formatDateTime("fa", media.createdAt) },
   ];
-  const inUse = (usages?.length ?? 0) > 0;
+  const inUse = Array.isArray(usages) && usages.length > 0;
 
   return (
     <Sheet open onClose={onClose} title={copy.detail}>
@@ -131,6 +133,10 @@ export function MediaDetailSheet({ media, canWrite, onClose }: MediaDetailSheetP
               onClick={() =>
                 void run(() => apiClient.api.admin.media({ id: media.id }).patch({ alt }), {
                   success: copy.altSaved,
+                  onSuccess: (saved) => {
+                    setAlt(saved.alt);
+                    setSavedAlt(saved.alt);
+                  },
                 })
               }
             >
@@ -147,6 +153,8 @@ export function MediaDetailSheet({ media, canWrite, onClose }: MediaDetailSheetP
           <h3 className="text-label font-extrabold text-ink">{copy.usages}</h3>
           {usages === null ? (
             <LoaderCircle className="size-4 animate-spin text-muted" aria-hidden />
+          ) : usages === "failed" ? (
+            <p className="text-xs text-danger">{copy.usagesFailed}</p>
           ) : usages.length === 0 ? (
             <p className="text-xs text-muted">{copy.noUsages}</p>
           ) : (

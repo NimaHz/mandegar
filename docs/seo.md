@@ -98,10 +98,10 @@ How Mandegar is described to search engines, answer engines and LLM crawlers. Ev
 
 ## OG images
 
-- URL: `/og/{locale}/{kind}/{slug}.png?v={version}`. Kinds: `page` (static pages, keyed by path), `product`, `category`, `brand`, `guide`, `post`, `author`. `pageMetadata` picks the page card automatically; detail pages pass `og: { kind, slug, updatedAt }`, so the version changes when the content changes.
-- Responses are 1200×630 PNG with `Cache-Control: public, max-age=31536000, immutable`. Unknown targets return 404, so the endpoint cannot be used to render arbitrary text.
+- URL: `/og/{locale}/{kind}/{slug}.png?v={version}`. Kinds: `page` (static pages, keyed by path), `product`, `category`, `brand`, `guide`, `post`, `author`. `pageMetadata` picks the page card automatically; detail pages pass `og: await ogEntityTarget(locale, kind, slug)` (`src/lib/seo/og/cards.ts`), whose version is a hash of what the card shows (title, kicker, subtitle, model code, counts and image), so any visible change, including a gallery, category name or product count change, gives a new URL.
+- Responses are 1200×630 PNG with `Cache-Control: public, max-age=31536000, immutable`. Unknown targets return 404, so the endpoint cannot be used to render arbitrary text. A request whose query is not exactly the current `?v=` gets a 308 to the canonical URL with `Cache-Control: no-store`, so stale or made-up versions never render or fill the image cache.
 - Rendering uses `satori` (pinned `0.60.0`) and `@resvg/resvg-js` (pinned `2.6.2`) on the Node runtime. `next/og` in Next 16.4 bundles Satori 0.29, which cannot shape Persian; Satori 0.48+ shapes Arabic script with HarfBuzz and supports `direction: rtl`.
-- Fonts: static Vazirmatn TTFs in `src/assets/fonts/vazirmatn/static` (Satori cannot read the variable WOFF2). `next.config.ts` lists `@resvg/resvg-js` in `serverExternalPackages` (it is a native addon) and traces the fonts into the standalone build with `outputFileTracingIncludes`.
+- Fonts: static Vazirmatn TTFs in `src/assets/fonts/vazirmatn/static` (Satori cannot read the variable WOFF2) and the Kufam wordmark TTF in `src/assets/fonts/kufam/static`. `next.config.ts` lists `@resvg/resvg-js` in `serverExternalPackages` (it is a native addon) and traces the fonts into the standalone build with `outputFileTracingIncludes`.
 - Images come from the storage driver and are re-encoded with sharp, so the renderer never fetches over the network.
 - Satori quirk: padding is added outside fixed `width`/`height`, so padded containers use flex growth instead of fixed sizes.
 
@@ -132,7 +132,7 @@ Allows everything by default and names the search and AI crawlers explicitly (Go
 
 - Env: `INDEXNOW_KEY` (8–128 letters, digits or dashes) and `INDEXNOW_ENABLED=true` in production. Pings are a no-op otherwise.
 - The key must be served at `/{key}.txt`. Put a file named `{key}.txt` containing only the key in `public/`. The dev key lives in `.env.local` and `public/`. To rotate, generate a new key (`openssl rand -hex 16`), replace the file and the env value, then redeploy.
-- `revalidatePages(paths)` posts the absolute fa and en URLs to `https://api.indexnow.org/indexnow` in the background. Pings never throw and time out after 5 seconds.
+- `revalidateContent(tags, paths)` (`src/server/lib/revalidate.ts`) hands the changed paths to `pingIndexNowPaths` (`src/server/lib/indexnow.ts`), which posts the absolute fa and en URLs to `https://api.indexnow.org/indexnow` in the background. Pings never throw and time out after 5 seconds.
 
 ## Validation
 

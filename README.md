@@ -12,21 +12,21 @@ scripts, images and the proof-of-work spam challenge are all self-hosted.
 
 ## Stack
 
-| Concern    | Choice                                                                        |
-| ---------- | ----------------------------------------------------------------------------- |
-| Framework  | Next.js 16 (App Router, Turbopack, React Compiler, typed routes, ISR)         |
-| UI runtime | React 19.3                                                                    |
-| API        | Elysia 1.4 mounted inside Next at `/api`, typed client through Eden           |
-| Database   | PostgreSQL 16 with Drizzle ORM and drizzle-kit migrations                     |
-| Validation | Zod 4, shared between API schemas and React Hook Form                         |
-| Styling    | Tailwind CSS 4 (CSS-first `@theme` tokens), light and dark themes             |
-| Motion     | Motion 14 (`LazyMotion` with `m` components) and Lenis                        |
-| State      | Zustand 5 (persisted, hydration-safe) and nuqs 2 for URL state                |
-| Auth       | argon2id (`@node-rs/argon2`), database sessions, optional TOTP (otplib)       |
-| Media      | sharp (WebP and AVIF), local disk or S3-compatible storage (ArvanCloud)       |
-| Anti-spam  | ALTCHA proof-of-work (self-hosted), honeypot, signed form tokens, rate limits |
-| Fonts      | Vazirmatn, Estedad and JetBrains Mono, self-hosted with `next/font/local`     |
-| Tooling    | pnpm 11, TypeScript 6, ESLint 9, Prettier 3, `node:test` through tsx          |
+| Concern    | Choice                                                                           |
+| ---------- | -------------------------------------------------------------------------------- |
+| Framework  | Next.js 16 (App Router, Turbopack, React Compiler, typed routes, ISR)            |
+| UI runtime | React 19.3                                                                       |
+| API        | Elysia 1.4 mounted inside Next at `/api`, typed client through Eden              |
+| Database   | PostgreSQL 16 with Drizzle ORM and drizzle-kit migrations                        |
+| Validation | Zod 4, shared between API schemas and React Hook Form                            |
+| Styling    | Tailwind CSS 4 (CSS-first `@theme` tokens), light and dark themes                |
+| Motion     | Motion 14 (`LazyMotion` with `m` components) and Lenis                           |
+| State      | Zustand 5 (persisted, hydration-safe) and nuqs 2 for URL state                   |
+| Auth       | argon2id (`@node-rs/argon2`), database sessions, optional TOTP (otplib)          |
+| Media      | sharp (WebP and AVIF), local disk or S3-compatible storage (ArvanCloud)          |
+| Anti-spam  | ALTCHA proof-of-work (self-hosted), honeypot, signed form tokens, rate limits    |
+| Fonts      | Vazirmatn, Estedad, Kufam and JetBrains Mono, self-hosted with `next/font/local` |
+| Tooling    | pnpm 11, TypeScript 6, ESLint 9, Prettier 3, `node:test` through tsx             |
 
 ## Architecture
 
@@ -68,7 +68,8 @@ The full API reference is in [docs/backend.md](docs/backend.md).
 
 ## Local setup
 
-Requirements: Node.js 22, pnpm 11 (through Corepack) and PostgreSQL 16.
+Requirements: Node.js 22.13 or newer (24 LTS recommended, pinned in `.nvmrc`), pnpm 11 (through
+Corepack) and PostgreSQL 16.
 
 ```bash
 corepack enable
@@ -91,11 +92,12 @@ pnpm dev
 
 The site runs at http://localhost:3000 and the admin at http://localhost:3000/admin.
 
-The seed is idempotent. It creates the owner account, placeholder catalog and content in both
-languages, warranty policies and codes, service centres and sample tickets. Product photos are
-downloaded once into `UPLOAD_DIR` (and cached in `UPLOAD_DIR/.seed-cache`); when the download
-hosts are unreachable, the seed generates neutral placeholder images instead, so it also works
-offline and in CI.
+The seed is idempotent and fills only content tables that are still empty, so re-running it
+never overwrites edits made in the admin. It creates the owner account, placeholder catalog and
+content in both languages, warranty policies and codes, service centres and sample tickets.
+Product photos are downloaded once into `UPLOAD_DIR` (and cached in `UPLOAD_DIR/.seed-cache`); when
+the download hosts are unreachable, the seed generates neutral placeholder images instead, so it
+also works offline and in CI.
 
 ## Scripts
 

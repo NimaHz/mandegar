@@ -31,8 +31,7 @@ export const ogPages = {
 export type OgPageKey = keyof typeof ogPages;
 
 export type OgTarget =
-  | { kind: "page"; key: OgPageKey }
-  | { kind: OgEntityKind; slug: string; updatedAt?: string | null };
+  { kind: "page"; key: OgPageKey } | { kind: OgEntityKind; slug: string; version?: string | null };
 
 const SLUG = /^[\p{Ll}\p{Lo}\p{N}][\p{Ll}\p{Lo}\p{N}-]{0,119}$/u;
 
@@ -47,11 +46,8 @@ export const ogPageKey = (path: string): OgPageKey => {
   return isOgPageKey(key) ? key : "home";
 };
 
-const versionOf = (target: OgTarget) => {
-  if (target.kind === "page" || !target.updatedAt) return OG_VERSION;
-  const time = Date.parse(target.updatedAt);
-  return Number.isNaN(time) ? OG_VERSION : `${OG_VERSION}.${time.toString(36)}`;
-};
+const versionOf = (target: OgTarget) =>
+  target.kind !== "page" && target.version ? `${OG_VERSION}.${target.version}` : OG_VERSION;
 
 export const ogImagePath = (locale: Locale, target: OgTarget) => {
   const name = target.kind === "page" ? target.key : target.slug;

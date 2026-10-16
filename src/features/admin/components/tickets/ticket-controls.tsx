@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
+import { fill } from "@/i18n/fill";
 import { apiClient } from "@/lib/api-client";
 import type { AdminOption, AdminTicket } from "@/types/admin";
 import {
@@ -40,6 +41,14 @@ export function TicketControls({
     status !== ticket.status ||
     priority !== ticket.priority ||
     assigneeId !== (ticket.assignee?.id ?? "");
+  const { assignee } = ticket;
+  const assigneeOptions =
+    assignee && !assignees.some((option) => option.id === assignee.id)
+      ? [
+          ...toOptions(assignees),
+          { value: assignee.id, label: fill(copy.assigneeUnavailable, { name: assignee.name }) },
+        ]
+      : toOptions(assignees);
 
   const apply = () =>
     void run(
@@ -80,7 +89,7 @@ export function TicketControls({
         <label className={field}>
           {copy.assignee}
           <Select
-            options={toOptions(assignees)}
+            options={assigneeOptions}
             placeholder={copy.unassigned}
             value={assigneeId}
             onChange={(event) => setAssigneeId(event.target.value)}

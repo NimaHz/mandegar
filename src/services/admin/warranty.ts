@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, asc, count, desc, eq, inArray, lte, type SQL } from "drizzle-orm";
 
+import { todayIsoDate } from "@/lib/dates";
 import { formatWarrantyCode } from "@/lib/warranty-code";
 import { getDb } from "@/server/db/client";
 import { products, warrantyCodes, warrantyPolicies } from "@/server/db/schema";
@@ -130,7 +131,11 @@ export const warrantyPoliciesAdmin = {
           .select()
           .from(warrantyPolicies)
           .where(where)
-          .orderBy(desc(warrantyPolicies.effectiveFrom), asc(warrantyPolicies.name))
+          .orderBy(
+            desc(warrantyPolicies.effectiveFrom),
+            asc(warrantyPolicies.name),
+            asc(warrantyPolicies.id),
+          )
           .limit(limit)
           .offset(offset),
       toPolicies,
@@ -155,12 +160,21 @@ export const warrantyPoliciesAdmin = {
     }));
   },
   defaultFor: async (months: number) => {
-    const today = new Date().toISOString().slice(0, 10);
-    const rows = await getDb()
+    const [row] = await getDb()
       .select()
       .from(warrantyPolicies)
-      .where(lte(warrantyPolicies.effectiveFrom, today))
-      .orderBy(desc(warrantyPolicies.effectiveFrom));
-    return rows.find((row) => row.months === months) ?? rows[0] ?? null;
+      .where(
+        and(
+          eq(warrantyPolicies.months, months),
+          lte(warrantyPolicies.effectiveFrom, todayIsoDate()),
+        ),
+      )
+      .orderBy(
+        desc(warrantyPolicies.effectiveFrom),
+        desc(warrantyPolicies.createdAt),
+        desc(warrantyPolicies.id),
+      )
+      .limit(1);
+    return row ?? null;
   },
 };

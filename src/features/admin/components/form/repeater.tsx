@@ -12,6 +12,7 @@ import { cn } from "@/lib/cn";
 import { adminContent } from "../../content";
 import { faNumber } from "../../lib/format";
 import { useDragReorder } from "../../lib/use-drag-reorder";
+import { useReadOnly } from "./read-only";
 import { ReorderButtons } from "./reorder-buttons";
 import { useFieldError } from "./use-field-error";
 
@@ -41,6 +42,7 @@ export function Repeater({
   const { fields, append, remove, move } = useFieldArray({ name });
   const { itemProps, handleProps } = useDragReorder(move);
   const error = useFieldError(name);
+  const locked = useReadOnly();
 
   return (
     <div className="flex flex-col gap-3">
@@ -62,8 +64,9 @@ export function Repeater({
                   <button
                     type="button"
                     aria-label={fill(common.dragHandle, { label: title })}
+                    disabled={locked}
                     {...handleProps(index)}
-                    className="grid size-8 cursor-grab touch-none place-items-center rounded-lg text-subtle transition-colors hover:bg-chip hover:text-ink active:cursor-grabbing max-sm:hidden"
+                    className="grid size-8 cursor-grab touch-none place-items-center rounded-lg text-subtle transition-colors hover:bg-chip hover:text-ink active:cursor-grabbing disabled:pointer-events-none disabled:opacity-30 max-sm:hidden"
                   >
                     <GripVertical className="size-4" aria-hidden />
                   </button>
@@ -83,6 +86,7 @@ export function Repeater({
                     label={`${common.remove} ${title}`}
                     confirmLabel={common.deleteConfirm}
                     onConfirm={() => remove(index)}
+                    disabled={locked}
                     className="size-8 rounded-lg"
                     armedClassName="w-auto px-2"
                   >
@@ -98,7 +102,7 @@ export function Repeater({
         </ol>
       )}
       {error && <p className="text-xs font-semibold text-danger">{error}</p>}
-      {fields.length < max && (
+      {fields.length < max && !locked && (
         <Button variant="line" size="sm" onClick={() => append(newItem())} className="self-start">
           <Plus className="size-4" aria-hidden />
           {addLabel}

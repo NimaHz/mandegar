@@ -11,6 +11,7 @@ import type { Option } from "@/types/common";
 
 import { adminContent } from "../../content";
 import { faNumber } from "../../lib/format";
+import { useReadOnly } from "./read-only";
 import { useFieldError } from "./use-field-error";
 
 interface MultiSelectProps {
@@ -32,6 +33,7 @@ export function MultiSelect({ name, label, options, hint, max, exclude }: MultiS
   const { control } = useFormContext();
   const error = useFieldError(name);
   const [query, setQuery] = useState("");
+  const locked = useReadOnly();
   const available = options.filter((option) => option.value !== exclude);
   const visible = available.filter((option) => includesQuery(query, option.label));
 
@@ -68,8 +70,9 @@ export function MultiSelect({ name, label, options, hint, max, exclude }: MultiS
                       <button
                         type="button"
                         onClick={() => toggle(value)}
+                        disabled={locked}
                         aria-label={fill(copy.remove, { label: option?.label ?? value })}
-                        className="inline-flex h-7 max-w-64 items-center gap-1 rounded-full bg-primary-soft ps-3 pe-1.5 text-xs font-bold text-primary transition-colors hover:bg-danger-soft hover:text-danger"
+                        className="inline-flex h-7 max-w-64 items-center gap-1 rounded-full bg-primary-soft ps-3 pe-1.5 text-xs font-bold text-primary transition-colors hover:bg-danger-soft hover:text-danger disabled:pointer-events-none"
                       >
                         <span className="truncate">{option?.label ?? value}</span>
                         <X className="size-3.5 shrink-0" aria-hidden />
@@ -118,7 +121,7 @@ export function MultiSelect({ name, label, options, hint, max, exclude }: MultiS
                         <button
                           type="button"
                           onClick={() => toggle(option.value)}
-                          disabled={!checked && full}
+                          disabled={locked || (!checked && full)}
                           className={cn(
                             "flex min-h-9 w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-start text-sm transition-colors disabled:opacity-40",
                             checked ? "font-bold text-ink" : "text-body hover:bg-sunken",

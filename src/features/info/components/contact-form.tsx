@@ -16,7 +16,13 @@ import { CharCount } from "@/components/ui/char-count";
 import { Field, TextAreaField } from "@/components/ui/field";
 import { Select } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
-import { apiClient, apiResult, fetchFormToken, type FormToken } from "@/lib/api-client";
+import {
+  apiClient,
+  apiResult,
+  fetchFormToken,
+  type FormToken,
+  readyFormToken,
+} from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { normalizeMobile } from "@/lib/persian";
 import { type ContactDepartment, contactDepartments } from "@/types/support";
@@ -107,11 +113,12 @@ function DepartmentForm({ content, defaultDepartment, className }: DepartmentFor
       setAltchaMissing(true);
       return;
     }
+    const token = await readyFormToken(formToken);
     const result = await apiResult(
       apiClient.api.contact.post({
         ...values,
         website: honeypotRef.current?.value ?? "",
-        formToken: (formToken ?? (await fetchFormToken()))?.token ?? "",
+        formToken: token?.token ?? "",
         altcha: proof,
       }),
     );

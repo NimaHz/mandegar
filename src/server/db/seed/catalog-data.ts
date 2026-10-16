@@ -24,7 +24,6 @@ export interface BrandSeed {
   slug: BrandSlug;
   name: LocalizedText;
   description: LocalizedText;
-  metaDescription?: LocalizedText;
   website: string | null;
   isOwn: boolean;
   sortOrder: number;
@@ -41,7 +40,6 @@ interface CategorySeed {
   specTemplate: SpecGroupTemplate[];
   features: LocalizedFeature[];
   faqs: LocalizedFaq[];
-  policy: "care" | "care-plus";
 }
 
 interface ProductSeed {
@@ -70,10 +68,6 @@ export const brandSeeds: BrandSeed[] = [
     description: t(
       "ماندگار تولیدکننده ایرانی کولر آبی، بخاری، آبگرمکن و لوازم خانگی است. از سال ۱۳۷۲ محصولاتی ساده، بادوام و قابل‌تعمیر می‌سازیم و پشت هر دستگاه، شبکه‌ای از نمایندگی‌ها و سرویس‌کاران مجاز در سراسر کشور ایستاده است.",
       "Mandegar is an Iranian maker of evaporative coolers, heaters, water heaters and home appliances. Since 1993 we have built simple, durable, repairable products, backed by a nationwide network of authorized dealers and service technicians.",
-    ),
-    metaDescription: t(
-      "کولر آبی، بخاری گازی و برقی، آبگرمکن و پنکه ماندگار؛ ساخت ایران از سال ۱۳۷۲ با گارانتی رسمی و شبکه خدمات پس از فروش در سراسر کشور.",
-      "Mandegar evaporative coolers, gas and electric heaters, water heaters and fans, made in Iran since 1993 with an official warranty and nationwide service.",
     ),
     website: null,
     isOwn: true,
@@ -358,7 +352,6 @@ export const categorySeeds: CategorySeed[] = [
     slug: "evaporative-coolers",
     icon: "air-vent",
     photo: "1681042803902-f79c240d8f03",
-    policy: "care",
     name: t("کولر آبی", "Evaporative coolers"),
     summary: t(
       "کولرهای آبی سلولزی با موتور کم‌مصرف برای هوایی خنک و تازه در تابستان‌های گرم و خشک.",
@@ -443,7 +436,6 @@ export const categorySeeds: CategorySeed[] = [
     slug: "gas-heaters",
     icon: "flame",
     photo: "1547186577-a3f4fa07c2ef",
-    policy: "care-plus",
     name: t("بخاری گازی", "Gas heaters"),
     summary: t(
       "بخاری‌های گازی دودکش‌دار با سنسور اکسیژن و ترموکوپل برای گرمایی یکنواخت و ایمن.",
@@ -527,7 +519,6 @@ export const categorySeeds: CategorySeed[] = [
     slug: "electric-heaters",
     icon: "heater",
     photo: "1740847262528-a29f09775256",
-    policy: "care",
     name: t("بخاری برقی", "Electric heaters"),
     summary: t(
       "فن‌هیتر، رادیاتور روغنی و پنل دیواری برای گرمایش سریع اتاق‌های کوچک و فضاهای بدون گاز.",
@@ -604,7 +595,6 @@ export const categorySeeds: CategorySeed[] = [
     slug: "water-heaters",
     icon: "shower-head",
     photo: "1620653713380-7a34b773fef8",
-    policy: "care-plus",
     name: t("آبگرمکن", "Water heaters"),
     summary: t(
       "آبگرمکن‌های دیواری، ایستاده و فوری با مخزن لعابی و شیر اطمینان دما و فشار.",
@@ -681,7 +671,6 @@ export const categorySeeds: CategorySeed[] = [
     slug: "kitchen-appliances",
     icon: "cooking-pot",
     photo: "1556911220-bff31c812dba",
-    policy: "care",
     name: t("لوازم آشپزخانه", "Kitchen appliances"),
     summary: t(
       "اجاق گاز، مایکروفر و توستر از ماندگار و برندهای همکار مثل جنرال، با گارانتی رسمی، راهنمای نصب و خدمات پس از فروش ماندگار در سراسر ایران.",
@@ -725,7 +714,6 @@ export const categorySeeds: CategorySeed[] = [
     slug: "fans",
     icon: "fan",
     photo: "1601084195907-44baaa49dabd",
-    policy: "care",
     name: t("پنکه", "Fans"),
     summary: t(
       "پنکه‌های ایستاده، رومیزی و دیواری ماندگار و جنرال با موتور مسی، تا سه سرعت و صدای کم؛ برای خنکای کم‌هزینه هر اتاق، به‌تنهایی یا در کنار کولر.",
@@ -1336,7 +1324,7 @@ export const productSeeds: ProductSeed[] = [
     isNew: false,
     releaseYear: 2023,
     energyClass: null,
-    warrantyMonths: 12,
+    warrantyMonths: 18,
     name: t("توستر جنرال GT-2S", "General GT-2S Toaster"),
     tagline: t("دو اسلات پهن با ۷ سطح برشته‌کردن", "Two wide slots and seven browning levels"),
     summary: t(

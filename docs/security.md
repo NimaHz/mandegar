@@ -131,8 +131,8 @@ base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-re
   `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, a restrictive
   `Permissions-Policy`, `Cross-Origin-Opener-Policy: same-origin`, `X-Robots-Tag: noindex` on
   `/admin`, and `Cache-Control: no-store` on every API response.
-- Markdown (products, guides, posts) is rendered on the server by a sanitizing renderer; raw HTML in
-  markdown is not passed through.
+- Markdown (products, category descriptions, FAQ answers, guides, posts) is rendered on the server
+  by a sanitizing renderer; raw HTML in markdown is not passed through.
 - The service worker never caches `/api`, `/admin` or non-GET requests.
 
 ### Audit log
@@ -146,8 +146,17 @@ revocations are logged too.
 - All secrets live in environment variables (`/etc/mandegar/mandegar.env` on the server, owned by
   root with mode 600, never committed; `.gitignore` excludes every `.env*` file except
   `.env.example`).
-- `SESSION_SECRET` (32+ random bytes) keys form tokens, ALTCHA and IP hashing. Rotating it signs
-  out nobody but invalidates in-flight forms and challenges, and resets IP-keyed rate-limit buckets.
+- `SESSION_SECRET` (32+ random bytes) keys form tokens, ALTCHA, IP hashing and customer attachment
+  links, and encrypts the stored TOTP secrets. Rotating it signs out nobody but invalidates in-flight
+  forms, challenges and attachment links, and resets IP-keyed rate-limit buckets.
+- To rotate it, move the old value to `SESSION_SECRET_PREVIOUS` and set a fresh `SESSION_SECRET`,
+  then restart. TOTP secrets sealed with the previous key still open, and each one is re-sealed with
+  the new key at that user's next successful two-factor sign-in. Rotating without
+  `SESSION_SECRET_PREVIOUS` locks every two-factor user out. Remove the previous value once every
+  two-factor user has signed in; an owner's password reset turns two-factor off for anyone left.
+- If the only owner cannot pass two-factor, turn it off on the server and sign in with the
+  password:
+  `sudo -u mandegar psql -d mandegar -c "update users set totp_enabled = false, totp_secret = null where email = '<owner email>'"`.
 - The app runs as the unprivileged `mandegar` system user under a hardened systemd unit: read-only
   system, private `/tmp`, no new privileges or capabilities, no namespaces, and a system-call filter
   limited to `@system-service`. It can write only to the uploads directory and its release's

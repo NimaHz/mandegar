@@ -7,6 +7,7 @@ import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { ProgressBar } from "@/components/ui/progress-bar";
+import { toast } from "@/components/ui/toast";
 import { fill } from "@/i18n/fill";
 import { cn } from "@/lib/cn";
 import type { AdminMediaRef } from "@/types/admin";
@@ -16,7 +17,9 @@ import { faNumber } from "../../lib/format";
 import { acceptFor } from "../../lib/upload";
 import { useDragReorder } from "../../lib/use-drag-reorder";
 import { LocalizedField } from "../form/localized-field";
+import { useReadOnly } from "../form/read-only";
 import { ReorderButtons } from "../form/reorder-buttons";
+import { useFieldError } from "../form/use-field-error";
 import { MediaPicker } from "../media/media-picker";
 import { MediaThumb } from "../media/media-thumb";
 import { useMediaUpload } from "../media/use-media-upload";
@@ -45,7 +48,7 @@ const asImages = (value: unknown): ImageValue[] =>
 
 export function GalleryManager({ name, initialMedia }: GalleryManagerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { setValue } = useFormContext();
+  const { setValue, getValues } = useFormContext();
   const { fields, append, remove, move } = useFieldArray({ name });
   const images = asImages(useWatch({ name }));
   const [media, setMedia] = useState(initialMedia);
@@ -53,22 +56,33 @@ export function GalleryManager({ name, initialMedia }: GalleryManagerProps) {
   const [queue, setQueue] = useState(0);
   const { upload, progress } = useMediaUpload();
   const { itemProps, handleProps } = useDragReorder(move);
+  const listError = useFieldError(name);
+  const rootError = useFieldError(`${name}.root`);
+  const error = listError ?? rootError;
+  const locked = useReadOnly();
+
+  const currentCount = () => asImages(getValues(name)).length;
 
   const add = (ref: AdminMediaRef) => {
-    setMedia((current) => ({ ...current, [ref.id]: ref }));
+    const current = asImages(getValues(name));
+    if (current.some((image) => image.mediaId === ref.id)) {
+      toast({ title: copy.duplicate, tone: "info" });
+      return;
+    }
+    setMedia((known) => ({ ...known, [ref.id]: ref }));
     append({
       mediaId: ref.id,
       alt: { fa: ref.alt.fa, en: ref.alt.en },
-      isPrimary: images.length === 0,
+      isPrimary: !current.some((image) => image.isPrimary),
     });
   };
 
   const onFiles = async (files: FileList | null) => {
-    const list = Array.from(files ?? []).slice(0, MAX_IMAGES - images.length);
-    setQueue(list.length);
+    const list = Array.from(files ?? []).slice(0, MAX_IMAGES - currentCount());
+    setQueue((count) => count + list.length);
     for (const file of list) {
       const uploaded = await upload(file);
-      if (uploaded) add(uploaded);
+      if (uploaded && currentCount() < MAX_IMAGES) add(uploaded);
       setQueue((count) => count - 1);
     }
   };
@@ -91,7 +105,8 @@ export function GalleryManager({ name, initialMedia }: GalleryManagerProps) {
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="flex flex-col items-center gap-2 rounded-field border border-dashed border-line-strong bg-sunken/50 px-6 py-10 text-center transition-colors hover:border-primary hover:bg-primary-soft/40"
+          disabled={queue > 0 || locked}
+          className="flex flex-col items-center gap-2 rounded-field border border-dashed border-line-strong bg-sunken/50 px-6 py-10 text-center transition-colors hover:border-primary hover:bg-primary-soft/40 disabled:pointer-events-none disabled:opacity-60"
         >
           <ImagePlus className="size-8 text-subtle" strokeWidth={1.5} aria-hidden />
           <span className="text-sm font-bold text-ink">{copy.emptyTitle}</span>
@@ -128,8 +143,9 @@ export function GalleryManager({ name, initialMedia }: GalleryManagerProps) {
                   <button
                     type="button"
                     aria-label={fill(common.dragHandle, { label: title })}
+                    disabled={locked}
                     {...handleProps(index)}
-                    className="absolute end-2 top-2 grid size-8 cursor-grab touch-none place-items-center rounded-lg bg-surface/90 text-ink shadow-card backdrop-blur active:cursor-grabbing max-sm:hidden"
+                    className="absolute end-2 top-2 grid size-8 cursor-grab touch-none place-items-center rounded-lg bg-surface/90 text-ink shadow-card backdrop-blur active:cursor-grabbing disabled:hidden max-sm:hidden"
                   >
                     <GripVertical className="size-4" aria-hidden />
                   </button>
@@ -139,7 +155,7 @@ export function GalleryManager({ name, initialMedia }: GalleryManagerProps) {
                     variant="ghost"
                     size="sm"
                     onClick={() => makePrimary(index)}
-                    disabled={value?.isPrimary}
+                    disabled={value?.isPrimary || locked}
                     className="h-8 px-2"
                   >
                     <Star className="size-4" aria-hidden />
@@ -156,6 +172,7 @@ export function GalleryManager({ name, initialMedia }: GalleryManagerProps) {
                       label={`${common.remove} ${title}`}
                       confirmLabel={common.deleteConfirm}
                       onConfirm={() => removeAt(index)}
+                      disabled={locked}
                       className="size-8 rounded-lg"
                       armedClassName="w-auto px-2"
                     >
@@ -171,6 +188,7 @@ export function GalleryManager({ name, initialMedia }: GalleryManagerProps) {
           })}
         </ol>
       )}
+      {error && <p className="text-xs font-semibold text-danger">{error}</p>}
       {queue > 0 && (
         <div
           role="status"
@@ -192,7 +210,7 @@ export function GalleryManager({ name, initialMedia }: GalleryManagerProps) {
           variant="line"
           size="sm"
           onClick={() => inputRef.current?.click()}
-          disabled={queue > 0 || fields.length >= MAX_IMAGES}
+          disabled={queue > 0 || fields.length >= MAX_IMAGES || locked}
         >
           <ImagePlus className="size-4" aria-hidden />
           {copy.upload}
@@ -201,7 +219,7 @@ export function GalleryManager({ name, initialMedia }: GalleryManagerProps) {
           variant="soft"
           size="sm"
           onClick={() => setPickerOpen(true)}
-          disabled={fields.length >= MAX_IMAGES}
+          disabled={fields.length >= MAX_IMAGES || locked}
         >
           <Library className="size-4" aria-hidden />
           {copy.library}
@@ -228,6 +246,7 @@ export function GalleryManager({ name, initialMedia }: GalleryManagerProps) {
         onClose={() => setPickerOpen(false)}
         kind="image"
         onPick={add}
+        pickedIds={images.map((image) => image.mediaId)}
       />
     </div>
   );

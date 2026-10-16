@@ -8,6 +8,7 @@ import {
   authors,
   brands,
   categories,
+  faqs,
   guides,
   heroSlides,
   media,
@@ -63,6 +64,12 @@ const contains = (column: AnyColumn, value: unknown) =>
 
 const inLibrary = eq(media.scope, "library");
 
+const mentions = (column: AnyColumn, storageKey: string) =>
+  or(
+    sql`strpos(${column}->>'fa', ${storageKey}) > 0`,
+    sql`strpos(${column}->>'en', ${storageKey}) > 0`,
+  );
+
 const usage = (
   entity: MediaUsageEntity,
   rows: { id: string; label: LocalizedText | string }[],
@@ -105,7 +112,7 @@ export const mediaAdmin = {
     return (await hydrate(rows))[0] ?? null;
   },
   usages: async (
-    id: string,
+    { id, storageKey }: { id: string; storageKey: string },
     { ticketLabels }: { ticketLabels: boolean },
   ): Promise<AdminMediaUsage[]> => {
     const db = getDb();
@@ -118,6 +125,7 @@ export const mediaAdmin = {
       slideRows,
       authorRows,
       postRows,
+      faqRows,
       ticketRows,
     ] = await Promise.all([
       db
@@ -127,12 +135,22 @@ export const mediaAdmin = {
       db
         .select({ id: categories.id, label: categories.name })
         .from(categories)
-        .where(eq(categories.imageMediaId, id)),
+        .where(or(eq(categories.imageMediaId, id), mentions(categories.description, storageKey))),
       db
         .select({ id: products.id, label: products.name })
-        .from(productImages)
-        .innerJoin(products, eq(products.id, productImages.productId))
-        .where(eq(productImages.mediaId, id)),
+        .from(products)
+        .where(
+          or(
+            inArray(
+              products.id,
+              db
+                .select({ id: productImages.productId })
+                .from(productImages)
+                .where(eq(productImages.mediaId, id)),
+            ),
+            mentions(products.description, storageKey),
+          ),
+        ),
       db
         .select({ id: products.id, label: products.name })
         .from(products)
@@ -155,7 +173,14 @@ export const mediaAdmin = {
         .select({ id: authors.id, label: authors.name })
         .from(authors)
         .where(eq(authors.avatarMediaId, id)),
-      db.select({ id: posts.id, label: posts.title }).from(posts).where(eq(posts.coverMediaId, id)),
+      db
+        .select({ id: posts.id, label: posts.title })
+        .from(posts)
+        .where(or(eq(posts.coverMediaId, id), mentions(posts.body, storageKey))),
+      db
+        .select({ id: faqs.id, label: faqs.question })
+        .from(faqs)
+        .where(mentions(faqs.answer, storageKey)),
       db
         .selectDistinct({ id: tickets.id, label: tickets.trackingCode })
         .from(ticketMessages)
@@ -171,6 +196,7 @@ export const mediaAdmin = {
       ...usage("slide", slideRows),
       ...usage("author", authorRows),
       ...usage("post", postRows),
+      ...usage("faq", faqRows),
       ...usage(
         "ticket",
         ticketRows.map((row) => ({

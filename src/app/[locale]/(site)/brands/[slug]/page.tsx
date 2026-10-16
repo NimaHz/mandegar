@@ -20,6 +20,7 @@ import { localizePath } from "@/i18n/paths";
 import { routes } from "@/lib/routes";
 import { brandGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
+import { ogEntityTarget } from "@/lib/seo/og/cards";
 import { api } from "@/services";
 
 export const revalidate = 3600;
@@ -44,7 +45,7 @@ export async function generateMetadata({
     image: brand.logo
       ? { url: brand.logo.src, width: brand.logo.width, height: brand.logo.height }
       : null,
-    og: { kind: "brand", slug: brand.slug, updatedAt: brand.updatedAt },
+    og: await ogEntityTarget(locale, "brand", brand.slug),
   });
 }
 

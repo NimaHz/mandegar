@@ -31,6 +31,7 @@ import { routes } from "@/lib/routes";
 import { categoryChoiceFaqs } from "@/lib/seo/answers";
 import { categoryGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
+import { ogEntityTarget } from "@/lib/seo/og/cards";
 import { api } from "@/services";
 
 const FAQ_LIMIT = 6;
@@ -64,7 +65,7 @@ export async function generateMetadata({
     image: category.image
       ? { url: category.image.src, width: category.image.width, height: category.image.height }
       : null,
-    og: { kind: "category", slug: category.slug, updatedAt: category.updatedAt },
+    og: await ogEntityTarget(locale, "category", category.slug),
     noindex: isRefined(filters),
   });
 }

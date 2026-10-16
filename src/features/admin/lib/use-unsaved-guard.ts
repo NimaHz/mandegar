@@ -2,11 +2,50 @@
 
 import { useEffect } from "react";
 
+import { isRecord } from "@/lib/guards";
+
 import { adminContent } from "../content";
+
+const SHADOW_KEY = "unsavedShadow";
+const GUARDED_KEY = "unsavedGuarded";
+
+const historyState = () => (isRecord(window.history.state) ? window.history.state : {});
+
+const onEntry = (key: string) => historyState()[key] === true;
+
+const pushGuarded = () =>
+  window.history.pushState(
+    { ...historyState(), [SHADOW_KEY]: false, [GUARDED_KEY]: true },
+    "",
+    window.location.href,
+  );
+
+const guardHistory = () => {
+  if (onEntry(GUARDED_KEY)) return;
+  window.history.replaceState({ ...historyState(), [SHADOW_KEY]: true }, "");
+  pushGuarded();
+};
+
+const guard = { dirty: 0, leaving: false };
 
 export function useUnsavedGuard(dirty: boolean) {
   useEffect(() => {
-    if (!dirty) return;
+    const href = window.location.href;
+    const onPopState = (event: PopStateEvent) => {
+      if (window.location.href !== href || !onEntry(SHADOW_KEY)) return;
+      event.stopImmediatePropagation();
+      if (guard.dirty > 0 && !guard.leaving && !window.confirm(adminContent.common.leaveConfirm)) {
+        pushGuarded();
+        return;
+      }
+      guard.leaving = true;
+      window.history.back();
+    };
+    window.addEventListener("popstate", onPopState, true);
+    if (!dirty) return () => window.removeEventListener("popstate", onPopState, true);
+    guard.dirty += 1;
+    guard.leaving = false;
+    guardHistory();
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
     };
@@ -32,6 +71,8 @@ export function useUnsavedGuard(dirty: boolean) {
     window.addEventListener("beforeunload", onBeforeUnload);
     document.addEventListener("click", onClick, true);
     return () => {
+      guard.dirty -= 1;
+      window.removeEventListener("popstate", onPopState, true);
       window.removeEventListener("beforeunload", onBeforeUnload);
       document.removeEventListener("click", onClick, true);
     };

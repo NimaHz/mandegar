@@ -1,7 +1,8 @@
 import "server-only";
 
-import { and, asc, count, desc, eq, gte, notInArray, sum } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, notInArray, type SQL, sum } from "drizzle-orm";
 
+import { startOfTehranDay } from "@/lib/dates";
 import { hasPermission } from "@/server/auth/permissions";
 import { getDb } from "@/server/db/client";
 import {
@@ -23,12 +24,22 @@ import type {
   AdminOption,
   AdminUser,
   DashboardStats,
+  Permission,
 } from "@/types/admin";
 
 import { readSettings } from "../db/content";
 import { iso, isoOrNull } from "../db/mappers";
-import { paginate, searchColumns } from "./shared";
+import { collated, paginate, searchColumns } from "./shared";
 import { breachingTickets, closedTicketStatuses, ticketsAdmin } from "./tickets";
+
+const byName = [asc(collated(users.name)), asc(users.id)];
+
+const toOption = (row: { id: string; name: string; role: AdminUser["role"] }): AdminOption => ({
+  id: row.id,
+  slug: null,
+  label: { fa: row.name, en: row.name },
+  hint: row.role,
+});
 
 const toUser = ({
   passwordHash: _hash,
@@ -52,7 +63,7 @@ export const usersAdmin = {
           .select()
           .from(users)
           .where(where)
-          .orderBy(asc(users.name))
+          .orderBy(...byName)
           .limit(limit)
           .offset(offset),
       (rows) => rows.map(toUser),
@@ -67,17 +78,38 @@ export const usersAdmin = {
       .select()
       .from(users)
       .where(eq(users.active, true))
-      .orderBy(asc(users.name));
-    return rows
-      .filter((row) => hasPermission(row.role, "tickets:write"))
-      .map((row) => ({
-        id: row.id,
-        slug: null,
-        label: { fa: row.name, en: row.name },
-        hint: row.role,
-      }));
+      .orderBy(...byName);
+    return rows.filter((row) => hasPermission(row.role, "tickets:write")).map(toOption);
+  },
+  options: async (): Promise<AdminOption[]> => {
+    const rows = await getDb()
+      .select({ id: users.id, name: users.name, role: users.role })
+      .from(users)
+      .orderBy(...byName);
+    return rows.map(toOption);
   },
 };
+
+const findAuditLogs = (where: SQL | undefined, limit: number, offset: number) =>
+  getDb().query.auditLogs.findMany({
+    where: () => where,
+    orderBy: () => [desc(auditLogs.id)],
+    limit,
+    offset,
+    with: { actor: { columns: { id: true, name: true } } },
+  });
+
+const toAuditLog = (row: Awaited<ReturnType<typeof findAuditLogs>>[number]): AdminAuditLog => ({
+  id: String(row.id),
+  actor: row.actor,
+  action: row.action,
+  entity: row.entity,
+  entityId: row.entityId,
+  diff: row.diff ?? null,
+  ip: row.ip,
+  userAgent: row.userAgent,
+  createdAt: iso(row.createdAt),
+});
 
 export const auditAdmin = {
   list: async (query: Partial<AdminAuditQuery> = {}) => {
@@ -89,39 +121,17 @@ export const auditAdmin = {
     return paginate(
       query.page,
       () => getDb().select({ total: count() }).from(auditLogs).where(where),
-      (limit, offset) =>
-        getDb().query.auditLogs.findMany({
-          where: () => where,
-          orderBy: () => [desc(auditLogs.id)],
-          limit,
-          offset,
-          with: { actor: { columns: { id: true, name: true } } },
-        }),
-      (rows) =>
-        rows.map((row): AdminAuditLog => ({
-          id: String(row.id),
-          actor: row.actor,
-          action: row.action,
-          entity: row.entity,
-          entityId: row.entityId,
-          diff: row.diff ?? null,
-          ip: row.ip,
-          userAgent: row.userAgent,
-          createdAt: iso(row.createdAt),
-        })),
+      (limit, offset) => findAuditLogs(where, limit, offset),
+      (rows) => rows.map(toAuditLog),
     );
   },
+  recent: async (limit: number) => (await findAuditLogs(undefined, limit, 0)).map(toAuditLog),
 };
 
 const tally = <TKey extends string>(rows: { key: TKey; total: number }[], keys: readonly TKey[]) =>
   Object.fromEntries(
     keys.map((key) => [key, rows.find((row) => row.key === key)?.total ?? 0]),
   ) as Record<TKey, number>;
-
-const startOfToday = () => {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-};
 
 export const statsAdmin = {
   counts: async (): Promise<AdminCounts> => {
@@ -135,7 +145,7 @@ export const statsAdmin = {
     ]);
     return { openTickets: open?.total ?? 0, unreadMessages: unread?.total ?? 0 };
   },
-  get: async (): Promise<DashboardStats> => {
+  get: async (permissions: readonly Permission[]): Promise<DashboardStats> => {
     const db = getDb();
     const openTickets = notInArray(tickets.status, closedTicketStatuses);
     const [
@@ -154,20 +164,23 @@ export const statsAdmin = {
       db.select({ key: products.status, total: count() }).from(products).groupBy(products.status),
       db.select({ total: count() }).from(categories),
       db.select({ total: count() }).from(brands),
-      db.select({ total: count(), bytes: sum(media.size) }).from(media),
+      db
+        .select({ total: count(), bytes: sum(media.size) })
+        .from(media)
+        .where(eq(media.scope, "library")),
       db.select({ total: count() }).from(tickets).where(openTickets),
       db
         .select({ total: count() })
         .from(tickets)
         .where(and(openTickets, eq(tickets.priority, "urgent"))),
       db.select({ total: count() }).from(tickets).where(breachingTickets()),
-      db.select({ total: count() }).from(tickets).where(gte(tickets.createdAt, startOfToday())),
+      db.select({ total: count() }).from(tickets).where(gte(tickets.createdAt, startOfTehranDay())),
       db.select({ total: count() }).from(contactMessages).where(eq(contactMessages.status, "new")),
       db
         .select({ key: warrantyCodes.status, total: count() })
         .from(warrantyCodes)
         .groupBy(warrantyCodes.status),
-      ticketsAdmin.recent(5),
+      permissions.includes("tickets:read") ? ticketsAdmin.recent(5) : [],
     ]);
     return {
       products: tally(productRows, ["draft", "published", "archived"]),

@@ -16,7 +16,7 @@ export default async function AdminTicketsPage({ searchParams }: PageProps<"/adm
   const [result, assignees] = await Promise.all([
     adminApi.tickets.list({
       ...query,
-      open: scope !== "all",
+      open: !query.status && scope !== "all",
       breaching: scope === "breaching",
     }),
     adminApi.users.assignees(),

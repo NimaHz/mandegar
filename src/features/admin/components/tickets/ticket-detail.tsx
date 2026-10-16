@@ -23,7 +23,7 @@ import { cn } from "@/lib/cn";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { provinceName } from "@/lib/provinces";
 import { adminRoutes } from "@/lib/routes";
-import { parseStatusEvent } from "@/lib/tickets";
+import { parseStatusEvent, parseUnknownWarranty } from "@/lib/tickets";
 import type { AdminOption, AdminTicket, AdminTicketMessage } from "@/types/admin";
 import type { TicketStatus } from "@/types/support";
 
@@ -46,6 +46,7 @@ interface TicketDetailProps {
   ticket: AdminTicket;
   assignees: AdminOption[];
   canWrite: boolean;
+  canViewWarranty: boolean;
   now: number;
 }
 
@@ -113,11 +114,12 @@ function ThreadItem({ message, customer }: { message: AdminTicketMessage; custom
         <span className="inline-flex items-center gap-2 text-caption font-bold text-muted">
           <CircleDot className="size-3.5" aria-hidden />
           {fill(copy.statusChanged, { status: statuses.ticket[status] })}
-          <span className="font-normal">· {formatDateTime("fa", message.createdAt)}</span>
+          <span className="font-normal">{formatDateTime("fa", message.createdAt)}</span>
         </span>
         <span className="h-px flex-1 bg-line" />
       </li>
     );
+  const unknownCode = message.authorType === "system" ? parseUnknownWarranty(message.body) : null;
   const staff = message.authorType === "staff";
   const name =
     message.author?.name ??
@@ -154,7 +156,7 @@ function ThreadItem({ message, customer }: { message: AdminTicketMessage; custom
           <span className="text-muted">{formatDateTime("fa", message.createdAt)}</span>
         </span>
         <p dir="auto" className="text-start text-sm leading-7 whitespace-pre-line text-ink-soft">
-          {message.body}
+          {unknownCode ? fill(copy.unknownWarranty, { code: unknownCode }) : message.body}
         </p>
         <Attachments message={message} />
       </div>
@@ -190,7 +192,13 @@ interface TimelineEntry {
   tone: "done" | "due" | "late";
 }
 
-export function TicketDetail({ ticket, assignees, canWrite, now }: TicketDetailProps) {
+export function TicketDetail({
+  ticket,
+  assignees,
+  canWrite,
+  canViewWarranty,
+  now,
+}: TicketDetailProps) {
   const thread = ticket.messages;
   const statusChanges = thread.flatMap((message) => {
     const status = statusEvent(message);
@@ -276,7 +284,9 @@ export function TicketDetail({ ticket, assignees, canWrite, now }: TicketDetailP
         </div>
 
         <aside className="flex min-w-0 flex-col gap-4 xl:sticky xl:top-24">
-          {canWrite && <TicketControls ticket={ticket} assignees={assignees} />}
+          {canWrite && (
+            <TicketControls key={ticket.updatedAt} ticket={ticket} assignees={assignees} />
+          )}
 
           <PanelCard title={copy.customer} icon={UserRound}>
             <dl className="flex flex-col gap-3.5">
@@ -345,14 +355,20 @@ export function TicketDetail({ ticket, assignees, canWrite, now }: TicketDetailP
               <InfoRow icon={QrCode} label={copy.warrantyCode}>
                 {ticket.warrantyCode ? (
                   <span className="flex flex-wrap items-center gap-2">
-                    <Link
-                      href={`${adminRoutes.warranty}?q=${ticket.warrantyCode.code}` as Route}
-                      className="hover:text-primary"
-                    >
+                    {canViewWarranty ? (
+                      <Link
+                        href={`${adminRoutes.warranty}?q=${ticket.warrantyCode.code}` as Route}
+                        className="hover:text-primary"
+                      >
+                        <CodeText className="tracking-wider">
+                          {ticket.warrantyCode.formatted}
+                        </CodeText>
+                      </Link>
+                    ) : (
                       <CodeText className="tracking-wider">
                         {ticket.warrantyCode.formatted}
                       </CodeText>
-                    </Link>
+                    )}
                     <StatusBadge
                       tone={warrantyStatusTone[ticket.warrantyCode.status]}
                       label={statuses.warranty[ticket.warrantyCode.status]}

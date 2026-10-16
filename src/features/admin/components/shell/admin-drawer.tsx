@@ -2,10 +2,11 @@
 
 import { X } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
-import { type ReactNode, useId, useRef } from "react";
+import { type ReactNode, useEffect, useId, useRef } from "react";
 
 import { EASE_OUT_EXPO } from "@/components/motion/easing";
 import { Portal } from "@/components/ui/portal";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { useModal } from "@/hooks/use-modal";
 
 import { adminContent } from "../../content";
@@ -19,8 +20,13 @@ interface AdminDrawerProps {
 export function AdminDrawer({ open, onClose, children }: AdminDrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  const isDesktop = useMediaQuery("(min-width: 64rem)");
 
   useModal(panelRef, open, onClose);
+
+  useEffect(() => {
+    if (open && isDesktop) onClose();
+  }, [open, isDesktop, onClose]);
 
   return (
     <Portal>

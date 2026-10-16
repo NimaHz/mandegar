@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Trash } from "lucide-react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 
 import { ConfirmButton } from "@/components/ui/confirm-button";
@@ -31,6 +32,7 @@ import {
   FormSection,
 } from "../form/form-section";
 import { LocalizedField, LocalizedTextarea } from "../form/localized-field";
+import { ReadOnlyScope } from "../form/read-only";
 import { Repeater } from "../form/repeater";
 import { SaveBar } from "../form/save-bar";
 import { SlugField } from "../form/slug-field";
@@ -113,6 +115,7 @@ export function GuideEditor({ guide, canWrite }: GuideEditorProps) {
     resolver: zodResolver(guideFormSchema, zodOptions),
     defaultValues: toForm(guide),
   });
+  const [version, setVersion] = useState(guide?.updatedAt);
   const kind = useWatch({ control: form.control, name: "video.kind" });
   const steps: unknown = useWatch({ control: form.control, name: "steps" });
 
@@ -121,10 +124,17 @@ export function GuideEditor({ guide, canWrite }: GuideEditorProps) {
     const body = toBody(values);
     const onError = (error: AdminApiError) => applyFieldErrors(form.setError, error);
     if (guide) {
-      const saved = await run(() => apiClient.api.admin.guides({ id: guide.id }).patch(body), {
-        success: copy.saved,
-        onError,
-      });
+      const saved = await run(
+        () =>
+          apiClient.api.admin
+            .guides({ id: guide.id })
+            .patch({ ...body, expectedUpdatedAt: version }),
+        {
+          success: copy.saved,
+          onSuccess: (data) => setVersion(data.updatedAt),
+          onError,
+        },
+      );
       if (saved) form.reset(snapshot);
       return;
     }
@@ -164,7 +174,7 @@ export function GuideEditor({ guide, canWrite }: GuideEditorProps) {
     <FormProvider {...form}>
       <form noValidate onSubmit={onSubmit} className="flex flex-col gap-5">
         <PanelHeading eyebrow={copy.title} title={guide ? guide.title.fa : copy.createTitle} />
-        <fieldset disabled={!canWrite} className="contents">
+        <ReadOnlyScope readOnly={!canWrite}>
           <div className={editorGridClass}>
             <div className="flex min-w-0 flex-col gap-4">
               <FormSection step={1} title={copy.sections.basics} localized>
@@ -327,6 +337,7 @@ export function GuideEditor({ guide, canWrite }: GuideEditorProps) {
                   pending={pending}
                   onDiscard={() => form.reset()}
                   submitLabel={guide ? common.saveChanges : common.create}
+                  isNew={!guide}
                 />
               )}
             </div>
@@ -351,7 +362,7 @@ export function GuideEditor({ guide, canWrite }: GuideEditorProps) {
               )}
             </aside>
           </div>
-        </fieldset>
+        </ReadOnlyScope>
       </form>
     </FormProvider>
   );

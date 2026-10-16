@@ -23,7 +23,13 @@ import { useIsClient } from "@/hooks/use-is-client";
 import { fill } from "@/i18n/fill";
 import { useLocale } from "@/i18n/locale-provider";
 import { localizePath } from "@/i18n/paths";
-import { type ApiFailure, fetchFormToken, type FormToken, postMultipart } from "@/lib/api-client";
+import {
+  type ApiFailure,
+  fetchFormToken,
+  type FormToken,
+  postMultipart,
+  readyFormToken,
+} from "@/lib/api-client";
 import { formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
 import { parseWarrantyCode } from "@/lib/warranty-code";
@@ -66,9 +72,6 @@ interface ServiceRequestFlowProps {
   copy: RequestFlowContent;
   types: Record<TicketType, { label: string; description: string }>;
 }
-
-const TOKEN_MIN_AGE_MS = 3_200;
-const TOKEN_MAX_AGE_MS = 100 * 60 * 1000;
 
 const fieldMessage: Record<RequestField, keyof RequestMessages> = {
   type: "type",
@@ -116,8 +119,6 @@ const initialState = (prefill: RequestPrefill) => {
     furthest: draft?.furthest ?? 0,
   };
 };
-
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const usePrefill = (models: ModelOption[]): RequestPrefill => {
   const [{ code, product }] = useQueryStates(requestSearchParams);
@@ -229,15 +230,9 @@ function RequestFlow({ models, copy, types }: ServiceRequestFlowProps) {
   };
 
   const ensureToken = async () => {
-    let current = tokenRef.current;
-    if (!current || Date.now() - current.issuedAt > TOKEN_MAX_AGE_MS) {
-      current = await fetchFormToken();
-      tokenRef.current = current;
-    }
-    if (!current) return "";
-    const remaining = TOKEN_MIN_AGE_MS - (Date.now() - current.issuedAt);
-    if (remaining > 0) await wait(remaining);
-    return current.token;
+    const token = await readyFormToken(tokenRef.current);
+    tokenRef.current = token;
+    return token?.token ?? "";
   };
 
   const handleFailure = (failure: ApiFailure) => {

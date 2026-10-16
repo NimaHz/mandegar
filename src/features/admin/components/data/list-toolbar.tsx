@@ -23,6 +23,7 @@ export interface ToolbarFilter {
 interface ListToolbarProps {
   searchPlaceholder?: string;
   filters?: readonly ToolbarFilter[];
+  externalFilters?: readonly string[];
   sort?: readonly Option[];
   children?: ReactNode;
   className?: string;
@@ -34,16 +35,15 @@ const SORT_KEY = "sort";
 export function ListToolbar({
   searchPlaceholder,
   filters = [],
+  externalFilters = [],
   sort,
   children,
   className,
 }: ListToolbarProps) {
   const { isPending, startTransition } = useSharedTransition();
+  const filterKeys = [...filters.map((filter) => filter.key), ...externalFilters];
   const parsers = Object.fromEntries(
-    ["q", "page", SORT_KEY, ...filters.map((filter) => filter.key)].map((key) => [
-      key,
-      parseAsString,
-    ]),
+    ["q", "page", SORT_KEY, ...filterKeys].map((key) => [key, parseAsString]),
   );
   const [state, setState] = useQueryStates(parsers, {
     shallow: false,
@@ -53,7 +53,7 @@ export function ListToolbar({
   });
   const [query, setQuery] = useState(state.q ?? "");
   const timer = useRef<number | undefined>(undefined);
-  const active = filters.some((filter) => state[filter.key]) || Boolean(state.q);
+  const active = filterKeys.some((key) => state[key]) || Boolean(state.q);
   const defaultSort = sort?.[0]?.value;
   const sortValue = (sort?.find((option) => option.value === state.sort) ?? sort?.[0])?.value;
 

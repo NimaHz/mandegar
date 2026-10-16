@@ -61,11 +61,18 @@ export const slidesAdmin = {
           .select({ id: heroSlides.id })
           .from(heroSlides)
           .where(where)
-          .orderBy(asc(heroSlides.sortOrder), desc(heroSlides.createdAt))
+          .orderBy(asc(heroSlides.sortOrder), asc(heroSlides.createdAt), asc(heroSlides.id))
           .limit(limit)
           .offset(offset),
       (rows) => hydrateSlides(rows.map((row) => row.id)),
     );
+  },
+  all: async () => {
+    const rows = await getDb()
+      .select({ id: heroSlides.id })
+      .from(heroSlides)
+      .orderBy(asc(heroSlides.sortOrder), asc(heroSlides.createdAt), asc(heroSlides.id));
+    return hydrateSlides(rows.map((row) => row.id));
   },
   get: async (id: string) => (await hydrateSlides([id]))[0] ?? null,
 };
@@ -90,7 +97,7 @@ export const faqsAdmin = {
           .select()
           .from(faqs)
           .where(where)
-          .orderBy(asc(faqs.group), asc(faqs.sortOrder))
+          .orderBy(asc(faqs.group), asc(faqs.sortOrder), asc(faqs.createdAt), asc(faqs.id))
           .limit(limit)
           .offset(offset),
       (rows) => rows.map(toFaq),

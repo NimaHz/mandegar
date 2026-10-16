@@ -6,13 +6,20 @@ export const runtime = "nodejs";
 
 const notFound = () => new Response("Not found", { status: 404 });
 
-export async function GET(_request: Request, context: RouteContext<"/og/[...slug]">) {
+export async function GET(request: Request, context: RouteContext<"/og/[...slug]">) {
   const { slug } = await context.params;
   const parsed = parseOgPath(slug);
   if (!parsed) return notFound();
-  const card = await loadOgCard(parsed.locale, parsed.target);
-  if (!card) return notFound();
-  const png = await renderOgImage(card);
+  const loaded = await loadOgCard(parsed.locale, parsed.target);
+  if (!loaded) return notFound();
+  const { pathname, search } = new URL(request.url);
+  if (`${pathname}${search}` !== loaded.path) {
+    return new Response(null, {
+      status: 308,
+      headers: { Location: loaded.path, "Cache-Control": "no-store" },
+    });
+  }
+  const png = await renderOgImage(await loaded.card());
   return new Response(new Uint8Array(png), {
     headers: {
       "Content-Type": "image/png",

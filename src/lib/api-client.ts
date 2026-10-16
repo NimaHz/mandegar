@@ -82,3 +82,19 @@ export const fetchFormToken = async (): Promise<FormToken | null> => {
   const result = await apiResult(apiClient.api.tickets["form-token"].get());
   return result.ok ? { token: result.data.token, issuedAt: Date.now() } : null;
 };
+
+const FORM_TOKEN_MIN_AGE_MS = 3_200;
+const FORM_TOKEN_MAX_AGE_MS = 100 * 60 * 1000;
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export const readyFormToken = async (current: FormToken | null) => {
+  const token =
+    current && Date.now() - current.issuedAt <= FORM_TOKEN_MAX_AGE_MS
+      ? current
+      : await fetchFormToken();
+  if (!token) return null;
+  const remaining = FORM_TOKEN_MIN_AGE_MS - (Date.now() - token.issuedAt);
+  if (remaining > 0) await wait(remaining);
+  return token;
+};

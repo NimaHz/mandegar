@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { PostEditor } from "@/features/admin/components/posts/post-editor";
 import { adminContent } from "@/features/admin/content";
-import { requireAdmin } from "@/server/auth/session";
+import { hasAdminPermission, requireAdmin } from "@/server/auth/session";
 import { idSchema } from "@/server/lib/validation";
 import { adminApi } from "@/services/admin";
 
@@ -11,7 +11,10 @@ export async function generateMetadata({
   params,
 }: PageProps<"/admin/posts/[id]">): Promise<Metadata> {
   const { id } = await params;
-  const post = idSchema.safeParse(id).success ? await adminApi.posts.get(id) : null;
+  const post =
+    idSchema.safeParse(id).success && (await hasAdminPermission("content:read"))
+      ? await adminApi.posts.get(id)
+      : null;
   return { title: post?.title.fa ?? adminContent.posts.title };
 }
 

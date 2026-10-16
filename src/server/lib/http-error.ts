@@ -8,6 +8,7 @@ export type ErrorCode =
   | "ORIGIN_REJECTED"
   | "NOT_FOUND"
   | "CONFLICT"
+  | "STALE"
   | "IN_USE"
   | "LENGTH_REQUIRED"
   | "PAYLOAD_TOO_LARGE"
@@ -61,6 +62,8 @@ export const notFound = (message = "Not found") => new HttpError(404, "NOT_FOUND
 
 export const conflict = (message: string, code: ErrorCode = "CONFLICT") =>
   new HttpError(409, code, message);
+
+export const stale = () => conflict("Changed by someone else since it was loaded", "STALE");
 
 export const payloadTooLarge = (message = "Payload too large") =>
   new HttpError(413, "PAYLOAD_TOO_LARGE", message);

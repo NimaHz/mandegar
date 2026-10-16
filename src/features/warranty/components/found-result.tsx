@@ -52,7 +52,23 @@ export function FoundResult({ match, locale, content, headingId }: FoundResultPr
   const meta = statusMeta[match.status];
   const StatusIcon = meta.icon;
   const { product } = match;
-  const productHref = localizePath(locale, routes.product(product.slug));
+  const productHref = product.listed ? localizePath(locale, routes.product(product.slug)) : null;
+  const frameClass =
+    "relative block aspect-[4/3] overflow-hidden rounded-card border border-line bg-sunken";
+  const nameClass = "font-display text-xl leading-snug font-extrabold text-ink";
+  const photo = product.image ? (
+    <Image
+      src={product.image.src}
+      alt={product.image.alt}
+      fill
+      sizes="(min-width: 1024px) 26rem, 90vw"
+      className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+    />
+  ) : (
+    <span className="grid size-full place-items-center">
+      <Wrench className="size-12 text-subtle" aria-hidden />
+    </span>
+  );
 
   const facts = [
     {
@@ -78,13 +94,15 @@ export function FoundResult({ match, locale, content, headingId }: FoundResultPr
     },
     {
       label: result.category,
-      value: (
+      value: product.category.listed ? (
         <Link
           href={localizePath(locale, routes.category(product.category.slug))}
           className="underline decoration-line-strong underline-offset-4 transition-colors hover:text-primary hover:decoration-primary"
         >
           {product.category.name}
         </Link>
+      ) : (
+        product.category.name
       ),
     },
     { label: result.productionYear, value: productionYearLabel(locale, match.productionYear) },
@@ -123,31 +141,24 @@ export function FoundResult({ match, locale, content, headingId }: FoundResultPr
 
       <div className="grid grid-cols-1 gap-6 p-5 sm:p-7 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-8">
         <div className="flex flex-col gap-5">
-          <Link
-            href={productHref}
-            className="group relative block aspect-[4/3] overflow-hidden rounded-card border border-line bg-sunken"
-          >
-            {product.image ? (
-              <Image
-                src={product.image.src}
-                alt={product.image.alt}
-                fill
-                sizes="(min-width: 1024px) 26rem, 90vw"
-                className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-              />
-            ) : (
-              <span className="grid size-full place-items-center">
-                <Wrench className="size-12 text-subtle" aria-hidden />
-              </span>
-            )}
-          </Link>
-          <div className="flex flex-col gap-1">
-            <Link
-              href={productHref}
-              className="font-display text-xl leading-snug font-extrabold text-ink transition-colors hover:text-primary"
-            >
-              {product.name}
+          {productHref ? (
+            <Link href={productHref} className={cn("group", frameClass)}>
+              {photo}
             </Link>
+          ) : (
+            <div className={frameClass}>{photo}</div>
+          )}
+          <div className="flex flex-col gap-1">
+            {productHref ? (
+              <Link
+                href={productHref}
+                className={cn(nameClass, "transition-colors hover:text-primary")}
+              >
+                {product.name}
+              </Link>
+            ) : (
+              <p className={nameClass}>{product.name}</p>
+            )}
           </div>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-3.5">
             {facts.map((fact) => (
@@ -222,13 +233,15 @@ export function FoundResult({ match, locale, content, headingId }: FoundResultPr
             <MapPin className="size-4.5" aria-hidden />
             {result.findCenter}
           </Link>
-          <Link
-            href={{ pathname: productHref, hash: "installation" }}
-            className={buttonVariants({ variant: "line", className: "max-sm:flex-1" })}
-          >
-            <BookOpenCheck className="size-4.5" aria-hidden />
-            {result.installGuide}
-          </Link>
+          {productHref && (
+            <Link
+              href={{ pathname: productHref, hash: "installation" }}
+              className={buttonVariants({ variant: "line", className: "max-sm:flex-1" })}
+            >
+              <BookOpenCheck className="size-4.5" aria-hidden />
+              {result.installGuide}
+            </Link>
+          )}
         </div>
         <div className="flex items-start gap-3 rounded-field border border-line bg-raised p-4">
           <Receipt className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />

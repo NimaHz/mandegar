@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
 
+import { Markdown } from "@/components/shared/markdown";
 import { cn } from "@/lib/cn";
 
 interface FaqItem {
@@ -11,19 +12,6 @@ interface FaqListProps {
   items: FaqItem[];
   className?: string;
 }
-
-const MODEL_CODE = /\b([A-Z]+-\d[\dA-Z]*)\b/;
-
-const isolateCodes = (text: string) =>
-  text.split(MODEL_CODE).map((part, index) =>
-    index % 2 === 1 ? (
-      <bdi key={index} dir="ltr" className="whitespace-nowrap">
-        {part}
-      </bdi>
-    ) : (
-      part
-    ),
-  );
 
 export function FaqList({ items, className }: FaqListProps) {
   return (
@@ -39,9 +27,10 @@ export function FaqList({ items, className }: FaqListProps) {
               <Plus className="size-4" strokeWidth={2.4} />
             </span>
           </summary>
-          <p className="max-w-3xl px-5 pb-5 text-sm leading-8 text-pretty text-body sm:px-6">
-            {isolateCodes(item.answer)}
-          </p>
+          <Markdown
+            source={item.answer}
+            className="max-w-3xl px-5 pb-5 text-sm leading-8 text-pretty sm:px-6"
+          />
         </details>
       ))}
     </div>

@@ -51,24 +51,20 @@ export function ReplyComposer({ ticket }: { ticket: AdminTicket }) {
 
   const send = async () => {
     if (!text || pending) return;
+    const status = after && !internal && open && after !== ticket.status ? after : null;
     const saved = await run(
       () =>
         apiClient.api.admin.tickets({ id: ticket.id }).messages.post({
           body: text,
           internal,
+          ...(status ? { status } : {}),
           ...(files.length > 0 ? { attachments: files } : {}),
         }),
-      {
-        success: internal ? copy.noted : copy.sent,
-        refresh: !(after && !internal),
-      },
+      { success: internal ? copy.noted : copy.sent },
     );
     if (!saved) return;
     setBody("");
     attachments.clear();
-    if (after && !internal && after !== ticket.status) {
-      await run(() => apiClient.api.admin.tickets({ id: ticket.id }).patch({ status: after }));
-    }
     setAfter("");
   };
 

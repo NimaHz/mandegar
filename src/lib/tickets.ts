@@ -47,7 +47,8 @@ export const screenAttachments = (current: File[], incoming: File[]) => {
   return { accepted, problems };
 };
 
-const GAS_SMELL = /بو(ی)?\s*گاز|gas\s*(smell|leak)|smell(s|ing)?\s+(of\s+)?gas/i;
+const GAS_SMELL =
+  /بو(ی)?\s*گاز|نشت(ی)?\s*گاز|گاز\s*(نشت|بو(?![\u0600-\u06ff]))|gas\s*(smell|leak)|(smell(s|ing)?|leak(s|ing)?)\s+(like\s+|of\s+)?gas/i;
 
 export const mentionsGasSmell = (text: string) =>
   GAS_SMELL.test(normalizeFa(text).replace(/‌/g, " "));
@@ -61,3 +62,10 @@ export const parseStatusEvent = (body: string): TicketStatus | null => {
   const value = body.slice(STATUS_EVENT_PREFIX.length);
   return ticketStatuses.find((status) => status === value) ?? null;
 };
+
+const UNKNOWN_WARRANTY_PREFIX = "warranty-unknown:";
+
+export const unknownWarrantyBody = (code: string) => `${UNKNOWN_WARRANTY_PREFIX}${code}`;
+
+export const parseUnknownWarranty = (body: string) =>
+  body.startsWith(UNKNOWN_WARRANTY_PREFIX) ? body.slice(UNKNOWN_WARRANTY_PREFIX.length) : null;

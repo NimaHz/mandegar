@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  expectedUpdatedAtSchema,
   listQuerySchema,
   localizedSeoSchema,
   localizedText,
@@ -25,7 +26,9 @@ export const postInputSchema = z.object({
   publishedAt: z.iso.datetime({ offset: true }).nullable().optional(),
 });
 
-export const postPatchSchema = postInputSchema.partial();
+export const postPatchSchema = postInputSchema
+  .partial()
+  .extend({ expectedUpdatedAt: expectedUpdatedAtSchema });
 
 export const postsQuerySchema = listQuerySchema.extend({
   kind: optionalFilter(z.enum(postKinds)),

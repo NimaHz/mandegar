@@ -28,8 +28,8 @@ export function useContentLang() {
 }
 
 export const langMeta: Record<ContentLang, { short: string; label: string; dir: "rtl" | "ltr" }> = {
-  fa: { short: "فا", label: adminContent.common.fa, dir: "rtl" },
-  en: { short: "EN", label: adminContent.common.en, dir: "ltr" },
+  fa: { short: adminContent.common.faShort, label: adminContent.common.fa, dir: "rtl" },
+  en: { short: adminContent.common.enShort, label: adminContent.common.en, dir: "ltr" },
 };
 
 export type LangState = "filled" | "empty" | "error";

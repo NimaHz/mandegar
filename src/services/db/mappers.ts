@@ -38,8 +38,8 @@ export const toDocument = (row: MediaRow): DocumentAsset => ({
 });
 
 export const toSeo = (seo: LocalizedSeo | null, locale: Locale): SeoFields => ({
-  title: pickOrNull(seo?.title, locale),
-  description: pickOrNull(seo?.description, locale),
+  title: seo?.title[locale].trim() || null,
+  description: seo?.description[locale].trim() || null,
 });
 
 export const iso = (date: Date) => date.toISOString();
@@ -70,6 +70,11 @@ export const orderByIds = <TItem extends { id: string }>(
     return item ? [item] : [];
   });
 };
+
+export const effectiveGuideId = (
+  chain: readonly (string | null | undefined)[],
+  published: ReadonlySet<string>,
+) => chain.find((id): id is string => typeof id === "string" && published.has(id)) ?? null;
 
 export const guideMediaIds = (row: GuideMedia) => [
   row.video?.posterMediaId,

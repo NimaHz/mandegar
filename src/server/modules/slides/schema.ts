@@ -19,4 +19,12 @@ export const slideInputSchema = z.object({
 
 export const slidePatchSchema = slideInputSchema.partial();
 
+export const slideOrderSchema = z.object({
+  ids: z
+    .array(z.uuid())
+    .min(1)
+    .max(500)
+    .refine((ids) => new Set(ids).size === ids.length, "Each slide may appear once"),
+});
+
 export const slidesQuerySchema = listQuerySchema;

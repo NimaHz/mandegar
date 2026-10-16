@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { currentJalaliYear } from "@/lib/dates";
 import {
   emailSchema,
   localizedText,
@@ -53,7 +54,23 @@ export const companySettingsSchema = z.object({
   legalName: optionalLocalizedText(200),
   nationalId: z.string().trim().max(20).nullable(),
   registrationNo: z.string().trim().max(20).nullable(),
-  foundingYear: z.number().int().min(1300).max(2100).nullable(),
+  foundingYear: z
+    .number()
+    .int()
+    .min(1300)
+    .superRefine((year, context) => {
+      const maximum = currentJalaliYear();
+      if (year > maximum) {
+        context.addIssue({
+          code: "too_big",
+          maximum,
+          origin: "number",
+          inclusive: true,
+          input: year,
+        });
+      }
+    })
+    .nullable(),
 });
 
 export const settingsSchemas = {

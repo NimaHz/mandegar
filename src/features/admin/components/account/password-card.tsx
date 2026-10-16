@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { apiClient } from "@/lib/api-client";
 import { adminRoutes } from "@/lib/routes";
+import { passwordSchema } from "@/server/modules/auth/schema";
 
 import { adminContent } from "../../content";
 import { useAdminMutation } from "../../lib/use-admin-mutation";
@@ -22,11 +23,7 @@ const copy = adminContent.account.password;
 const schema = z
   .object({
     currentPassword: z.string().min(1).max(200),
-    newPassword: z
-      .string()
-      .min(12, copy.weak)
-      .max(200)
-      .refine((value) => /[a-z]/i.test(value) && /\d/.test(value), copy.weak),
+    newPassword: z.string().refine((value) => passwordSchema.safeParse(value).success, copy.weak),
     confirm: z.string(),
   })
   .refine((value) => value.newPassword === value.confirm, {

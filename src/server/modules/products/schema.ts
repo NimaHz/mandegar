@@ -1,6 +1,8 @@
 import { z } from "zod";
 
+import { toLatinDigits } from "@/lib/persian";
 import {
+  expectedUpdatedAtSchema,
   iconSchema,
   listQuerySchema,
   localeSchema,
@@ -17,11 +19,30 @@ import { downloadKinds, energyClasses } from "@/types/catalog";
 const specKey = z
   .string()
   .trim()
+  .overwrite(toLatinDigits)
   .min(1)
   .max(60)
   .regex(/^[a-zA-Z][a-zA-Z0-9-]*$/);
 
-const unitCode = z.string().trim().max(10).nullable();
+const unitCode = z.string().trim().overwrite(toLatinDigits).max(10).nullable();
+
+export const uniqueSpecKeys =
+  (message = "Already in use") =>
+  (groups: readonly { items: readonly { key: string }[] }[], context: z.RefinementCtx) => {
+    const seen = new Set<string>();
+    groups.forEach((group, groupIndex) =>
+      group.items.forEach((item, itemIndex) => {
+        if (seen.has(item.key)) {
+          context.addIssue({
+            code: "custom",
+            path: [groupIndex, "items", itemIndex, "key"],
+            message,
+          });
+        }
+        seen.add(item.key);
+      }),
+    );
+  };
 
 export const specTemplateItemSchema = z.object({
   key: specKey,
@@ -66,11 +87,24 @@ export const faqItemSchema = z.object({
   answer: localizedText(2000),
 });
 
+const productImageList = z
+  .array(
+    z.object({
+      mediaId: z.uuid(),
+      alt: optionalLocalizedText(200),
+      isPrimary: z.boolean().optional(),
+    }),
+  )
+  .max(30);
+
+export const productImagesSchema = z.object({ images: productImageList });
+
 export const productInputSchema = z.object({
   slug: slugSchema,
   modelCode: z
     .string()
     .trim()
+    .overwrite(toLatinDigits)
     .toUpperCase()
     .min(2)
     .max(40)
@@ -86,7 +120,7 @@ export const productInputSchema = z.object({
   tagline: localizedText(200),
   summary: localizedText(600),
   description: localizedText(20_000),
-  specs: z.array(specGroupSchema).max(20),
+  specs: z.array(specGroupSchema).max(20).superRefine(uniqueSpecKeys()),
   keyFacts: z.array(keyFactSchema).max(12),
   features: z.array(featureSchema).max(20),
   downloads: z.array(downloadSchema).max(20),
@@ -95,21 +129,12 @@ export const productInputSchema = z.object({
   warrantyMonths: z.number().int().min(0).max(240),
   relatedIds: z.array(z.uuid()).max(12),
   seo: localizedSeoSchema,
+  images: productImageList.optional(),
 });
 
-export const productPatchSchema = productInputSchema.partial();
-
-export const productImagesSchema = z.object({
-  images: z
-    .array(
-      z.object({
-        mediaId: z.uuid(),
-        alt: optionalLocalizedText(200),
-        isPrimary: z.boolean().optional(),
-      }),
-    )
-    .max(30),
-});
+export const productPatchSchema = productInputSchema
+  .partial()
+  .extend({ expectedUpdatedAt: expectedUpdatedAtSchema });
 
 export const productsQuerySchema = listQuerySchema.extend({
   status: optionalFilter(z.enum(contentStatuses)),

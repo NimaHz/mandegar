@@ -3,9 +3,10 @@ import "server-only";
 import { cacheTags } from "@/server/lib/cache-tags";
 import type { ProductDetail, ProductsQuery } from "@/types/catalog";
 
-import { cached, isListed } from "../cache";
+import { cached, isListed, whenListed } from "../cache";
 import type { CatalogService } from "../contracts";
 import { catalogService, compareSlugs } from "../db/catalog";
+import { normalizeSlug } from "../db/mappers";
 
 const { catalog, guides } = cacheTags;
 const MAX_CACHED_PAGE = 3;
@@ -33,30 +34,32 @@ const isCacheable = async (query: ProductsQuery) =>
   (!query.category || (await isListed(categorySlugs, query.category))) &&
   (!query.brand || (await isListed(brandSlugs, query.brand)));
 
-const listedProduct: CatalogService["product"] = async (locale, slug) =>
-  (await isListed(productSlugs, slug)) ? product(locale, slug) : null;
+const listedProduct = whenListed(productSlugs, product, null);
 
 export const cachedCatalog: CatalogService = {
   categories: cached("catalog.categories", [catalog], catalogService.categories),
-  category: async (locale, slug) =>
-    (await isListed(categorySlugs, slug)) ? category(locale, slug) : null,
+  category: whenListed(categorySlugs, category, null),
   categorySlugs,
-  products: async (locale, query) =>
-    (await isCacheable(query)) ? products(locale, query) : catalogService.products(locale, query),
+  products: async (locale, query) => {
+    const listed = {
+      ...query,
+      category: query.category && normalizeSlug(query.category),
+      brand: query.brand && normalizeSlug(query.brand),
+    };
+    return (await isCacheable(listed))
+      ? products(locale, listed)
+      : catalogService.products(locale, query);
+  },
   facets: cached("catalog.facets", [catalog], catalogService.facets),
   featured: cached("catalog.featured", [catalog], catalogService.featured),
   latest: cached("catalog.latest", [catalog], catalogService.latest),
-  byCategory: async (locale, slug, limit) =>
-    (await isListed(categorySlugs, slug)) ? byCategory(locale, slug, limit) : [],
-  categoryInsights: async (locale, slug) =>
-    (await isListed(categorySlugs, slug)) ? categoryInsights(locale, slug) : [],
+  byCategory: whenListed(categorySlugs, byCategory, []),
+  categoryInsights: whenListed(categorySlugs, categoryInsights, []),
   models: cached("catalog.models", [catalog], catalogService.models),
   bySlugs: catalogService.bySlugs,
-  byBrand: async (locale, slug) =>
-    (await isListed(brandSlugs, slug)) ? byBrand(locale, slug) : [],
+  byBrand: whenListed(brandSlugs, byBrand, []),
   product: listedProduct,
-  related: async (locale, slug, limit) =>
-    (await isListed(productSlugs, slug)) ? related(locale, slug, limit) : [],
+  related: whenListed(productSlugs, related, []),
   compare: async (locale, slugs) => {
     const details = await Promise.all(
       compareSlugs(slugs).map((slug) => listedProduct(locale, slug)),
@@ -65,7 +68,7 @@ export const cachedCatalog: CatalogService = {
   },
   productSlugs,
   brands: cached("catalog.brands", [catalog], catalogService.brands),
-  brand: async (locale, slug) => ((await isListed(brandSlugs, slug)) ? brand(locale, slug) : null),
+  brand: whenListed(brandSlugs, brand, null),
   brandSlugs,
   search: catalogService.search,
 };

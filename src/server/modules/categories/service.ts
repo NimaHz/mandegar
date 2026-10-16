@@ -1,15 +1,16 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, arrayContains, eq, sql } from "drizzle-orm";
 import type { z } from "zod";
 
+import { routes } from "@/lib/routes";
 import { getDb } from "@/server/db/client";
-import { categories } from "@/server/db/schema";
-import { cacheTags } from "@/server/lib/cache-tags";
+import { brands, categories, products, serviceCenters } from "@/server/db/schema";
+import { assertUnchanged } from "@/server/lib/concurrency";
 import { guardDelete, guardWrite } from "@/server/lib/db-errors";
 import { conflict, notFound, ValidationFailure } from "@/server/lib/http-error";
-import { revalidateContent } from "@/server/lib/revalidate";
 import { assertLibraryMedia } from "@/server/modules/media/service";
+import { revalidateListing } from "@/server/modules/products/service";
 import { categoriesAdmin } from "@/services/admin/categories";
 
 import type { categoryInputSchema, categoryPatchSchema } from "./schema";
@@ -19,6 +20,13 @@ const loadCategory = async (id: string) => {
   if (!category) throw notFound("Category not found");
   return category;
 };
+
+const revalidateCategory = (id: string, states: { slug: string; published: boolean }[]) =>
+  revalidateListing(states, {
+    index: routes.products,
+    path: routes.category,
+    members: and(eq(products.categoryId, id), eq(brands.published, true)),
+  });
 
 const assertParent = async (id: string | null, parentId: string | null | undefined) => {
   if (!parentId) return;
@@ -38,20 +46,38 @@ const assertParent = async (id: string | null, parentId: string | null | undefin
 
 export const createCategory = async (input: z.output<typeof categoryInputSchema>) => {
   await assertParent(null, input.parentId);
-  await assertLibraryMedia({ imageMediaId: input.imageMediaId });
+  await assertLibraryMedia({ imageMediaId: input.imageMediaId }, "image");
   const [row] = await guardWrite(() => getDb().insert(categories).values(input).returning());
   if (!row) throw new Error("Category insert failed");
-  revalidateContent([cacheTags.catalog]);
+  await revalidateCategory(row.id, [row]);
   return loadCategory(row.id);
 };
 
-export const updateCategory = async (id: string, patch: z.output<typeof categoryPatchSchema>) => {
-  await loadCategory(id);
+export const updateCategory = async (
+  id: string,
+  { expectedUpdatedAt, ...patch }: z.output<typeof categoryPatchSchema>,
+) => {
+  const before = await loadCategory(id);
   await assertParent(id, patch.parentId);
-  await assertLibraryMedia({ imageMediaId: patch.imageMediaId });
-  await guardWrite(() => getDb().update(categories).set(patch).where(eq(categories.id, id)));
-  revalidateContent([cacheTags.catalog]);
-  return loadCategory(id);
+  await assertLibraryMedia({ imageMediaId: patch.imageMediaId }, "image");
+  await guardWrite(() =>
+    getDb().transaction(async (tx) => {
+      const [row] = await tx
+        .select({ updatedAt: categories.updatedAt })
+        .from(categories)
+        .where(eq(categories.id, id))
+        .for("update");
+      if (!row) throw notFound("Category not found");
+      assertUnchanged(row.updatedAt, expectedUpdatedAt);
+      await tx
+        .update(categories)
+        .set({ ...patch, updatedAt: new Date() })
+        .where(eq(categories.id, id));
+    }),
+  );
+  const after = await loadCategory(id);
+  await revalidateCategory(id, [before, after]);
+  return after;
 };
 
 export const deleteCategory = async (id: string) => {
@@ -59,7 +85,15 @@ export const deleteCategory = async (id: string) => {
   if (category.productCount > 0 || (await categoriesAdmin.childCount(id)) > 0) {
     throw conflict("Category still has products or subcategories", "IN_USE");
   }
-  await guardDelete(() => getDb().delete(categories).where(eq(categories.id, id)));
-  revalidateContent([cacheTags.catalog]);
+  await guardDelete(() =>
+    getDb().transaction(async (tx) => {
+      await tx.delete(categories).where(eq(categories.id, id));
+      await tx
+        .update(serviceCenters)
+        .set({ categoryIds: sql`array_remove(${serviceCenters.categoryIds}, ${id}::uuid)` })
+        .where(arrayContains(serviceCenters.categoryIds, [id]));
+    }),
+  );
+  await revalidateCategory(id, [category]);
   return { id };
 };

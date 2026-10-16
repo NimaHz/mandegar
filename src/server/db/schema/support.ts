@@ -49,6 +49,8 @@ export const tickets = pgTable(
     index("tickets_phone_idx").on(table.phone),
     index("tickets_assignee_idx").on(table.assigneeId),
     index("tickets_created_idx").on(table.createdAt),
+    index("tickets_product_idx").on(table.productId),
+    index("tickets_warranty_code_idx").on(table.warrantyCodeId),
   ],
 );
 
@@ -69,7 +71,11 @@ export const ticketMessages = pgTable(
       .default(sql`'{}'::uuid[]`),
     ...timestamps,
   },
-  (table) => [index("ticket_messages_ticket_idx").on(table.ticketId, table.createdAt)],
+  (table) => [
+    index("ticket_messages_ticket_idx").on(table.ticketId, table.createdAt),
+    index("ticket_messages_author_idx").on(table.authorId),
+    index("ticket_messages_attachments_idx").using("gin", table.attachmentMediaIds),
+  ],
 );
 
 export const contactMessages = pgTable(

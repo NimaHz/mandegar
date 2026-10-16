@@ -48,13 +48,13 @@ const seed = async () => {
   log(`owner: ${owner.email}`);
   const photos = await photoLibrary(photoAlts());
   log(`photos: ${photos.size}`);
-  const policyIds = await seedPolicies();
+  await seedPolicies();
   const brandIds = await seedBrands();
   const guideIds = await seedGuides(photos);
   const categoryIds = await seedCategories(photos, guideIds);
   const productIds = await seedProducts(photos, categoryIds, brandIds);
   log(`brands: ${brandIds.size}, categories: ${categoryIds.size}, products: ${productIds.size}`);
-  const codes = await seedWarrantyCodes(productIds, policyIds);
+  const codes = await seedWarrantyCodes(productIds);
   log(`warranty codes: ${codes.length}`);
   for (const code of codes.slice(0, 6)) {
     log(`  ${formatWarrantyCode(code.code)}  ${code.product.modelCode} ${code.productionYear}`);

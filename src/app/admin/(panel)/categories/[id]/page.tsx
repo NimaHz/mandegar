@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { CategoryEditor } from "@/features/admin/components/categories/category-editor";
 import { adminContent } from "@/features/admin/content";
-import { requireAdmin } from "@/server/auth/session";
+import { hasAdminPermission, requireAdmin } from "@/server/auth/session";
 import { idSchema } from "@/server/lib/validation";
 import { adminApi } from "@/services/admin";
 
@@ -11,7 +11,10 @@ export async function generateMetadata({
   params,
 }: PageProps<"/admin/categories/[id]">): Promise<Metadata> {
   const { id } = await params;
-  const category = idSchema.safeParse(id).success ? await adminApi.categories.get(id) : null;
+  const category =
+    idSchema.safeParse(id).success && (await hasAdminPermission("catalog:read"))
+      ? await adminApi.categories.get(id)
+      : null;
   return { title: category?.name.fa ?? adminContent.categories.title };
 }
 

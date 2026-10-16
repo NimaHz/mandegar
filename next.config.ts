@@ -58,6 +58,13 @@ const nextConfig: NextConfig = {
       "./drizzle/**",
       "./.github/**",
       "./*.md",
+      "./src/**/*.{ts,tsx,css}",
+      "./scripts/**",
+      "./*.config.{ts,mjs}",
+      "./tsconfig.json",
+      "./*.tsbuildinfo",
+      "./pnpm-lock.yaml",
+      "./pnpm-workspace.yaml",
     ],
   },
   images: {

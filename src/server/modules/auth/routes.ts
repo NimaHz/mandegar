@@ -59,7 +59,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
     { auth: true, body: changePasswordSchema },
   )
   .post("/totp/setup", ({ actor }) => setupTotp(actor), { auth: true })
-  .post("/totp/enable", ({ actor, body }) => enableTotp(actor, body.code), {
+  .post("/totp/enable", ({ actor, body }) => enableTotp(actor, body), {
     auth: true,
     body: totpEnableSchema,
   })

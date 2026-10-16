@@ -158,11 +158,20 @@ export const ingestFile = async (file: File, options: IngestOptions) =>
     ...options,
   });
 
-export const assertLibraryMedia = async (fields: Record<string, string | null | undefined>) => {
+const kindMessages: Record<MediaKind, string> = {
+  image: "Must be an image",
+  video: "Must be a video",
+  document: "Must be a document",
+};
+
+export const assertLibraryMedia = async (
+  fields: Record<string, string | null | undefined>,
+  kind?: MediaKind,
+) => {
   const refs = Object.entries(fields).flatMap(([field, id]) => (id ? [{ field, id }] : []));
   if (refs.length === 0) return;
   const rows = await getDb()
-    .select({ id: media.id })
+    .select({ id: media.id, kind: media.kind })
     .from(media)
     .where(
       and(
@@ -173,13 +182,13 @@ export const assertLibraryMedia = async (fields: Record<string, string | null | 
         eq(media.scope, "library"),
       ),
     );
-  const found = new Set(rows.map((row) => row.id));
-  const missing = refs.filter((ref) => !found.has(ref.id));
-  if (missing.length > 0) {
-    throw new ValidationFailure(
-      Object.fromEntries(missing.map((ref) => [ref.field, "Referenced item not found"])),
-    );
-  }
+  const kinds = new Map(rows.map((row) => [row.id, row.kind]));
+  const invalid = refs.flatMap((ref): [string, string][] => {
+    const found = kinds.get(ref.id);
+    if (!found) return [[ref.field, "Referenced item not found"]];
+    return kind && found !== kind ? [[ref.field, kindMessages[kind]]] : [];
+  });
+  if (invalid.length > 0) throw new ValidationFailure(Object.fromEntries(invalid));
 };
 
 const SVG = /\.svgz?$/i;
@@ -195,7 +204,7 @@ export const updateMediaAlt = async (id: string, alt: LocalizedText) => {
   const [row] = await getDb()
     .update(media)
     .set({ alt })
-    .where(eq(media.id, id))
+    .where(and(eq(media.id, id), eq(media.scope, "library")))
     .returning({ id: media.id });
   if (!row) throw notFound("Media not found");
   revalidateSite();
@@ -204,7 +213,7 @@ export const updateMediaAlt = async (id: string, alt: LocalizedText) => {
 
 export const deleteMedia = async (id: string) => {
   const target = orNotFound(await mediaAdmin.get(id), "Media not found");
-  const usages = await mediaAdmin.usages(id, { ticketLabels: false });
+  const usages = await mediaAdmin.usages(target, { ticketLabels: false });
   if (usages.length > 0) {
     throw conflict(`Media is used by ${usages.map((entry) => entry.entity).join(", ")}`, "IN_USE");
   }

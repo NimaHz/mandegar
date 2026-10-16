@@ -6,13 +6,18 @@ import type { ReactNode } from "react";
 import { AppProviders } from "@/components/providers/app-providers";
 import { siteConfig } from "@/config/site";
 import { rootViewport } from "@/config/viewport";
+import { adminContent } from "@/features/admin/content";
 import { fa } from "@/i18n/dictionaries/fa";
+import { fill } from "@/i18n/fill";
 import { themeBootScript } from "@/lib/theme";
 import { fontVariables } from "@/styles/fonts";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
-  title: { default: `پنل مدیریت ${siteConfig.name.fa}`, template: "%s | پنل مدیریت" },
+  title: {
+    default: fill(adminContent.shell.metaTitle, { name: siteConfig.name.fa }),
+    template: `%s | ${adminContent.shell.title}`,
+  },
   applicationName: siteConfig.name.fa,
   robots: {
     index: false,

@@ -35,9 +35,11 @@ const actionTone = (action: string) =>
     ? "danger"
     : action === "create"
       ? "success"
-      : action === "login" || action === "logout"
-        ? "chip"
-        : "primary";
+      : action === "login.throttled"
+        ? "warning"
+        : action === "login" || action === "session.revoke"
+          ? "chip"
+          : "primary";
 
 export function AuditList({ result, actors, filtered }: AuditListProps) {
   const [open, setOpen] = useState<AdminAuditLog | null>(null);

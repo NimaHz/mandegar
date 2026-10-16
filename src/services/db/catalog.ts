@@ -21,6 +21,7 @@ import { getDb } from "@/server/db/client";
 import { brands, categories, guides, products } from "@/server/db/schema";
 import { foldSearch, likePattern, toFoldedKey } from "@/server/db/search";
 import { clampPage, offsetOf, toPaginated } from "@/server/lib/pagination";
+import { PRODUCT_LOOKUP_LIMIT } from "@/server/modules/products/schema";
 import type { LocalizedSpecGroup } from "@/types/admin";
 import type {
   BrandDetail,
@@ -42,6 +43,7 @@ import type { LocalizedText } from "@/types/common";
 import type { CatalogService } from "../contracts";
 import {
   clampLimit,
+  effectiveGuideId,
   iso,
   isoOrNull,
   mediaIndex,
@@ -57,9 +59,8 @@ import {
 const PAGE_SIZE = 12;
 const COMPARE_LIMIT = 4;
 const CATEGORY_MEMBERS = 48;
-const LOOKUP_LIMIT = 12;
 
-const visibleProduct = and(
+export const visibleProduct = and(
   eq(products.status, "published"),
   eq(categories.published, true),
   eq(brands.published, true),
@@ -285,18 +286,15 @@ const findProductRow = (slug: string) =>
 type ProductRow = NonNullable<Awaited<ReturnType<typeof findProductRow>>>;
 
 const resolveGuideSlug = async (row: ProductRow) => {
-  const candidates = [
-    row.guideId,
-    row.category.defaultGuideId,
-    row.category.parent?.defaultGuideId,
-  ].filter((id): id is string => Boolean(id));
+  const chain = [row.guideId, row.category.defaultGuideId, row.category.parent?.defaultGuideId];
+  const candidates = chain.filter((id): id is string => Boolean(id));
   if (candidates.length === 0) return null;
   const rows = await getDb()
     .select({ id: guides.id, slug: guides.slug })
     .from(guides)
     .where(and(inArray(guides.id, candidates), eq(guides.published, true)));
-  const found = candidates.map((id) => rows.find((guide) => guide.id === id)).find(Boolean);
-  return found?.slug ?? null;
+  const id = effectiveGuideId(chain, new Set(rows.map((guide) => guide.id)));
+  return rows.find((guide) => guide.id === id)?.slug ?? null;
 };
 
 const toProductDetail = async (row: ProductRow, locale: Locale): Promise<ProductDetail> => {
@@ -608,7 +606,7 @@ export const catalogService: CatalogService = {
     (await insightRows(locale, categorySlug)).map((row) => toInsight(row, locale)),
   models: modelOptions,
   bySlugs: async (locale, slugs) => {
-    const unique = [...new Set(slugs.map(normalizeSlug))].slice(0, LOOKUP_LIMIT);
+    const unique = [...new Set(slugs.map(normalizeSlug))].slice(0, PRODUCT_LOOKUP_LIMIT);
     if (unique.length === 0) return [];
     const rows = await productScope(inArray(products.slug, unique));
     return hydrateList(

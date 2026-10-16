@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 
-import { type SQL, sql } from "drizzle-orm";
+import type { PgTable } from "drizzle-orm/pg-core";
 
 import { formatNumber } from "@/lib/format";
+import { getDb } from "@/server/db/client";
 import type { LocalizedSpecItem } from "@/types/admin";
 import type { LocalizedText } from "@/types/common";
 
@@ -11,22 +12,13 @@ export const t = (fa: string, en: string): LocalizedText => ({ fa, en });
 export const idsBySlug = (rows: readonly { id: string; slug: string }[]) =>
   new Map(rows.map((row) => [row.slug, row.id]));
 
+export const isEmpty = async (table: PgTable) => (await getDb().$count(table)) === 0;
+
 export const seedId = (name: string) => {
   const hex = createHash("sha256").update(`mandegar-seed:${name}`).digest("hex");
   const variant = ((Number.parseInt(hex[16] ?? "0", 16) & 0x3) | 0x8).toString(16);
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-8${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 };
-
-const toSnake = (key: string) => key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-
-export const fromExcluded = <TKey extends string>(keys: readonly TKey[]) =>
-  Object.fromEntries(keys.map((key) => [key, sql.raw(`excluded."${toSnake(key)}"`)])) as Record<
-    TKey,
-    SQL
-  >;
-
-export const updatableKeys = <TRow extends object>(row: TRow, skip: readonly string[] = []) =>
-  Object.keys(row).filter((key) => !["id", "createdAt", ...skip].includes(key));
 
 export const amount = (value: number, options?: Intl.NumberFormatOptions) =>
   t(formatNumber("fa", value, options), formatNumber("en", value, options));

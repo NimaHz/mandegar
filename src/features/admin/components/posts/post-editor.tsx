@@ -5,6 +5,7 @@ import { ExternalLink, Trash } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -32,6 +33,7 @@ import { DateTimeInput, SelectInput } from "../form/fields";
 import { editorAsideClass, editorGridClass, FormSection } from "../form/form-section";
 import { LocalizedField, LocalizedTextarea } from "../form/localized-field";
 import { MultiSelect } from "../form/multi-select";
+import { ReadOnlyScope } from "../form/read-only";
 import { SaveBar } from "../form/save-bar";
 import { SeoFields } from "../form/seo-fields";
 import { SlugField } from "../form/slug-field";
@@ -70,16 +72,22 @@ export function PostEditor({ post, authors, products, canWrite }: PostEditorProp
     resolver: zodResolver(postFormSchema, zodOptions),
     defaultValues: toForm(post, authors[0]?.id ?? ""),
   });
+  const [version, setVersion] = useState(post?.updatedAt);
 
   const onSubmit = form.handleSubmit(async (values) => {
     const snapshot = form.getValues();
     const body = { ...values, publishedAt: fromLocalInput(values.publishedAt) };
     const onError = (error: AdminApiError) => applyFieldErrors(form.setError, error);
     if (post) {
-      const saved = await run(() => apiClient.api.admin.posts({ id: post.id }).patch(body), {
-        success: copy.saved,
-        onError,
-      });
+      const saved = await run(
+        () =>
+          apiClient.api.admin.posts({ id: post.id }).patch({ ...body, expectedUpdatedAt: version }),
+        {
+          success: copy.saved,
+          onSuccess: (data) => setVersion(data.updatedAt),
+          onError,
+        },
+      );
       if (saved) form.reset(snapshot);
       return;
     }
@@ -126,7 +134,7 @@ export function PostEditor({ post, authors, products, canWrite }: PostEditorProp
             )
           }
         />
-        <fieldset disabled={!canWrite} className="contents">
+        <ReadOnlyScope readOnly={!canWrite}>
           <div className={editorGridClass}>
             <div className="flex min-w-0 flex-col gap-4">
               <FormSection step={1} title={copy.sections.basics} localized>
@@ -159,6 +167,7 @@ export function PostEditor({ post, authors, products, canWrite }: PostEditorProp
                   pending={pending}
                   onDiscard={() => form.reset()}
                   submitLabel={post ? common.saveChanges : common.create}
+                  isNew={!post}
                 />
               )}
             </div>
@@ -207,7 +216,7 @@ export function PostEditor({ post, authors, products, canWrite }: PostEditorProp
               )}
             </aside>
           </div>
-        </fieldset>
+        </ReadOnlyScope>
       </form>
     </FormProvider>
   );

@@ -18,6 +18,7 @@ interface SaveBarProps {
   submitLabel?: string;
   children?: ReactNode;
   guard?: boolean;
+  isNew?: boolean;
 }
 
 export function SaveBar({
@@ -27,6 +28,7 @@ export function SaveBar({
   submitLabel = common.saveChanges,
   children,
   guard = true,
+  isNew = false,
 }: SaveBarProps) {
   useUnsavedGuard(guard && dirty && !pending);
 
@@ -41,10 +43,13 @@ export function SaveBar({
         <span role="status" className="flex min-w-0 flex-1 items-center gap-2 text-xs font-bold">
           <span
             aria-hidden
-            className={cn("size-2 shrink-0 rounded-full", dirty ? "bg-warning" : "bg-success")}
+            className={cn(
+              "size-2 shrink-0 rounded-full",
+              dirty ? "bg-warning" : isNew ? "bg-line-strong" : "bg-success",
+            )}
           />
           <span className={cn("truncate", dirty ? "text-ink" : "text-muted")}>
-            {dirty ? common.unsaved : common.upToDate}
+            {dirty ? common.unsaved : isNew ? common.notCreated : common.upToDate}
           </span>
         </span>
         {children}

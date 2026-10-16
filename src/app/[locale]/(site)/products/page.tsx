@@ -23,7 +23,7 @@ import { formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
 import { productListGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
-import type { OgTarget } from "@/lib/seo/og/targets";
+import { ogEntityTarget } from "@/lib/seo/og/cards";
 import { api } from "@/services";
 import type { CategoryDetail } from "@/types/catalog";
 
@@ -33,7 +33,6 @@ interface ListingView {
   description: string;
   name: string;
   summary: string;
-  og?: OgTarget;
   noindex: boolean;
 }
 
@@ -49,7 +48,6 @@ const listingView = (
       description: category.seo.description ?? category.summary,
       name: category.name,
       summary: category.summary,
-      og: { kind: "category", slug: category.slug, updatedAt: category.updatedAt },
       noindex: true,
     };
   }
@@ -71,7 +69,7 @@ const loadListing = async (locale: Locale, filters: CatalogFilters) => {
   ]);
   if (filters.page > result.page) notFound();
   const exact = category?.slug === filters.category ? category : null;
-  return { result, view: listingView(locale, filters, exact) };
+  return { result, category: exact, view: listingView(locale, filters, exact) };
 };
 
 export async function generateMetadata({
@@ -79,7 +77,7 @@ export async function generateMetadata({
 }: PageProps<"/[locale]/products">): Promise<Metadata> {
   const locale = await getLocale();
   const filters = await loadCatalogSearchParams(searchParams);
-  const [{ view }, { ui }] = await Promise.all([
+  const [{ category, view }, { ui }] = await Promise.all([
     loadListing(locale, filters),
     getDictionary(locale),
   ]);
@@ -90,7 +88,7 @@ export async function generateMetadata({
     path: view.path,
     title: [page, view.title].filter(Boolean).join(" · "),
     description: view.description,
-    og: view.og,
+    og: category ? await ogEntityTarget(locale, "category", category.slug) : undefined,
     noindex: view.noindex,
   });
 }

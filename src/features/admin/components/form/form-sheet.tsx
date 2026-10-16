@@ -12,6 +12,7 @@ import { useModal } from "@/hooks/use-modal";
 import { cn } from "@/lib/cn";
 
 import { adminContent } from "../../content";
+import { ReadOnlyScope } from "./read-only";
 
 const { common } = adminContent;
 
@@ -102,13 +103,12 @@ export function FormSheet<TValues extends FieldValues, TOutput extends FieldValu
                       <X className="size-4.5" aria-hidden />
                     </button>
                   </div>
-                  <fieldset
-                    disabled={readOnly}
+                  <div
                     className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-5 py-5"
                     data-lenis-prevent
                   >
-                    {children}
-                  </fieldset>
+                    <ReadOnlyScope readOnly={Boolean(readOnly)}>{children}</ReadOnlyScope>
+                  </div>
                   <div className="flex items-center gap-2 border-t border-line bg-surface px-5 pb-safe pt-3">
                     {footer}
                     <span className="flex-1" />

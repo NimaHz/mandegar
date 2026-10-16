@@ -17,11 +17,22 @@ export interface AdminContext {
   permissions: Permission[];
 }
 
-export const getAdmin = cache(async (): Promise<AdminIdentity | null> => {
+const currentSession = cache(async () => {
   const store = await cookies();
-  const result = await validateSession(store.get(sessionCookieName())?.value);
+  return validateSession(store.get(sessionCookieName())?.value);
+});
+
+export const getAdmin = cache(async (): Promise<AdminIdentity | null> => {
+  const result = await currentSession();
   return result ? toIdentity(result.user) : null;
 });
+
+export const getAdminSessionId = async () => (await currentSession())?.session.id ?? null;
+
+export const hasAdminPermission = async (permission: Permission) => {
+  const user = await getAdmin();
+  return Boolean(user && !user.mustChangePassword && user.permissions.includes(permission));
+};
 
 const loginPath = async () => {
   const path = (await headers()).get(adminPathHeader);

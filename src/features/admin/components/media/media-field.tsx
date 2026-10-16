@@ -6,11 +6,13 @@ import { useFormContext, useWatch } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
+import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import type { AdminMediaRef, MediaKind } from "@/types/admin";
 
 import { adminContent } from "../../content";
-import { acceptFor } from "../../lib/upload";
+import { acceptFor, acceptsFile } from "../../lib/upload";
+import { useReadOnly } from "../form/read-only";
 import { useFieldError } from "../form/use-field-error";
 import { MediaPicker } from "./media-picker";
 import { MediaThumb } from "./media-thumb";
@@ -44,14 +46,16 @@ export function MediaField({
   const { setValue } = useFormContext();
   const value: unknown = useWatch({ name });
   const error = useFieldError(name);
-  const [preview, setPreview] = useState<AdminMediaRef | null>(initial);
+  const locked = useReadOnly();
+  const [refs, setRefs] = useState<Record<string, AdminMediaRef>>({});
   const [pickerOpen, setPickerOpen] = useState(false);
   const { upload, progress, uploading } = useMediaUpload();
-  const current = typeof value === "string" && preview?.id === value ? preview : null;
+  const current =
+    typeof value === "string" ? (refs[value] ?? (initial?.id === value ? initial : null)) : null;
   const [dragging, setDragging] = useState(false);
 
   const choose = (media: AdminMediaRef | null) => {
-    setPreview(media);
+    if (media) setRefs((known) => ({ ...known, [media.id]: media }));
     setValue(name, media?.id ?? null, { shouldDirty: true, shouldValidate: Boolean(error) });
     onMedia?.(media);
   };
@@ -59,8 +63,15 @@ export function MediaField({
   const onFiles = async (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
+    const rejectKind = () => toast({ title: copy.wrongKind[kind], tone: "danger" });
+    if (!acceptsFile(kind, file)) {
+      rejectKind();
+      return;
+    }
     const media = await upload(file);
-    if (media) choose(media);
+    if (!media) return;
+    if (media.kind === kind) choose(media);
+    else rejectKind();
   };
 
   return (
@@ -70,6 +81,7 @@ export function MediaField({
       </span>
       <div
         onDragOver={(event) => {
+          if (locked) return;
           event.preventDefault();
           setDragging(true);
         }}
@@ -115,7 +127,7 @@ export function MediaField({
             variant="ghost"
             size="sm"
             onClick={() => inputRef.current?.click()}
-            disabled={uploading}
+            disabled={uploading || locked}
           >
             <Upload className="size-4" aria-hidden />
             {current ? copy.replace : copy.upload}
@@ -124,7 +136,7 @@ export function MediaField({
             variant="ghost"
             size="sm"
             onClick={() => setPickerOpen(true)}
-            disabled={uploading}
+            disabled={uploading || locked}
           >
             <Library className="size-4" aria-hidden />
             {copy.library}
@@ -134,6 +146,7 @@ export function MediaField({
               variant="danger"
               size="sm"
               onClick={() => choose(null)}
+              disabled={locked}
               className="ms-auto"
               aria-label={copy.remove}
             >

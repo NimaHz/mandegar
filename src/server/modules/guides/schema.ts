@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  expectedUpdatedAtSchema,
   listQuerySchema,
   localizedText,
   optionalFilter,
@@ -46,7 +47,9 @@ export const guideInputSchema = z.object({
   published: z.boolean(),
 });
 
-export const guidePatchSchema = guideInputSchema.partial();
+export const guidePatchSchema = guideInputSchema
+  .partial()
+  .extend({ expectedUpdatedAt: expectedUpdatedAtSchema });
 
 export const guidesQuerySchema = listQuerySchema.extend({
   published: optionalFilter(z.enum(["true", "false"]).transform((value) => value === "true")),

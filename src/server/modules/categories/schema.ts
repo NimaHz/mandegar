@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  expectedUpdatedAtSchema,
   iconSchema,
   listQuerySchema,
   localizedSeoSchema,
@@ -11,7 +12,7 @@ import {
 } from "@/server/lib/validation";
 import { adminSorts } from "@/types/admin";
 
-import { specGroupTemplateSchema } from "../products/schema";
+import { specGroupTemplateSchema, uniqueSpecKeys } from "../products/schema";
 
 export const categoryInputSchema = z.object({
   slug: slugSchema,
@@ -22,13 +23,15 @@ export const categoryInputSchema = z.object({
   icon: iconSchema,
   imageMediaId: z.uuid().nullable(),
   defaultGuideId: z.uuid().nullable(),
-  specTemplate: z.array(specGroupTemplateSchema).max(20),
+  specTemplate: z.array(specGroupTemplateSchema).max(20).superRefine(uniqueSpecKeys()),
   seo: localizedSeoSchema,
   sortOrder: z.number().int().min(0).max(10_000),
   published: z.boolean(),
 });
 
-export const categoryPatchSchema = categoryInputSchema.partial();
+export const categoryPatchSchema = categoryInputSchema
+  .partial()
+  .extend({ expectedUpdatedAt: expectedUpdatedAtSchema });
 
 export const categoriesQuerySchema = listQuerySchema.extend({
   sort: sortSchema(adminSorts.categories),

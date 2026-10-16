@@ -2,6 +2,7 @@ import { ArrowLeft, ChevronDown } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 
+import { Markdown } from "@/components/shared/markdown";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { cn } from "@/lib/cn";
 import type { Faq } from "@/types/content";
@@ -32,7 +33,7 @@ export function FaqSection({ id, eyebrow, title, faqs, more, className }: FaqSec
                   aria-hidden
                 />
               </summary>
-              <p className="px-5 pb-5 text-sm leading-7 text-body">{faq.answer}</p>
+              <Markdown source={faq.answer} className="px-5 pb-5 text-sm leading-7" />
             </details>
           ))}
         </div>

@@ -3,16 +3,20 @@ import { type NextRequest, NextResponse } from "next/server";
 import { defaultLocale, isLocale, type Locale, localeHeader, locales } from "@/i18n/config";
 import { adminPathHeader } from "@/lib/routes";
 
-const SLUG_PATH = new RegExp(`^((?:/(?:${locales.join("|")}))?/(?:products|categories)/)([^/]+)$`);
+const SLUG_PATH = new RegExp(
+  `^((?:/(?:${locales.join("|")}))?/(?:products|categories|brands|guides|blog|authors)/)([^/]+)$`,
+);
 const UPPERCASE_OR_ESCAPE = /%[0-9A-Fa-f]{2}|[A-Z]+/g;
+const EDGE_SPACES =
+  /^(?:%(?:20|09|0[A-Da-d])|%[Cc]2%[Aa]0)+|(?:%(?:20|09|0[A-Da-d])|%[Cc]2%[Aa]0)+$/g;
 
-const lowercaseSlug = (slug: string) =>
-  slug.replace(UPPERCASE_OR_ESCAPE, (match) =>
-    match.startsWith("%") ? match : match.toLowerCase(),
-  );
+const canonicalSlug = (slug: string) =>
+  slug
+    .replace(UPPERCASE_OR_ESCAPE, (match) => (match.startsWith("%") ? match : match.toLowerCase()))
+    .replace(EDGE_SPACES, "");
 
 const canonicalPath = (pathname: string) =>
-  pathname.replace(SLUG_PATH, (_, prefix: string, slug: string) => prefix + lowercaseSlug(slug));
+  pathname.replace(SLUG_PATH, (_, prefix: string, slug: string) => prefix + canonicalSlug(slug));
 
 const ADMIN_PATH = /^\/admin(?:\/|$)/;
 

@@ -1,6 +1,7 @@
 import { asc, desc, lte } from "drizzle-orm";
 
 import type { Locale } from "@/i18n/config";
+import { todayIsoDate } from "@/lib/dates";
 import { formatWarrantyCode, parseWarrantyCode } from "@/lib/warranty-code";
 import { getDb } from "@/server/db/client";
 import { warrantyPolicies } from "@/server/db/schema";
@@ -39,8 +40,10 @@ const findCode = (code: string) =>
 
 type CodeRow = NonNullable<Awaited<ReturnType<typeof findCode>>>;
 
+const isResolvable = ({ product }: CodeRow) => product.status !== "draft";
+
 const isListed = ({ product }: CodeRow) =>
-  product.status !== "draft" && product.category.published && product.brand.published;
+  product.status === "published" && product.category.published && product.brand.published;
 
 const toMatch = (row: CodeRow, locale: Locale): WarrantyMatch => {
   const { product, policy } = row;
@@ -59,8 +62,13 @@ const toMatch = (row: CodeRow, locale: Locale): WarrantyMatch => {
       slug: product.slug,
       name,
       modelCode: product.modelCode,
+      listed: isListed(row),
       image: image ? toImage(image.media, locale, pick(image.alt, locale) || name) : null,
-      category: { slug: product.category.slug, name: pick(product.category.name, locale) },
+      category: {
+        slug: product.category.slug,
+        name: pick(product.category.name, locale),
+        listed: product.category.published,
+      },
       brand: {
         slug: product.brand.slug,
         name: pick(product.brand.name, locale),
@@ -78,16 +86,15 @@ export const warrantyService: WarrantyService = {
     if (!attempt.allowed) return RATE_LIMITED;
     if (!parsed.valid) return { status: "invalid", reason: parsed.reason };
     const row = await findCode(parsed.code);
-    if (!row || !isListed(row)) return NOT_FOUND;
+    if (!row || !isResolvable(row)) return NOT_FOUND;
     await attempt.release();
     return { status: "found", match: toMatch(row, locale) };
   },
   policies: async (locale) => {
-    const today = new Date().toISOString().slice(0, 10);
     const rows = await getDb()
       .select()
       .from(warrantyPolicies)
-      .where(lte(warrantyPolicies.effectiveFrom, today))
+      .where(lte(warrantyPolicies.effectiveFrom, todayIsoDate()))
       .orderBy(desc(warrantyPolicies.months), asc(warrantyPolicies.name));
     return rows.map((row) => ({
       name: row.name,

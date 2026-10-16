@@ -53,6 +53,7 @@ export const warrantyCodes = pgTable(
       .on(table.productId, table.productionYear)
       .where(sql`kind = 'batch'`),
     index("warranty_codes_product_idx").on(table.productId),
+    index("warranty_codes_policy_idx").on(table.policyId),
     index("warranty_codes_status_idx").on(table.status),
   ],
 );

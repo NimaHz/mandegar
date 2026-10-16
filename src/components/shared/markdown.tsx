@@ -12,6 +12,8 @@ const escapeHtml = (value: string) =>
 
 const SAFE_URL = /^(https?:|mailto:|tel:|\/|#)/i;
 
+const MODEL_CODE = /\b([A-Z]+-\d[\dA-Z]*)\b/g;
+
 export const headingId = (text: string) =>
   text
     .trim()
@@ -25,6 +27,11 @@ const parser = new Marked({
   breaks: false,
   renderer: {
     html: ({ text }: Tokens.HTML | Tokens.Tag) => escapeHtml(text),
+    text(token: Tokens.Text | Tokens.Escape) {
+      if ("tokens" in token && token.tokens) return this.parser.parseInline(token.tokens);
+      const text = "escaped" in token && token.escaped ? token.text : escapeHtml(token.text);
+      return text.replace(MODEL_CODE, '<bdi dir="ltr" class="whitespace-nowrap">$1</bdi>');
+    },
     heading({ tokens, depth, text }: Tokens.Heading) {
       const level = Math.min(Math.max(depth, 2), 4);
       return `<h${level} id="${escapeHtml(headingId(text))}">${this.parser.parseInline(tokens)}</h${level}>`;

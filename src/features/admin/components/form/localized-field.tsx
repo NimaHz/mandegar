@@ -15,6 +15,7 @@ import {
   useContentLang,
 } from "./lang-scope";
 import { MarkdownPreview } from "./markdown-preview";
+import { useReadOnly } from "./read-only";
 import { useFieldError } from "./use-field-error";
 
 interface LocalizedFieldProps {
@@ -52,6 +53,7 @@ export function LocalizedField({
   const id = useId();
   const { register } = useFormContext();
   const { lang, setLang } = useContentLang();
+  const locked = useReadOnly();
   const [fa, en] = useWatch({ name: [`${name}.fa`, `${name}.en`] });
   const errors = { fa: useFieldError(`${name}.fa`), en: useFieldError(`${name}.en`) };
   const values: Record<ContentLang, unknown> = { fa, en };
@@ -86,6 +88,7 @@ export function LocalizedField({
           "aria-invalid": errors[option] ? true : undefined,
           "aria-describedby": errors[option] || hint || maxLength ? messageId : undefined,
           hidden: option !== lang,
+          readOnly: locked,
           ...register(`${name}.${option}`),
         };
         return multiline || markdown ? (

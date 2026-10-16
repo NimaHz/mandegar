@@ -53,9 +53,10 @@ sudo swapon /swapfile && echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fs
 
 ## 2. Install Node.js
 
-The app needs Node.js 22 or newer; `.nvmrc` pins 24, the current LTS. Ubuntu 24.04's own `nodejs`
-package is too old, so install the official Linux build. `NODE_DIST` is the download base: keep
-`https://nodejs.org/dist` when it is reachable, or point it at any mirror of that directory.
+The app needs Node.js 22.13 or newer (the pinned pnpm 11 refuses older 22.x releases); `.nvmrc`
+pins 24, the current LTS. Ubuntu 24.04's own `nodejs` package is too old, so install the official
+Linux build. `NODE_DIST` is the download base: keep `https://nodejs.org/dist` when it is reachable,
+or point it at any mirror of that directory.
 
 ```bash
 NODE_VERSION=v24.22.0
@@ -190,10 +191,13 @@ the `sed | tee` line after a `git pull` that changes `deploy/nginx.conf`.
 
 It replaces Ubuntu's default site, so `/etc/nginx/sites-enabled` is no longer read. nginx runs as
 `www-data` and serves `/uploads/*` straight from `/var/lib/mandegar/uploads`, where the app writes
-public media world-readable and ticket attachments under `private/` readable by `mandegar` only. For Brotli, install `libnginx-mod-http-brotli-filter
-libnginx-mod-http-brotli-static` (the config already loads enabled modules) and add
-`brotli on; brotli_static on; brotli_comp_level 5;` to the `http` block with the same types as
-`gzip_types`.
+public media world-readable and ticket attachments under `private/` readable by `mandegar` only. A
+public upload that is not on disk falls through to the app (`location @uploads`), which is how
+media is served with `STORAGE_DRIVER=s3`: the app streams it from the bucket.
+
+For Brotli, install `libnginx-mod-http-brotli-filter libnginx-mod-http-brotli-static` (the config
+already loads enabled modules) and add `brotli on; brotli_static on; brotli_comp_level 5;` to the
+`http` block with the same types as `gzip_types`.
 
 ## 8. First release
 
@@ -220,8 +224,11 @@ see the production secrets.
 
 The seed is idempotent. Besides the owner account it loads the placeholder catalog and content;
 product photos are downloaded from the internet when reachable, and replaced by generated
-placeholders otherwise. Replace the placeholder content in the admin before launch. To run it again
-later, lend yourself the uploads directory for the duration:
+placeholders otherwise. Replace the placeholder content in the admin before launch. Content is only
+seeded into tables that are still empty, so a later run never overwrites, republishes or restores
+anything edited, archived or deleted in the admin, unless every row of a table was deleted: that
+table gets its placeholders again. To reload all placeholders, seed an empty database. To run it
+again later, lend yourself the uploads directory for the duration:
 `sudo chown -R "$USER" /var/lib/mandegar/uploads && corepack pnpm db:seed; sudo chown -R mandegar:mandegar /var/lib/mandegar/uploads`.
 
 The unit binds to `localhost`, not `127.0.0.1`. Next.js reports loopback hosts as `localhost`
@@ -326,8 +333,10 @@ sudo tail -f /var/log/nginx/access.log /var/log/nginx/error.log
 
 - nginx stamps every request with `X-Request-ID` (`rid=` in the access log), passes it to the app
   and returns it to the client, so a user-reported ID can be traced.
-- `GET /api/health` returns 200 with `{ status: "ok", database: true }`, or 503 when the database is
-  down. The release script waits for it; point an uptime monitor at it as well.
+- `GET /api/health` returns 200 with `{ status: "ok", configuration: true, database: true }`, or an
+  error when the database is down or the environment file fails validation (see the environment
+  reference). The release script waits for it, so a release with an invalid setting is rolled
+  back; point an uptime monitor at it as well.
 - systemd restarts the app if it exits. Ubuntu rotates the nginx logs with logrotate; cap the
   journal with `SystemMaxUse=500M` in `/etc/systemd/journald.conf` if the disk is small.
 
@@ -375,7 +384,8 @@ Application settings, in `/etc/mandegar/mandegar.env`:
 | `DATABASE_URL`                       | yes      | `postgres://…@127.0.0.1:5432/mandegar`  | PostgreSQL connection                                     |
 | `NEXT_PUBLIC_SITE_URL`               | yes      | `https://mandegar.ir`                   | Public origin; compiled into the build                    |
 | `APP_ORIGIN`                         | yes      | `https://mandegar.ir`                   | Only origin allowed for non-GET API requests              |
-| `SESSION_SECRET`                     | yes      | 64 hex characters                       | Signs form tokens, derives ALTCHA keys, hashes client IPs |
+| `SESSION_SECRET`                     | yes      | 64 hex characters                       | Signs form tokens, derives ALTCHA & TOTP keys, hashes IPs |
+| `SESSION_SECRET_PREVIOUS`            | no       |                                         | Old `SESSION_SECRET` while rotating (docs/security.md)    |
 | `UPLOAD_DIR`                         | yes      | `/var/lib/mandegar/uploads`             | Local media directory (`uploads` in development)          |
 | `STORAGE_DRIVER`                     | no       | `local`                                 | `local` or `s3`                                           |
 | `S3_ENDPOINT`                        | for s3   | `https://s3.ir-thr-at1.arvanstorage.ir` | S3-compatible endpoint                                    |
@@ -397,12 +407,21 @@ Application settings, in `/etc/mandegar/mandegar.env`:
 | `NPM_REGISTRY`                       | no       | `https://registry.npmjs.org/`           | npm mirror for Corepack and pnpm in the release script    |
 | `COREPACK_INTEGRITY_KEYS`            | no       |                                         | `0` when a mirror breaks Corepack's npm signature check   |
 
+Both Kavenegar templates receive the tracking code as `%token`. The ticket-updated template, sent
+when staff reply to the customer or change the status, also receives the current status as
+`%token2`: the Persian label the tracking page shows, with spaces replaced by hyphens.
+
 The systemd unit sets `NODE_ENV=production`, `HOSTNAME=localhost`, `PORT=3000` and `NODE_OPTIONS`
 itself; do not set them in the file.
 
 Blank optional values, like the placeholders in `.env.example`, count as unset and fall back to the
-defaults above. A value that is present but invalid stops the app at startup with a message naming
-the variable.
+defaults above. A validated setting (`DATABASE_URL` through `KAVENEGAR_TEMPLATE_TICKET_UPDATED` in
+the table) that is present but invalid, or a missing required one such as the blank `SESSION_SECRET`
+in `.env.example`, makes `/api/health` fail: 503 with `configuration: false`, or 500 when the broken
+setting is one of the base settings every request reads (`DATABASE_URL` through `UPLOAD_DIR`). The
+journal (`journalctl -u mandegar`) shows a message naming the variable, and the release script rolls
+the release back. The app also refuses the placeholder `SESSION_SECRET` that older copies of
+`.env.example` shipped.
 
 Release and backup scripts, set in the shell that runs them:
 
