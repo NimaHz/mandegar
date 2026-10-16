@@ -53,11 +53,14 @@ export function ServiceWorkerRegistrar() {
     };
 
     serviceWorker.addEventListener("controllerchange", onControllerChange);
-    void serviceWorker.register("/sw.js", { scope: "/" }).then((registered) => {
-      registration = registered;
-      offer(registered.waiting);
-      registered.addEventListener("updatefound", onUpdateFound);
-    });
+    serviceWorker
+      .register("/sw.js", { scope: "/" })
+      .then((registered) => {
+        registration = registered;
+        offer(registered.waiting);
+        registered.addEventListener("updatefound", onUpdateFound);
+      })
+      .catch(() => {});
 
     return () => {
       serviceWorker.removeEventListener("controllerchange", onControllerChange);
