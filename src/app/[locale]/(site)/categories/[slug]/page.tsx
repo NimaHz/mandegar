@@ -23,13 +23,11 @@ import { getLocale } from "@/i18n/get-locale";
 import { localizePath } from "@/i18n/paths";
 import { formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
-import { categoryChoiceFaqs } from "@/lib/seo/answers";
+import { categoryFaqs } from "@/lib/seo/answers";
 import { categoryGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { ogEntityTarget } from "@/lib/seo/og/cards";
 import { api } from "@/services";
-
-const FAQ_LIMIT = 6;
 
 export async function generateStaticParams() {
   const slugs = await api.catalog.categorySlugs();
@@ -89,18 +87,7 @@ export default async function CategoryPage({
     api.catalog.categoryInsights(locale, category.slug),
   ]);
   if (filters.page > result.page) notFound();
-  const productFaqs = [
-    ...new Map(
-      insights
-        .slice(0, FAQ_LIMIT)
-        .flatMap((insight) => insight.faqs)
-        .map((faq) => [faq.question, faq]),
-    ).values(),
-  ].slice(0, FAQ_LIMIT);
-  const faqs = [
-    ...categoryChoiceFaqs(locale, category.name, insights),
-    ...(productFaqs.length > 0 ? productFaqs : generalFaqs),
-  ];
+  const faqs = categoryFaqs(locale, category.name, insights, generalFaqs);
   const guide = guides.find((entry) =>
     entry.categories.some((item) => item.slug === category.slug),
   );

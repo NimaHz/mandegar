@@ -8,6 +8,7 @@ import type { ProductDetail } from "@/types/catalog";
 
 import { feedPath } from "./feed";
 import { llmsContent as copy, type LlmsPageKey } from "./llms-content";
+import { markdownPath } from "./markdown-paths";
 import type { LocaleSnapshot, SiteSnapshot } from "./snapshot";
 import { plainText } from "./text";
 import { absoluteUrl, localeUrl } from "./urls";
@@ -19,6 +20,14 @@ const link = (label: string, url: string) => `[${label.replaceAll(/[[\]]/g, "")}
 const pair = (path: string, labels: Record<Locale, string>) =>
   LANGUAGE_ORDER.map((locale) => link(labels[locale], localeUrl(locale, path))).join(" · ");
 
+const markdownPair = (path: string) => {
+  const links = LANGUAGE_ORDER.flatMap((locale) => {
+    const markdown = markdownPath(locale, path);
+    return markdown ? [link(locale, absoluteUrl(markdown))] : [];
+  });
+  return links.length > 0 ? ` (${copy.en.markdown.link}: ${links.join(" · ")})` : "";
+};
+
 const count = (template: string, value: number) => fill(template, { count: value });
 
 const productNote = (product: ProductDetail) =>
@@ -29,16 +38,16 @@ export const llmsText = (snapshot: SiteSnapshot) => {
   const findFa = <TItem extends { slug: string }>(items: TItem[], slug: string) =>
     items.find((item) => item.slug === slug);
   const pageLine = (key: LlmsPageKey, path: string, value = 0) =>
-    `- ${pair(path, { en: copy.en.pages[key].label, fa: copy.fa.pages[key].label })}: ${count(copy.en.pages[key].note, value)}`;
+    `- ${pair(path, { en: copy.en.pages[key].label, fa: copy.fa.pages[key].label })}: ${count(copy.en.pages[key].note, value)}${markdownPair(path)}`;
 
   const productLines = en.categories.flatMap((category) => {
     const faCategory = findFa(fa.categories, category.slug);
     const models = en.products.filter((product) => product.category.slug === category.slug);
     return [
-      `- ${pair(routes.category(category.slug), { en: category.name, fa: faCategory?.name ?? category.name })}: ${pluralize("en", models.length, copy.en.models)}. ${category.summary}`,
+      `- ${pair(routes.category(category.slug), { en: category.name, fa: faCategory?.name ?? category.name })}: ${pluralize("en", models.length, copy.en.models)}. ${category.summary}${markdownPair(routes.category(category.slug))}`,
       ...models.map((product) => {
         const faProduct = findFa(fa.products, product.slug);
-        return `- ${pair(routes.product(product.slug), { en: product.name, fa: faProduct?.name ?? product.name })}: ${productNote(product)}`;
+        return `- ${pair(routes.product(product.slug), { en: product.name, fa: faProduct?.name ?? product.name })}: ${productNote(product)}${markdownPair(routes.product(product.slug))}`;
       }),
     ];
   });
@@ -52,6 +61,9 @@ export const llmsText = (snapshot: SiteSnapshot) => {
     "",
     fill(copy.en.languages, { fa: localeUrl("fa", routes.home), en: localeUrl("en", routes.home) }),
     fill(copy.en.fullFacts, { url: absoluteUrl("/llms-full.txt") }),
+    fill(copy.en.markdown.copies, {
+      example: absoluteUrl(markdownPath("en", routes.faq) ?? routes.faq),
+    }),
     ...(fa.settings.features.blog
       ? [fill(copy.en.feeds, { fa: absoluteUrl(feedPath("fa")), en: absoluteUrl(feedPath("en")) })]
       : []),
@@ -75,7 +87,7 @@ export const llmsText = (snapshot: SiteSnapshot) => {
     `- ${pair(routes.guides, { en: copy.en.allGuides, fa: copy.fa.allGuides })}`,
     ...en.guides.map((guide) => {
       const faGuide = findFa(fa.guides, guide.slug);
-      return `- ${pair(routes.guide(guide.slug), { en: guide.title, fa: faGuide?.title ?? guide.title })}: ${guide.summary}`;
+      return `- ${pair(routes.guide(guide.slug), { en: guide.title, fa: faGuide?.title ?? guide.title })}: ${guide.summary}${markdownPair(routes.guide(guide.slug))}`;
     }),
     "",
     `## ${copy.en.sections.company} · ${copy.fa.sections.company}`,
@@ -89,7 +101,7 @@ export const llmsText = (snapshot: SiteSnapshot) => {
     "",
     ...en.posts.map((post) => {
       const faPost = findFa(fa.posts, post.slug);
-      return `- ${pair(routes.post(post.slug), { en: post.title, fa: faPost?.title ?? post.title })}: ${post.excerpt}`;
+      return `- ${pair(routes.post(post.slug), { en: post.title, fa: faPost?.title ?? post.title })}: ${post.excerpt}${markdownPair(routes.post(post.slug))}`;
     }),
     "",
   ].join("\n");

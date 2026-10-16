@@ -5,6 +5,7 @@ import { type Locale, localeMeta, locales } from "@/i18n/config";
 import { languageAlternates, localizePath } from "@/i18n/paths";
 
 import { feedPath } from "./feed";
+import { markdownPath } from "./markdown-paths";
 import { OG_HEIGHT, OG_WIDTH, ogImagePath, ogPageKey, type OgTarget } from "./og/targets";
 import { summarize, truncate } from "./text";
 
@@ -58,6 +59,7 @@ export const pageMetadata = ({
   const heading = title.trim();
   const summary = summarize(description.trim(), DESCRIPTION_MAX);
   const alt = heading || siteConfig.name[locale];
+  const markdown = noindex ? null : markdownPath(locale, path);
   const text = { ...(heading && { title: heading }), ...(summary && { description: summary }) };
   const card = {
     url: ogImagePath(locale, og ?? { kind: "page", key: ogPageKey(path) }),
@@ -76,7 +78,10 @@ export const pageMetadata = ({
     alternates: {
       canonical: url,
       languages: languageAlternates(path),
-      types: { "application/rss+xml": feedPath(locale) },
+      types: {
+        "application/rss+xml": feedPath(locale),
+        ...(markdown && { "text/markdown": markdown }),
+      },
     },
     openGraph: {
       type,

@@ -94,3 +94,25 @@ export const categoryChoiceFaqs = (
     },
   ];
 };
+
+const CATEGORY_FAQ_LIMIT = 6;
+
+export const categoryFaqs = (
+  locale: Locale,
+  categoryName: string,
+  products: ProductInsight[],
+  fallback: QuestionEntry[],
+): QuestionEntry[] => {
+  const productFaqs = [
+    ...new Map(
+      products
+        .slice(0, CATEGORY_FAQ_LIMIT)
+        .flatMap((product) => product.faqs)
+        .map((faq) => [faq.question, faq]),
+    ).values(),
+  ].slice(0, CATEGORY_FAQ_LIMIT);
+  return [
+    ...categoryChoiceFaqs(locale, categoryName, products),
+    ...(productFaqs.length > 0 ? productFaqs : fallback),
+  ];
+};

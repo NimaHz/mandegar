@@ -132,6 +132,8 @@ const discoverPaths = async () => {
     ...firstPair(categories),
     ...firstPair(guides),
     ...firstPair(posts),
+    "/faq",
+    "/en/faq",
     "/service-centers",
     "/en/service-centers",
   ];
@@ -190,6 +192,31 @@ const checkMetadata = async (html, report) => {
   const { status, type } = await fetchImage(`${base}${image.pathname}${image.search}`);
   if (status !== 200 || !type.startsWith("image/png"))
     report.error(`metadata: og:image ${image.pathname}${image.search} returned ${status} ${type}`);
+};
+
+const MARKDOWN_PAGE = /^(?:\/en)?\/(?:(?:products|categories|guides|blog)\/[^/]+|faq)$/;
+
+const checkMarkdown = async (html, pagePath, report) => {
+  const tag = html.match(/<link[^>]*type="text\/markdown"[^>]*>/i)?.[0];
+  if (!tag) {
+    if (MARKDOWN_PAGE.test(pagePath)) report.error("markdown: missing text/markdown alternate");
+    return;
+  }
+  const href = decode(tag.match(/href="([^"]*)"/i)?.[1] ?? "");
+  if (!URL.canParse(href)) {
+    report.error(`markdown: alternate ${href} is not an absolute URL`);
+    return;
+  }
+  const { pathname } = new URL(href);
+  const response = await fetch(`${base}${pathname}`);
+  const body = await response.text();
+  const type = response.headers.get("content-type") ?? "";
+  if (response.status !== 200 || !type.startsWith("text/markdown"))
+    report.error(`markdown: ${pathname} returned ${response.status} ${type}`);
+  if (!(response.headers.get("x-robots-tag") ?? "").includes("noindex"))
+    report.error(`markdown: ${pathname} is missing X-Robots-Tag: noindex`);
+  if (!body.startsWith("---\n") || !body.includes("\n# "))
+    report.error(`markdown: ${pathname} has no front matter or title`);
 };
 
 const isExternalStub = (node, path, pagePath) => {
@@ -297,6 +324,7 @@ const validate = async (path) => {
     }
   }
   await checkMetadata(body, report);
+  await checkMarkdown(body, path, report);
   return { path, nodes, errors, warnings };
 };
 
@@ -326,6 +354,7 @@ const endpoints = await Promise.all([
   checkEndpoint("/robots.txt", "text/plain"),
   checkEndpoint("/llms.txt", "text/plain"),
   checkEndpoint("/llms-full.txt", "text/plain"),
+  checkEndpoint("/en/faq.md", "text/markdown"),
 ]);
 for (const endpoint of endpoints) {
   if (!endpoint.ok) failed += 1;

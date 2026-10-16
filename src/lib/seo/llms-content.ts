@@ -1,5 +1,6 @@
 import type { Locale } from "@/i18n/config";
 import type { PluralForms } from "@/i18n/plural";
+import type { FaqGroup } from "@/types/content";
 
 export type LlmsPageKey =
   | "warranty"
@@ -50,6 +51,38 @@ interface LlmsContent {
     exclusions: string;
     startRule: string;
     centers: string;
+  };
+  markdown: {
+    copies: string;
+    link: string;
+    source: string;
+    overview: string;
+    features: string;
+    installation: string;
+    downloads: string;
+    steps: string;
+    step: string;
+    tools: string;
+    safety: string;
+    video: string;
+    chapters: string;
+    duration: string;
+    guideModels: string;
+    categoryModels: string;
+    subcategories: string;
+    related: string;
+    postProducts: string;
+    author: string;
+    published: string;
+    updated: string;
+    releaseYear: string;
+    energyClass: string;
+    warrantyCheck: string;
+    allFaqs: string;
+    months: string;
+    specLabel: string;
+    specValue: string;
+    faqGroups: Record<FaqGroup, string>;
   };
 }
 
@@ -126,6 +159,45 @@ export const llmsContent: Record<Locale, LlmsContent> = {
       startRule: "Warranty starts",
       centers: "Dealers and service centres",
     },
+    markdown: {
+      copies:
+        "Markdown copies: every product, category, guide, post and FAQ page is also served as Markdown at its URL plus .md (for example {example}), or at the page URL with Accept: text/markdown. Cite the page URL, not the .md one.",
+      link: "Markdown",
+      source: "Markdown copy of {url} for AI agents. Cite the page URL.",
+      overview: "Overview",
+      features: "Features",
+      installation: "Installation",
+      downloads: "Downloads",
+      steps: "Step by step",
+      step: "Step {count}",
+      tools: "Tools you'll need",
+      safety: "Safety first",
+      video: "Video",
+      chapters: "Chapters",
+      duration: "{count} min",
+      guideModels: "Models that use this guide",
+      categoryModels: "{name} models",
+      subcategories: "Subcategories",
+      related: "Related models",
+      postProducts: "Products in this article",
+      author: "Author",
+      published: "Published",
+      updated: "Last updated",
+      releaseYear: "Released",
+      energyClass: "Energy class",
+      warrantyCheck: "Check a warranty code",
+      allFaqs: "All FAQs",
+      months: "{count} months",
+      specLabel: "Specification",
+      specValue: "Value",
+      faqGroups: {
+        general: "General",
+        warranty: "Warranty",
+        installation: "Installation",
+        products: "Products",
+        support: "After-sales service",
+      },
+    },
   },
   fa: {
     name: "ماندگار",
@@ -198,6 +270,45 @@ export const llmsContent: Record<Locale, LlmsContent> = {
       exclusions: "خارج از پوشش",
       startRule: "شروع گارانتی",
       centers: "نمایندگی‌ها و مراکز خدمات",
+    },
+    markdown: {
+      copies:
+        "نسخه مارک‌داون: هر صفحه محصول، دسته، راهنما، مطلب و پرسش‌های متداول با افزودن .md به نشانی صفحه (مثلاً {example}) یا با سرآیند Accept: text/markdown به صورت مارک‌داون هم در دسترس است. به نشانی خود صفحه ارجاع دهید، نه نسخه .md.",
+      link: "مارک‌داون",
+      source: "نسخه مارک‌داون {url} برای عامل‌های هوش مصنوعی. به نشانی خود صفحه ارجاع دهید.",
+      overview: "معرفی",
+      features: "ویژگی‌ها",
+      installation: "راهنمای نصب",
+      downloads: "دانلودها",
+      steps: "مرحله به مرحله",
+      step: "مرحله {count}",
+      tools: "ابزار لازم",
+      safety: "پیش از شروع، ایمنی",
+      video: "ویدیو",
+      chapters: "بخش‌های ویدیو",
+      duration: "{count} دقیقه",
+      guideModels: "مدل‌هایی که از این راهنما استفاده می‌کنند",
+      categoryModels: "مدل‌های {name}",
+      subcategories: "زیرشاخه‌ها",
+      related: "مدل‌های مرتبط",
+      postProducts: "محصولات این مطلب",
+      author: "نویسنده",
+      published: "تاریخ انتشار",
+      updated: "آخرین به‌روزرسانی",
+      releaseYear: "سال عرضه",
+      energyClass: "رده انرژی",
+      warrantyCheck: "استعلام کد گارانتی",
+      allFaqs: "همه پرسش‌ها",
+      months: "{count} ماه",
+      specLabel: "مشخصه",
+      specValue: "مقدار",
+      faqGroups: {
+        general: "عمومی",
+        warranty: "گارانتی",
+        installation: "نصب",
+        products: "محصولات",
+        support: "خدمات پس از فروش",
+      },
     },
   },
 };
