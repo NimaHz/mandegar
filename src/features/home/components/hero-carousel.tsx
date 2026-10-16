@@ -119,7 +119,7 @@ export function HeroCarousel({ slides, secondaryHref }: HeroCarouselProps) {
   useEffect(() => {
     const bar = progressRefs.current[index];
     if (!bar || !canAutoplay) return;
-    const animation = bar.animate([{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], {
+    const animation = bar.animate([{ scale: "0 1" }, { scale: "1 1" }], {
       duration: AUTOPLAY_MS,
       easing: "linear",
       fill: "forwards",
@@ -315,6 +315,7 @@ export function HeroCarousel({ slides, secondaryHref }: HeroCarouselProps) {
             <div className="flex min-w-0 flex-1 items-stretch gap-2 lg:gap-4">
               {slides.map((slide, slideIndex) => {
                 const isActive = slideIndex === index;
+                const isPlayed = slideIndex < index;
                 return (
                   <button
                     key={slide.id}
@@ -327,15 +328,15 @@ export function HeroCarousel({ slides, secondaryHref }: HeroCarouselProps) {
                       isActive ? "opacity-100" : "opacity-60 hover:opacity-90",
                     )}
                   >
-                    <span className="flex min-w-0 items-baseline gap-2 text-xs font-bold">
-                      <span className="font-code tabular-nums">{pad(slideIndex + 1)}</span>{" "}
+                    <span className="flex min-w-0 items-baseline gap-2 text-xs font-bold drop-shadow-sm">
+                      <span className="tabular-nums">{pad(slideIndex + 1)}</span>{" "}
                       <span className="truncate max-lg:hidden">{slide.title}</span>
                     </span>
                     <span
                       aria-hidden
                       className={cn(
-                        "relative block h-0.5 w-full overflow-hidden rounded-full",
-                        dark ? "bg-white/25" : "bg-ink/15",
+                        "relative block h-1 w-full overflow-hidden rounded-full shadow-sm",
+                        dark ? "bg-white/30" : "bg-ink/20",
                       )}
                     >
                       <span
@@ -344,7 +345,7 @@ export function HeroCarousel({ slides, secondaryHref }: HeroCarouselProps) {
                         }}
                         className={cn(
                           "absolute inset-0 rounded-full bg-current ltr:origin-left rtl:origin-right",
-                          isActive && !canAutoplay ? "scale-x-100" : "scale-x-0",
+                          isPlayed || (isActive && !canAutoplay) ? "scale-x-100" : "scale-x-0",
                         )}
                       />
                     </span>
