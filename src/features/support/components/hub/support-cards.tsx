@@ -55,7 +55,7 @@ export function SupportCards({ locale, content }: SupportCardsProps) {
         <RevealItem className="md:col-span-2 lg:col-span-1 lg:row-span-3">
           <Link
             href={localizePath(locale, routes.serviceRequest)}
-            className="group relative isolate flex h-full flex-col gap-6 overflow-hidden rounded-panel bg-brand-deep p-6 text-white shadow-lift sm:p-8"
+            className="group relative isolate flex h-full flex-col gap-6 overflow-hidden rounded-panel bg-brand-deep p-6 text-white shadow-lift outline-offset-4 focus-visible:outline-accent sm:p-8"
           >
             <span
               aria-hidden
@@ -85,7 +85,7 @@ export function SupportCards({ locale, content }: SupportCardsProps) {
                 </li>
               ))}
             </ul>
-            <span className="mt-auto inline-flex h-12 items-center justify-center gap-2 self-start rounded-field bg-white px-5 text-sm font-extrabold text-brand-deep transition-colors group-hover:bg-canvas">
+            <span className="mt-auto inline-flex h-12 items-center justify-center gap-2 self-start rounded-field bg-white px-5 text-sm font-extrabold text-brand-deep transition-colors group-hover:bg-accent group-hover:text-on-accent group-focus-visible:bg-accent group-focus-visible:text-on-accent">
               {content.requestCta}
               <ArrowLeft className={arrowClass} aria-hidden />
             </span>
