@@ -28,7 +28,21 @@ interface CompareTrayProps {
 
 const NOTICE_MS = 5000;
 
+const HEIGHT_VAR = "--compare-tray-height";
+
 const fallbackCode = (slug: string) => slug.toUpperCase();
+
+const reserveSpace = (panel: HTMLDivElement) => {
+  const root = document.documentElement;
+  const observer = new ResizeObserver(() => {
+    root.style.setProperty(HEIGHT_VAR, `${panel.offsetHeight}px`);
+  });
+  observer.observe(panel);
+  return () => {
+    observer.disconnect();
+    root.style.removeProperty(HEIGHT_VAR);
+  };
+};
 
 export function CompareTray({ products = [] }: CompareTrayProps) {
   const locale = useLocale();
@@ -64,6 +78,7 @@ export function CompareTray({ products = [] }: CompareTrayProps) {
             className="fixed inset-x-3 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-30 mx-auto max-w-2xl lg:start-auto lg:end-6 lg:bottom-6 lg:mx-0 lg:w-[min(40rem,calc(100vw-28rem))]"
           >
             <div
+              ref={reserveSpace}
               className={cn(
                 "rounded-panel border bg-raised/95 shadow-lift backdrop-blur-xl transition-colors duration-300",
                 limitNotice > 0 ? "border-primary" : "border-line-strong",

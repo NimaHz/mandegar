@@ -1,10 +1,14 @@
 "use client";
 
+import { useLayoutEffect } from "react";
+
 import { useTheme } from "@/hooks/use-theme";
-import { DARK_QUERY, LIGHT_QUERY, THEME_COLORS } from "@/lib/theme";
+import { applyStoredTheme, DARK_QUERY, LIGHT_QUERY, THEME_COLORS } from "@/lib/theme";
 
 export function ThemeColor() {
   const { preference } = useTheme();
+
+  useLayoutEffect(() => applyStoredTheme(), []);
 
   if (preference !== "system")
     return <meta name="theme-color" content={THEME_COLORS[preference]} />;

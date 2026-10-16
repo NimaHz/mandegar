@@ -25,10 +25,9 @@ export function CompareStoreSync({ requested, slugs }: CompareStoreSyncProps) {
   const restoring = hydrated && !requested && stored.length > 0;
 
   useEffect(() => {
-    if (!hydrated || !requested) return;
-    const next = key ? key.split(",") : [];
+    if (!hydrated || !requested || !key) return;
     const current = useCompareStore.getState().slugs;
-    if (current.join(",") !== next.join(",")) useCompareStore.setState({ slugs: next });
+    if (current.join(",") !== key) useCompareStore.setState({ slugs: key.split(",") });
   }, [hydrated, requested, key]);
 
   useEffect(() => {

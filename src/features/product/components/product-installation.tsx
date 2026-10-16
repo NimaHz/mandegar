@@ -2,6 +2,7 @@ import { ArrowLeft, BookOpenCheck, Clock3, LifeBuoy, TriangleAlert, Wrench } fro
 import Image from "next/image";
 import Link from "next/link";
 
+import { ModelCodeText } from "@/components/shared/model-code-text";
 import { VideoPlayer } from "@/components/shared/video-player";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -65,7 +66,9 @@ export function ProductInstallation({ guide, productSlug, locale }: ProductInsta
           />
         )}
         <div className="flex flex-col gap-1.5">
-          <h3 className="text-xl font-extrabold text-ink">{guide.title}</h3>
+          <h3 className="text-xl font-extrabold text-ink">
+            <ModelCodeText text={guide.title} />
+          </h3>
           <p className="text-sm leading-7 text-body">{guide.summary}</p>
           {minutes && (
             <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted">

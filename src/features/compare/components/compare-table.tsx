@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { ModelCodeText } from "@/components/shared/model-code-text";
 import { EnergyBadge } from "@/features/catalog/components/energy-badge";
 import { catalogContent } from "@/features/catalog/content";
 import { SpecValue } from "@/features/product/components/spec-tables";
@@ -97,7 +98,7 @@ export function CompareTable({ products, locale }: CompareTableProps) {
   ];
 
   return (
-    <div className="-mx-4 overflow-x-auto overscroll-x-contain px-4 sm:mx-0 sm:px-0 lg:overflow-visible">
+    <div className="relative -mx-4 overflow-x-auto overscroll-x-contain px-4 sm:mx-0 sm:px-0 lg:overflow-visible">
       <table className="w-full min-w-[38rem] table-fixed border-separate border-spacing-0 text-sm">
         <caption className="sr-only">{page.tableCaption}</caption>
         <thead>
@@ -138,7 +139,7 @@ export function CompareTable({ products, locale }: CompareTableProps) {
                     href={localizePath(locale, routes.product(product.slug))}
                     className="line-clamp-2 text-sm leading-snug font-extrabold text-ink hover:text-primary sm:text-base"
                   >
-                    {product.name}
+                    <ModelCodeText text={product.name} />
                   </Link>
                   <bdi dir="ltr" className="self-start font-code text-xs font-semibold text-muted">
                     {product.modelCode}

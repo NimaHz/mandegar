@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { fill } from "@/i18n/fill";
 import { apiClient } from "@/lib/api-client";
 import { formatDate } from "@/lib/dates";
+import { partsMonthsOf } from "@/lib/warranty-terms";
 import type { AdminWarrantyPolicy } from "@/types/admin";
 import type { Paginated } from "@/types/common";
 
@@ -57,7 +58,7 @@ export function PoliciesList({
     {
       key: "parts",
       header: copy.columns.parts,
-      cell: (policy) => months(policy.partsMonths ?? policy.months),
+      cell: (policy) => months(partsMonthsOf(policy)),
     },
     { key: "codes", header: copy.columns.codes, cell: (policy) => faNumber(policy.codeCount) },
     {

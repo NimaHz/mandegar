@@ -8,15 +8,16 @@ import { useTheme } from "@/hooks/use-theme";
 import { fill } from "@/i18n/fill";
 import { useDictionary } from "@/i18n/locale-provider";
 import { cn } from "@/lib/cn";
-import type { ThemePreference } from "@/lib/theme";
+import { type ResolvedTheme, resolveTheme, type ThemePreference } from "@/lib/theme";
 
-const cycle: Record<ThemePreference, ThemePreference> = {
-  light: "dark",
-  dark: "system",
-  system: "light",
-};
+const opposite: Record<ResolvedTheme, ResolvedTheme> = { light: "dark", dark: "light" };
 
 const icons: Record<ThemePreference, LucideIcon> = { light: Sun, dark: Moon, system: Monitor };
+
+const nextPreference = (preference: ThemePreference): ThemePreference => {
+  const system = resolveTheme("system");
+  return preference === "system" || preference === system ? opposite[system] : "system";
+};
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { ui } = useDictionary();
@@ -32,7 +33,7 @@ export function ThemeToggle({ className }: { className?: string }) {
 
   const onClick = () => {
     setInteracted(true);
-    setTheme(cycle[preference]);
+    setTheme(nextPreference(preference));
   };
 
   return (

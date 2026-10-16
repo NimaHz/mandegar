@@ -2,6 +2,7 @@ import { Clock, ListOrdered, Play } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
+import { ModelCodeText } from "@/components/shared/model-code-text";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { localizePath } from "@/i18n/paths";
@@ -69,7 +70,7 @@ export function GuideCard({ guide, locale, copy, priority = false }: GuideCardPr
           </div>
         )}
         <h3 className="font-display text-lg leading-snug font-extrabold text-ink transition-colors group-hover:text-primary">
-          {guide.title}
+          <ModelCodeText text={guide.title} />
         </h3>
         <p className="line-clamp-2 text-sm leading-7 text-body">{guide.summary}</p>
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-3 text-xs font-semibold text-muted">

@@ -20,7 +20,7 @@ import type { ModelOption } from "@/types/catalog";
 
 import type { RequestStep } from "../../constants";
 import type { RequestFlowContent } from "../../content";
-import type { RequestValues } from "../../schemas";
+import { isIsoDate, type RequestValues } from "../../schemas";
 
 interface ReviewStepProps {
   locale: Locale;
@@ -137,7 +137,7 @@ export function ReviewStep({
               ]),
           {
             label: copy.product.purchaseDate,
-            value: values.purchaseDate ? formatDate(locale, values.purchaseDate) : empty,
+            value: isIsoDate(values.purchaseDate) ? formatDate(locale, values.purchaseDate) : empty,
           },
         ]}
       />

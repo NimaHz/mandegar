@@ -35,6 +35,7 @@ export function ReplyForm({
   const [body, setBody] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | undefined>(undefined);
+  const [fileError, setFileError] = useState<string | undefined>(undefined);
   const [sending, setSending] = useState(false);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -45,6 +46,7 @@ export function ReplyForm({
     }
     setSending(true);
     setError(undefined);
+    setFileError(undefined);
     const data = new FormData();
     data.append("token", token);
     data.append("body", body.trim());
@@ -56,7 +58,17 @@ export function ReplyForm({
     );
     setSending(false);
     if (!result.ok) {
-      setError(result.code === "CONFLICT" ? copy.closed : copy.generic);
+      if (result.code === "PAYLOAD_TOO_LARGE" || result.code === "UNSUPPORTED_MEDIA") {
+        setFileError(result.code === "PAYLOAD_TOO_LARGE" ? copy.tooLarge : copy.fileType);
+        return;
+      }
+      setError(
+        result.code === "CONFLICT"
+          ? copy.closed
+          : result.code === "RATE_LIMITED"
+            ? copy.rateLimited
+            : copy.generic,
+      );
       return;
     }
     setBody("");
@@ -79,7 +91,15 @@ export function ReplyForm({
         }}
         error={error}
       />
-      <AttachmentPicker files={files} onChange={setFiles} labels={attachmentLabels} />
+      <AttachmentPicker
+        files={files}
+        onChange={(next) => {
+          setFiles(next);
+          setFileError(undefined);
+        }}
+        labels={attachmentLabels}
+        error={fileError}
+      />
       <Button type="submit" size="lg" disabled={sending} className="self-end max-sm:w-full">
         {sending ? (
           <>

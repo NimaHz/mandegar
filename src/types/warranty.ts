@@ -4,7 +4,7 @@ export type WarrantyCodeStatus = "active" | "revoked" | "recalled";
 
 export interface WarrantyCoverage {
   months: number;
-  partsMonths: number | null;
+  partsMonths: number;
   startRule: string;
   coverage: string[];
   exclusions: string[];

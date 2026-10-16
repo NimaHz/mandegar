@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { CategoryIcon } from "@/components/icons/category-icon";
 import { RevealGroup, RevealItem } from "@/components/motion/reveal";
+import { LinkPending } from "@/components/providers/navigation-progress";
 import { SectionHeading } from "@/components/ui/section-heading";
 import type { Locale } from "@/i18n/config";
 import { localizePath } from "@/i18n/paths";
@@ -123,6 +124,7 @@ export function CategoriesBento({ categories, locale }: CategoriesBentoProps) {
                     {pluralize(locale, category.productCount, content.models)}
                   </span>
                 </span>
+                <LinkPending />
               </Link>
             </RevealItem>
           );

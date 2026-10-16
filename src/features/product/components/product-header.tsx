@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 
 import { CompareToggle } from "@/components/shared/compare-toggle";
 import { CopyButton } from "@/components/shared/copy-button";
+import { ModelCodeText } from "@/components/shared/model-code-text";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { EnergyBadge } from "@/features/catalog/components/energy-badge";
@@ -85,7 +86,7 @@ export function ProductHeader({
                 id="product-title"
                 className="font-display text-[1.875rem] leading-[1.35] font-black text-balance text-ink sm:text-[2.375rem] lg:text-[2.75rem]"
               >
-                {product.name}
+                <ModelCodeText text={product.name} />
               </h1>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 <span className="inline-flex items-center gap-2 rounded-control bg-sunken py-1 ps-3 pe-1">

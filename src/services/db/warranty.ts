@@ -3,6 +3,7 @@ import { asc, desc, lte } from "drizzle-orm";
 import type { Locale } from "@/i18n/config";
 import { tehranMidnight, todayIsoDate } from "@/lib/dates";
 import { formatWarrantyCode, parseWarrantyCode } from "@/lib/warranty-code";
+import { partsMonthsOf } from "@/lib/warranty-terms";
 import { getDb } from "@/server/db/client";
 import { warrantyPolicies } from "@/server/db/schema";
 import { type RateLimitRule, reserveAttempts } from "@/server/lib/rate-limit";
@@ -54,7 +55,7 @@ const toMatch = (row: CodeRow, locale: Locale): WarrantyMatch => {
     status: row.status,
     productionYear: row.productionYear,
     months: policy.months,
-    partsMonths: policy.partsMonths,
+    partsMonths: partsMonthsOf(policy),
     startRule: pick(policy.startRule, locale),
     coverage: policy.coverage.map((item) => pick(item, locale)),
     exclusions: policy.exclusions.map((item) => pick(item, locale)),
@@ -114,7 +115,7 @@ export const warrantyService: WarrantyService = {
       id: row.id,
       name: pick(row.name, locale),
       months: row.months,
-      partsMonths: row.partsMonths,
+      partsMonths: partsMonthsOf(row),
       startRule: pick(row.startRule, locale),
       coverage: row.coverage.map((item) => pick(item, locale)),
       exclusions: row.exclusions.map((item) => pick(item, locale)),

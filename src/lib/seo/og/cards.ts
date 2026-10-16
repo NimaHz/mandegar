@@ -8,7 +8,7 @@ import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { pluralize } from "@/i18n/plural";
-import { formatNumber } from "@/lib/format";
+import { durationMinutes, formatNumber } from "@/lib/format";
 import { getStorage, isSafeStorageKey } from "@/server/storage";
 import { api } from "@/services";
 import type { ImageAsset } from "@/types/common";
@@ -110,7 +110,7 @@ const cardBody = async (locale: Locale, target: OgTarget): Promise<CardBody | nu
           subtitle: guide.summary,
           meta: [
             pluralize(locale, guide.stepCount, copy.steps),
-            ...(guide.durationSec ? [count(copy.minutes, Math.ceil(guide.durationSec / 60))] : []),
+            ...(guide.durationSec ? [count(copy.minutes, durationMinutes(guide.durationSec))] : []),
           ],
           image: guide.poster,
         }

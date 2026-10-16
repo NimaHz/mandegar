@@ -1,6 +1,7 @@
 import { CalendarDays, Clock3, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
+import { ModelCodeText } from "@/components/shared/model-code-text";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/fa";
@@ -46,7 +47,7 @@ export function PostHeader({ post, locale, dictionary }: PostHeaderProps) {
           </span>
         </div>
         <h1 className="font-display text-[1.875rem] leading-[1.4] font-black text-balance text-ink sm:text-[2.5rem] lg:text-[3rem]">
-          {post.title}
+          <ModelCodeText text={post.title} />
         </h1>
         <p className="max-w-3xl text-lg leading-9 text-pretty text-body sm:text-xl sm:leading-10">
           {post.excerpt}

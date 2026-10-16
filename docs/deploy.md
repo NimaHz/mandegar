@@ -282,10 +282,12 @@ production secrets), then loads the environment, applies migrations and builds a
 database (the build prerenders the ISR catalog pages). It copies the standalone server into a new
 `/opt/mandegar/releases/<date>-<commit>` directory, asks for sudo again to publish it, switches the
 `current` symlink, restarts the service and waits for `http://127.0.0.1:3000/api/health`, the
-address nginx uses. If the new release does not become healthy within a minute, it switches back
-to the previous release, deletes the failed one and exits with an error. It keeps the five newest
-releases (`KEEP_RELEASES`). The site is unavailable for the few seconds the restart takes; nginx
-answers 502 during that window and keeps serving cached static assets.
+address nginx uses. If the migrations or the build fail, it stops before switching; the migrations
+run in one transaction, so a failed one leaves the schema as it was, while a failed build leaves the
+live release on the migrated schema. If the new release does not become healthy within a minute, it
+switches back to the previous release, deletes the failed one and exits with an error. It keeps the
+five newest releases (`KEEP_RELEASES`). The site is unavailable for the few seconds the restart
+takes; nginx answers 502 during that window and keeps serving cached static assets.
 
 Edits made in the admin while a release builds, or before any restart, reach the new process. The
 production cache handler (`src/server/cache-handler.mjs`) extends Next.js's file-system ISR cache
@@ -303,13 +305,43 @@ sudo ln -sfn /opt/mandegar/releases/<release> /opt/mandegar/current
 sudo systemctl restart mandegar
 ```
 
-Migrations are forward only, so a rollback across a migration keeps the newer schema. Take a backup
-before releasing a migration that drops or rewrites data.
-
 `public/sw.js` is versioned by its `VERSION` constant. `deploy/release.sh` stamps the release id into
 it, so every release installs a new worker that precaches that release's offline pages and their
 assets and drops the previous release's caches; open tabs then show a "new version available" toast
 with a reload action. Bump the constant in the source when the service worker logic changes.
+
+### Migrations and rollback
+
+Migrations are forward only, and `deploy/release.sh` applies them before the build, because the
+build prerenders pages with the new code and every query names each column of the schema. The live
+release therefore runs against the new schema while the new one builds, and keeps running on it
+when the build fails or the health check switches back. Neither the automatic rollback nor a manual
+one reverts a migration, so every schema change follows the expand/contract rule:
+
+- **Expand.** A release only adds what the live release ignores (a table, a nullable or defaulted
+  column, an index) or rewrites data into a shape the live release already reads. The code that
+  uses the addition ships in the same release.
+- **Contract.** Dropping a column or table, renaming one or changing its type ships in a later
+  release than the code that stops reading the old shape, once no release that still reads it will
+  be rolled back to.
+
+A rollback is safe when every migration since the target release was an expansion: switch `current`
+as above. Migration `0004_policy_name_localized` breaks the rule: it turns `warranty_policies.name`
+from text into `{fa, en}` jsonb in place, and releases older than it render the warranty pages and
+the admin policy and code lists wrongly or fail against the new column. That happens while the
+release that brings it builds, and after any rollback across it, so ship that release at a quiet
+hour. To roll back across a contract step, restore the database as well. Take a backup right before
+any release that adds a migration:
+
+```bash
+sudo /usr/local/sbin/mandegar-backup
+bash deploy/release.sh
+```
+
+If that release has to go, stop the service, restore that dump as described in
+[Backups](#10-backups), point `current` at the older release and start the service. Admin edits,
+tickets and messages saved after the backup are lost, so when the schema is not the problem, fix
+forward with a new release instead.
 
 ## 10. Backups
 

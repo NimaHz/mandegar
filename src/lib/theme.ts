@@ -13,11 +13,22 @@ export const isThemePreference = (value: unknown): value is ThemePreference =>
 export const resolveTheme = (preference: ThemePreference): ResolvedTheme =>
   preference === "system" ? (window.matchMedia(DARK_QUERY).matches ? "dark" : "light") : preference;
 
+export const readThemePreference = (): ThemePreference => {
+  try {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    return isThemePreference(stored) ? stored : "system";
+  } catch {
+    return "system";
+  }
+};
+
 export const applyTheme = (theme: ResolvedTheme) => {
   const root = document.documentElement;
   root.dataset.theme = theme;
   root.style.colorScheme = theme;
 };
+
+export const applyStoredTheme = () => applyTheme(resolveTheme(readThemePreference()));
 
 export const themeBootScript = `(function(){try{var p=localStorage.getItem(${JSON.stringify(
   THEME_STORAGE_KEY,

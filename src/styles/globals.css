@@ -90,6 +90,7 @@
   --animate-fade: fade 0.5s var(--ease-out-quart) both;
   --animate-shimmer: shimmer 2.4s linear infinite;
   --animate-wiggle: wiggle 0.6s var(--ease-out-quart);
+  --animate-progress: progress 1.4s linear infinite;
 
   @keyframes marquee {
     from {
@@ -142,6 +143,15 @@
     }
     to {
       background-position: calc(200% * var(--inline-sign)) 0;
+    }
+  }
+
+  @keyframes progress {
+    from {
+      transform: translateX(calc(-100% * var(--inline-sign)));
+    }
+    to {
+      transform: translateX(calc(250% * var(--inline-sign)));
     }
   }
 }

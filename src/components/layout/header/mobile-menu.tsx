@@ -10,6 +10,10 @@ import { Logo } from "@/components/brand/logo";
 import { CategoryIcon } from "@/components/icons/category-icon";
 import { SocialIcon, type SocialPlatform } from "@/components/icons/social-icon";
 import { EASE_OUT_EXPO } from "@/components/motion/easing";
+import {
+  type TrackedNavigation,
+  useTrackedNavigation,
+} from "@/components/providers/navigation-progress";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
 import { LanguageSwitcher } from "@/components/shared/language-switcher";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
@@ -42,7 +46,13 @@ const rowClass = (active: boolean) =>
     active ? "bg-primary-soft font-bold text-primary" : "font-semibold text-ink hover:bg-raised",
   );
 
-function MenuSection({ title, items }: { title: string; items: NavItem[] }) {
+interface MenuSectionProps {
+  title: string;
+  items: NavItem[];
+  navigateFrom: TrackedNavigation["navigateFrom"];
+}
+
+function MenuSection({ title, items, navigateFrom }: MenuSectionProps) {
   const locale = useLocale();
   const { nav } = useDictionary();
   const pathname = stripLocalePrefix(usePathname());
@@ -59,6 +69,7 @@ function MenuSection({ title, items }: { title: string; items: NavItem[] }) {
             key={item.href}
             href={localizePath(locale, item.href)}
             onClick={closeMenu}
+            onNavigate={navigateFrom(localizePath(locale, item.href))}
             aria-current={isActive ? "page" : undefined}
             className={rowClass(isActive)}
           >
@@ -80,6 +91,7 @@ export function MobileMenu({ categories, socials }: MobileMenuProps) {
   const closeMenu = useUiStore((state) => state.closeMenu);
   const isDesktop = useMediaQuery("(min-width: 64rem)");
   const dialogRef = useRef<HTMLDivElement>(null);
+  const { navigateFrom } = useTrackedNavigation();
   const offset = localeMeta[locale].dir === "rtl" ? "100%" : "-100%";
 
   useModal(dialogRef, isOpen, closeMenu);
@@ -131,6 +143,7 @@ export function MobileMenu({ categories, socials }: MobileMenuProps) {
               <Link
                 href={localizePath(locale, routes.warranty)}
                 onClick={closeMenu}
+                onNavigate={navigateFrom(localizePath(locale, routes.warranty))}
                 className="group flex flex-col gap-3 rounded-card bg-brand-deep p-4 text-white"
               >
                 <span className="flex items-center gap-2 text-sm font-bold">
@@ -154,6 +167,7 @@ export function MobileMenu({ categories, socials }: MobileMenuProps) {
                         key={category.slug}
                         href={localizePath(locale, href)}
                         onClick={closeMenu}
+                        onNavigate={navigateFrom(localizePath(locale, href))}
                         aria-current={isActive ? "page" : undefined}
                         className={rowClass(isActive)}
                       >
@@ -165,6 +179,7 @@ export function MobileMenu({ categories, socials }: MobileMenuProps) {
                   <Link
                     href={localizePath(locale, routes.products)}
                     onClick={closeMenu}
+                    onNavigate={navigateFrom(localizePath(locale, routes.products))}
                     className="group flex h-11 items-center justify-between rounded-field px-3 text-sm font-bold text-primary"
                   >
                     {nav.allProducts}
@@ -174,8 +189,16 @@ export function MobileMenu({ categories, socials }: MobileMenuProps) {
                     />
                   </Link>
                 </div>
-                <MenuSection title={mobileMenu.support} items={supportNav} />
-                <MenuSection title={mobileMenu.explore} items={exploreNav} />
+                <MenuSection
+                  title={mobileMenu.support}
+                  items={supportNav}
+                  navigateFrom={navigateFrom}
+                />
+                <MenuSection
+                  title={mobileMenu.explore}
+                  items={exploreNav}
+                  navigateFrom={navigateFrom}
+                />
               </nav>
 
               <div className="flex flex-col gap-2">

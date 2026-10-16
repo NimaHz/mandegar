@@ -148,6 +148,7 @@ function RequestFlow({ models, copy, types }: ServiceRequestFlowProps) {
   const tokenRef = useRef<FormToken | null>(null);
   const honeypotRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const stepRef = useRef<HTMLDivElement>(null);
   const altcha = useAltcha(receipt === null);
   const schemas = createStepSchemas(copy.errors);
   const form = useForm<RequestValues>({ defaultValues: initial.values });
@@ -210,7 +211,12 @@ function RequestFlow({ models, copy, types }: ServiceRequestFlowProps) {
     if (field) requestAnimationFrame(() => form.setFocus(field));
   };
 
-  const goTo = (target: RequestStep, field: RequestField | null = null) => {
+  const goTo = (requested: RequestStep, requestedField: RequestField | null = null) => {
+    const blocked = requestSteps
+      .slice(index, requestSteps.indexOf(requested))
+      .find((entry) => !validate(entry));
+    const target = blocked ?? requested;
+    const field = blocked ? firstError(blocked) : requestedField;
     const to = requestSteps.indexOf(target);
     if (target === step) focusSoon(field);
     else setFocusField(field);
@@ -390,6 +396,7 @@ function RequestFlow({ models, copy, types }: ServiceRequestFlowProps) {
               custom={{ direction, sign: locale === "fa" ? -1 : 1 }}
             >
               <m.div
+                ref={stepRef}
                 key={step}
                 custom={{ direction, sign: locale === "fa" ? -1 : 1 }}
                 variants={stepVariants}
@@ -397,7 +404,11 @@ function RequestFlow({ models, copy, types }: ServiceRequestFlowProps) {
                 animate="center"
                 exit="exit"
                 onAnimationStart={(definition) => {
-                  if (definition === "center" && focusField) form.setFocus(focusField);
+                  if (definition !== "center" || !focusField) return;
+                  form.setFocus(focusField);
+                  setTimeout(() => {
+                    if (!stepRef.current?.contains(document.activeElement)) setFocusField(null);
+                  });
                 }}
                 className="flex flex-col gap-6"
               >

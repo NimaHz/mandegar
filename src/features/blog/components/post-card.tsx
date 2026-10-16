@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
+import { ModelCodeText } from "@/components/shared/model-code-text";
 import type { Locale } from "@/i18n/config";
 import { localizePath } from "@/i18n/paths";
 import { cn } from "@/lib/cn";
@@ -57,7 +58,7 @@ export function PostCard({
       <div className="flex flex-1 flex-col gap-2.5 p-5">
         <Heading className="line-clamp-2 font-display text-lg leading-[1.6] font-extrabold text-balance text-ink">
           <Link href={localizePath(locale, routes.post(post.slug))} className={stretchedLink}>
-            {post.title}
+            <ModelCodeText text={post.title} />
           </Link>
         </Heading>
         <p className="line-clamp-2 text-sm leading-7 text-body">{post.excerpt}</p>

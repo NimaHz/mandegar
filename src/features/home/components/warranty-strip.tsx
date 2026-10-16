@@ -58,7 +58,7 @@ export function WarrantyStrip({ locale, overlap }: WarrantyStripProps) {
                 enterKeyHint="search"
                 placeholder={content.placeholder}
                 aria-describedby="home-warranty-hint"
-                className="h-full w-full min-w-0 flex-1 bg-transparent font-code text-lead font-semibold tracking-wider text-ink uppercase outline-none placeholder:font-sans placeholder:tracking-normal placeholder:normal-case rtl:text-right rtl:placeholder:text-right"
+                className="h-full w-full min-w-0 flex-1 bg-transparent font-code text-lead font-semibold tracking-wider text-ink uppercase outline-none placeholder:font-sans placeholder:tracking-normal placeholder:normal-case rtl:text-end rtl:placeholder:text-end"
               />
             </div>
             <button

@@ -3,9 +3,10 @@
 import { useCallback, useSyncExternalStore } from "react";
 
 import {
+  applyStoredTheme,
   applyTheme,
   DARK_QUERY,
-  isThemePreference,
+  readThemePreference,
   type ResolvedTheme,
   resolveTheme,
   THEME_STORAGE_KEY,
@@ -15,26 +16,17 @@ import {
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((listener) => listener());
 
-const readPreference = (): ThemePreference => {
-  try {
-    const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    return isThemePreference(stored) ? stored : "system";
-  } catch {
-    return "system";
-  }
-};
-
 const subscribe = (onChange: () => void) => {
   listeners.add(onChange);
   const media = window.matchMedia(DARK_QUERY);
   const onSystemChange = () => {
-    if (readPreference() !== "system") return;
+    if (readThemePreference() !== "system") return;
     applyTheme(resolveTheme("system"));
     notify();
   };
   const onStorage = (event: StorageEvent) => {
     if (event.key !== THEME_STORAGE_KEY) return;
-    applyTheme(resolveTheme(readPreference()));
+    applyStoredTheme();
     notify();
   };
   media.addEventListener("change", onSystemChange);
@@ -60,7 +52,7 @@ export function useTheme() {
   const theme = useSyncExternalStore(subscribe, getResolved, () => "light" as const);
   const preference = useSyncExternalStore(
     subscribePreference,
-    readPreference,
+    readThemePreference,
     () => "system" as const,
   );
 

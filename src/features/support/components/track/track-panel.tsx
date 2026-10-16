@@ -1,6 +1,6 @@
 "use client";
 
-import { LinkIcon, LoaderCircle } from "lucide-react";
+import { CircleAlert, LinkIcon, LoaderCircle, RotateCw } from "lucide-react";
 import { useQueryStates } from "nuqs";
 import { Suspense, useEffect, useState } from "react";
 
@@ -33,7 +33,14 @@ interface Tracked {
   source: TrackTicketInput;
 }
 
-type TokenState = "idle" | "loading" | "invalid";
+type TokenState = "idle" | "loading" | "invalid" | "rate-limited" | "failed";
+
+const failureState = (code: string): TokenState =>
+  code === "NOT_FOUND" || code === "VALIDATION"
+    ? "invalid"
+    : code === "RATE_LIMITED"
+      ? "rate-limited"
+      : "failed";
 
 function TokenTrack({
   token,
@@ -47,6 +54,7 @@ function TokenTrack({
   const { common } = useDictionary();
   const [tracked, setTracked] = useState<Tracked | null>(null);
   const [tokenState, setTokenState] = useState<TokenState>(token ? "loading" : "idle");
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!token) return;
@@ -54,12 +62,12 @@ function TokenTrack({
     void apiResult(apiClient.api.tickets.track.post({ token, locale })).then((result) => {
       if (!active) return;
       if (result.ok) setTracked({ ticket: result.data, source: { token } });
-      setTokenState(result.ok ? "idle" : "invalid");
+      setTokenState(result.ok ? "idle" : failureState(result.code));
     });
     return () => {
       active = false;
     };
-  }, [token, locale]);
+  }, [token, locale, attempt]);
 
   if (tracked) {
     return (
@@ -85,6 +93,34 @@ function TokenTrack({
       >
         <LoaderCircle className="size-5 animate-spin text-primary" aria-hidden />
         {common.loading}
+      </div>
+    );
+  }
+
+  if (tokenState === "rate-limited" || tokenState === "failed") {
+    return (
+      <div
+        role="alert"
+        className="mx-auto flex w-full max-w-xl items-start gap-3 rounded-card border border-warning/40 bg-warning-soft/70 p-4"
+      >
+        <CircleAlert className="mt-0.5 size-5 shrink-0 text-warning" aria-hidden />
+        <div className="flex flex-col items-start gap-1">
+          <p className="text-sm font-extrabold text-ink">{copy.tokenFailed.title}</p>
+          <p className="text-sm leading-7 text-body">
+            {tokenState === "rate-limited" ? copy.form.rateLimited : copy.form.generic}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setTokenState("loading");
+              setAttempt((count) => count + 1);
+            }}
+            className="mt-1 inline-flex items-center gap-1 rounded-control px-2 py-1 text-sm font-bold text-ink transition-colors hover:bg-warning-soft"
+          >
+            <RotateCw className="size-3.5" aria-hidden />
+            {common.retry}
+          </button>
+        </div>
       </div>
     );
   }

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { JsonLd } from "@/components/seo/json-ld";
+import { ModelCodeText } from "@/components/shared/model-code-text";
 import { VideoPlayer } from "@/components/shared/video-player";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { GuideAside } from "@/features/guides/components/guide-aside";
@@ -114,7 +115,7 @@ export default async function GuidePage({ params }: PageProps<"/[locale]/guides/
             ))}
           </div>
           <h1 className="max-w-4xl animate-rise font-display text-[1.875rem] leading-[1.35] font-black text-balance text-ink sm:text-[2.5rem]">
-            {guide.title}
+            <ModelCodeText text={guide.title} />
           </h1>
           <p className="max-w-3xl text-lead leading-8 text-body sm:text-lg sm:leading-9">
             {guide.summary}

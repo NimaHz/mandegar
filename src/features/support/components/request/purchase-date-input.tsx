@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarDays, X } from "lucide-react";
-import { useId, useState } from "react";
+import { type Ref, useId, useImperativeHandle, useRef, useState } from "react";
 
 import { Select } from "@/components/ui/select";
 import type { Locale } from "@/i18n/config";
@@ -23,6 +23,7 @@ interface PurchaseDateLabels {
 }
 
 interface PurchaseDateInputProps {
+  ref?: Ref<{ focus: () => void }>;
   locale: Locale;
   value: string;
   onChange: (value: string) => void;
@@ -87,13 +88,29 @@ function JalaliSelects({ locale, value, onChange, labels, error }: PurchaseDateI
 }
 
 export function PurchaseDateInput(props: PurchaseDateInputProps) {
-  const { locale, value, onChange, labels, error } = props;
+  const { ref, locale, value, onChange, labels, error } = props;
   const id = useId();
   const messageId = `${id}-message`;
   const [version, setVersion] = useState(0);
+  const fieldsetRef = useRef<HTMLFieldSetElement>(null);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: () => {
+        const controls = [
+          ...(fieldsetRef.current?.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
+            "select, input",
+          ) ?? []),
+        ];
+        (controls.find((control) => !control.value) ?? controls[0])?.focus();
+      },
+    }),
+    [],
+  );
 
   return (
-    <fieldset aria-describedby={messageId} className="flex flex-col gap-1.5">
+    <fieldset ref={fieldsetRef} aria-describedby={messageId} className="flex flex-col gap-1.5">
       <legend className="mb-1.5 flex w-full items-center justify-between gap-3 text-label font-bold text-ink">
         <span className="inline-flex items-center gap-1.5">
           <CalendarDays className="size-4 text-muted" aria-hidden />

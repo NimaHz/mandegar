@@ -14,6 +14,7 @@ import { routes } from "@/lib/routes";
 import type { ProductListItem } from "@/types/catalog";
 
 import { CompareToggle } from "./compare-toggle";
+import { ModelCodeText } from "./model-code-text";
 
 interface ProductCardProps {
   product: ProductListItem;
@@ -94,7 +95,7 @@ export function ProductCard({
             href={href}
             className="outline-none after:absolute after:inset-0 after:z-0 after:rounded-card focus-visible:after:ring-2 focus-visible:after:ring-primary focus-visible:after:ring-inset"
           >
-            {product.name}
+            <ModelCodeText text={product.name} />
           </Link>
         </Heading>
         <bdi dir="ltr" className="self-start font-code text-xs font-semibold text-muted">

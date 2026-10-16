@@ -2,6 +2,7 @@ import { ArrowLeft, Clock3, ListOrdered, PlayCircle, Wrench } from "lucide-react
 import Image from "next/image";
 import Link from "next/link";
 
+import { ModelCodeText } from "@/components/shared/model-code-text";
 import { buttonVariants } from "@/components/ui/button";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
@@ -69,7 +70,7 @@ export function GuideHighlight({ guide, locale }: GuideHighlightProps) {
       <div className="flex flex-col items-start gap-4 p-6 sm:p-8 lg:p-10">
         <span className="text-label font-bold text-accent">{content.guideEyebrow}</span>
         <h2 className="font-display text-2xl leading-snug font-black text-balance sm:text-[1.75rem]">
-          {guide.title}
+          <ModelCodeText text={guide.title} />
         </h2>
         <p className="text-sm leading-7 text-white/75 sm:text-lead sm:leading-8">{guide.summary}</p>
         <ul className="flex flex-wrap gap-2 text-xs font-bold">

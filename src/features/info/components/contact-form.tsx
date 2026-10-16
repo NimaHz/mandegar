@@ -242,7 +242,7 @@ function DepartmentForm({ content, defaultDepartment, className }: DepartmentFor
               autoComplete="tel"
               placeholder={content.fields.phonePlaceholder}
               error={errorFor("phone")}
-              className="rtl:ps-3.5 rtl:pe-10 rtl:text-right"
+              className="rtl:ps-3.5 rtl:pe-10 rtl:text-end"
               {...register("phone", {
                 onBlur: (event: { target: { value: string } }) => onPhoneBlur(event.target.value),
               })}
@@ -255,7 +255,7 @@ function DepartmentForm({ content, defaultDepartment, className }: DepartmentFor
               dir="ltr"
               autoComplete="email"
               error={errorFor("email")}
-              className="rtl:ps-3.5 rtl:pe-10 rtl:text-right"
+              className="rtl:ps-3.5 rtl:pe-10 rtl:text-end"
               {...register("email")}
             />
             <Field

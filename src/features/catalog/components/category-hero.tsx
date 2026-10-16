@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { CategoryIcon } from "@/components/icons/category-icon";
+import { LinkPending } from "@/components/providers/navigation-progress";
 import { Markdown } from "@/components/shared/markdown";
 import type { Locale } from "@/i18n/config";
 import { localizePath } from "@/i18n/paths";
@@ -64,6 +65,7 @@ export function CategoryHero({ category, locale, breadcrumbs }: CategoryHeroProp
                     <span className="text-xs font-semibold text-muted">
                       {formatNumber(locale, child.productCount)}
                     </span>
+                    <LinkPending />
                   </Link>
                 ))}
               </nav>

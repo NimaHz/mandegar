@@ -33,7 +33,8 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ComparePage({ searchParams }: PageProps<"/[locale]/compare">) {
   const locale = await getLocale();
   const { page } = compareContent[locale];
-  const requested = parseModels((await searchParams)[MODELS_PARAM]);
+  const raw = (await searchParams)[MODELS_PARAM];
+  const requested = parseModels(raw);
   const products = requested.length > 0 ? await api.catalog.compare(locale, requested) : [];
 
   return (
@@ -44,7 +45,7 @@ export default async function ComparePage({ searchParams }: PageProps<"/[locale]
         className="container-page flex flex-col gap-6 pb-16 lg:pb-24"
       >
         <CompareStoreSync
-          requested={requested.length > 0}
+          requested={raw !== undefined}
           slugs={products.map((product) => product.slug)}
         />
         {products.length === 0 ? (

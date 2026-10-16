@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useId } from "react";
 
 import { springSnappy } from "@/components/motion/easing";
+import { LinkPending } from "@/components/providers/navigation-progress";
 import { bottomNav, isNavActive } from "@/config/navigation";
 import { useLocale } from "@/i18n/locale-provider";
 import { localizePath, stripLocalePrefix } from "@/i18n/paths";
@@ -61,6 +62,7 @@ export function BottomNav() {
                   <Icon className="size-5.5" strokeWidth={isActive || isWarranty ? 2.2 : 1.8} />
                 </span>
                 <span className="truncate">{content.bottomNav[item.label]}</span>
+                <LinkPending />
               </Link>
             </li>
           );

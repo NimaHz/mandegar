@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useId, useState } from "react";
 
 import { EASE_OUT_EXPO } from "@/components/motion/easing";
+import { LinkPending } from "@/components/providers/navigation-progress";
 import { cn } from "@/lib/cn";
 
 export interface FooterLinkGroup {
@@ -64,6 +65,7 @@ export function FooterAccordion({ groups, className }: FooterAccordionProps) {
                         className="flex h-10 items-center rounded-control px-3 text-sm font-semibold text-ink-soft transition-colors hover:bg-sunken hover:text-ink"
                       >
                         {link.label}
+                        <LinkPending />
                       </Link>
                     </li>
                   ))}

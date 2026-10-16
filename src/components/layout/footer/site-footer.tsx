@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { LogoMark } from "@/components/brand/logo-mark";
 import { SocialIcon } from "@/components/icons/social-icon";
+import { LinkPending } from "@/components/providers/navigation-progress";
 import { footerGroups } from "@/config/navigation";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
@@ -83,6 +84,7 @@ export async function SiteFooter({ locale }: { locale: Locale }) {
                     <li key={link.href}>
                       <Link href={link.href} className={linkClass}>
                         {link.label}
+                        <LinkPending />
                       </Link>
                     </li>
                   ))}

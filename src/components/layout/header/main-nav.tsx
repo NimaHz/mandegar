@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { useId } from "react";
 
 import { CategoryIcon } from "@/components/icons/category-icon";
+import { LinkPending, useTrackedNavigation } from "@/components/providers/navigation-progress";
 import { isNavActive, primaryNav, supportNav } from "@/config/navigation";
 import { useDictionary, useLocale } from "@/i18n/locale-provider";
 import { localizePath, stripLocalePrefix } from "@/i18n/paths";
@@ -30,6 +31,7 @@ export function MainNav({ categories }: { categories: NavCategory[] }) {
   const { header } = layoutContent[locale];
   const pathname = stripLocalePrefix(usePathname());
   const indicatorId = useId();
+  const { navigateFrom } = useTrackedNavigation();
   const productsActive =
     isNavActive(pathname, { href: routes.products }) ||
     pathname.startsWith(routes.category("")) ||
@@ -54,6 +56,7 @@ export function MainNav({ categories }: { categories: NavCategory[] }) {
                   <Link
                     href={localizePath(locale, routes.category(category.slug))}
                     onClick={close}
+                    onNavigate={navigateFrom(localizePath(locale, routes.category(category.slug)))}
                     className="group flex items-start gap-3 rounded-field p-2.5 transition-colors hover:bg-sunken"
                   >
                     <span className="icon-tile size-10 transition-[scale,background-color,color] duration-300 ease-(--ease-out-expo) group-hover:scale-105 group-hover:bg-primary group-hover:text-on-primary">
@@ -92,6 +95,7 @@ export function MainNav({ categories }: { categories: NavCategory[] }) {
                     key={href}
                     href={localizePath(locale, href)}
                     onClick={close}
+                    onNavigate={navigateFrom(localizePath(locale, href))}
                     className="group flex h-10 items-center gap-2.5 rounded-control px-3 text-sm font-semibold text-white/90 transition-colors hover:bg-white/10 hover:text-white"
                   >
                     <Icon className="size-4" aria-hidden />
@@ -120,6 +124,7 @@ export function MainNav({ categories }: { categories: NavCategory[] }) {
                 <Link
                   href={localizePath(locale, href)}
                   onClick={close}
+                  onNavigate={navigateFrom(localizePath(locale, href))}
                   className="group flex items-start gap-3 rounded-field p-2.5 transition-colors hover:bg-sunken"
                 >
                   <span className="icon-tile size-9 transition-[scale,background-color,color] duration-300 ease-(--ease-out-expo) group-hover:scale-105 group-hover:bg-primary group-hover:text-on-primary">
@@ -148,6 +153,7 @@ export function MainNav({ categories }: { categories: NavCategory[] }) {
           >
             {isActive && <NavIndicator layoutId={indicatorId} />}
             {nav[item.label]}
+            <LinkPending />
           </Link>
         );
       })}

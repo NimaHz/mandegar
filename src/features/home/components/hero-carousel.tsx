@@ -17,6 +17,7 @@ import {
 } from "react";
 
 import { EASE_OUT_EXPO } from "@/components/motion/easing";
+import { ModelCodeText } from "@/components/shared/model-code-text";
 import { buttonVariants } from "@/components/ui/button";
 import { useIsClient } from "@/hooks/use-is-client";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -257,7 +258,7 @@ export function HeroCarousel({ slides, secondaryHref }: HeroCarouselProps) {
                       </m.p>
                       <h2 className="overflow-hidden pb-1 font-display text-[2rem] leading-[1.3] font-black text-balance sm:text-[2.75rem] lg:text-[3.5rem] lg:leading-[1.2]">
                         <m.span variants={maskedLine} className="block">
-                          {slide.title}
+                          <ModelCodeText text={slide.title} />
                         </m.span>
                       </h2>
                       <m.p

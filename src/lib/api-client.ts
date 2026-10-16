@@ -33,6 +33,11 @@ export const apiClient = treaty<App>(origin, {
 
 const NETWORK_FAILURE: ApiFailure = { status: 0, code: "NETWORK", fields: {} };
 
+const STATUS_CODES: Partial<Record<number, string>> = {
+  413: "PAYLOAD_TOO_LARGE",
+  429: "RATE_LIMITED",
+};
+
 const stringFields = (value: unknown) =>
   isRecord(value)
     ? Object.fromEntries(
@@ -46,7 +51,7 @@ const failureOf = (status: number, value: unknown): ApiFailure => {
   const body = isRecord(value) && isRecord(value.error) ? value.error : {};
   return {
     status,
-    code: typeof body.code === "string" ? body.code : "INTERNAL",
+    code: typeof body.code === "string" ? body.code : (STATUS_CODES[status] ?? "INTERNAL"),
     fields: stringFields(body.fields),
   };
 };

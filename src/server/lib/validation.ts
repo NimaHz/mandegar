@@ -4,7 +4,10 @@ import { defaultLocale, locales } from "@/i18n/config";
 import { normalizeMobile, toLatinDigits } from "@/lib/persian";
 import { isProvinceCode } from "@/lib/provinces";
 
+import { HttpError } from "./http-error";
 import { MAX_PAGE } from "./pagination";
+
+const MAX_INPUT_DEPTH = 32;
 
 const requiredText = (max: number) => z.string().trim().min(1).max(max);
 
@@ -16,15 +19,19 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> => {
 
 const withoutNulBytes = (value: string) => value.replaceAll("\u0000", "");
 
-export const stripNulBytes = (value: unknown): unknown => {
+export const stripNulBytes = (value: unknown, depth = 0): unknown => {
   if (typeof value === "string") return withoutNulBytes(value);
+  const nested = Array.isArray(value) || isPlainObject(value);
+  if (nested && depth >= MAX_INPUT_DEPTH) {
+    throw new HttpError(400, "BAD_REQUEST", "Request is nested too deeply");
+  }
   if (Array.isArray(value)) {
     const entries: unknown[] = value;
     entries.forEach((entry, index) => {
-      entries[index] = stripNulBytes(entry);
+      entries[index] = stripNulBytes(entry, depth + 1);
     });
   } else if (isPlainObject(value)) {
-    for (const [key, entry] of Object.entries(value)) value[key] = stripNulBytes(entry);
+    for (const [key, entry] of Object.entries(value)) value[key] = stripNulBytes(entry, depth + 1);
   }
   return value;
 };

@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { RevealGroup, RevealItem } from "@/components/motion/reveal";
+import { ModelCodeText } from "@/components/shared/model-code-text";
 import { SectionHeading } from "@/components/ui/section-heading";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
@@ -82,7 +83,7 @@ export function InstallationGuides({ guides, locale }: InstallationGuidesProps) 
                         href={localizePath(locale, routes.guide(guide.slug))}
                         className="outline-none after:absolute after:inset-0 after:rounded-card focus-visible:after:ring-2 focus-visible:after:ring-primary focus-visible:after:ring-inset"
                       >
-                        {guide.title}
+                        <ModelCodeText text={guide.title} />
                       </Link>
                     </h3>
                     <p className="line-clamp-2 text-label leading-6 text-body">{guide.summary}</p>

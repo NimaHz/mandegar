@@ -2,6 +2,8 @@ import { ChevronLeft } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 
+import { LinkPending } from "@/components/providers/navigation-progress";
+
 interface Crumb {
   label: string;
   href?: Route;
@@ -22,6 +24,7 @@ export function Breadcrumbs({ items, label }: BreadcrumbsProps) {
             {item.href ? (
               <Link href={item.href} className="transition-colors hover:text-primary">
                 {item.label}
+                <LinkPending />
               </Link>
             ) : (
               <span aria-current="page" className="text-ink">

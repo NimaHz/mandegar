@@ -2,6 +2,7 @@ import { Package } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
+import { ModelCodeText } from "@/components/shared/model-code-text";
 import { SectionHeading } from "@/components/ui/section-heading";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
@@ -59,7 +60,7 @@ export function RelatedProducts({ products, locale }: RelatedProductsProps) {
                     aria-label={fill(content.viewProduct, { name: product.name })}
                     className={stretchedLink}
                   >
-                    {product.name}
+                    <ModelCodeText text={product.name} />
                   </Link>
                 </h3>
               </div>

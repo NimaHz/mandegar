@@ -3,6 +3,7 @@
 import { Columns3, Search, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
+import { LinkPending } from "@/components/providers/navigation-progress";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
 import { useLocale } from "@/i18n/locale-provider";
@@ -46,6 +47,7 @@ export function HeaderActions() {
             {formatNumber(locale, shownCount)}
           </span>
         )}
+        <LinkPending />
       </Link>
       <ThemeToggle className="max-lg:hidden" />
       <Link
@@ -57,6 +59,7 @@ export function HeaderActions() {
           aria-hidden
         />
         {header.warrantyCta}
+        <LinkPending />
       </Link>
       <Link
         href={localizePath(locale, routes.warranty)}
@@ -64,6 +67,7 @@ export function HeaderActions() {
         className={cn(iconButtonClass, "text-primary md:hidden")}
       >
         <ShieldCheck className="size-5" strokeWidth={1.8} aria-hidden />
+        <LinkPending />
       </Link>
     </div>
   );

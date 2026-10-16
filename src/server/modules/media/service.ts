@@ -79,6 +79,14 @@ const storageKeyFor = (ext: string, scope: MediaScope, now = new Date()) => {
   return scope === "library" ? key : privateStorageKey(key);
 };
 
+const cleanFileName = (name: string | null | undefined) => {
+  const clean = name
+    ?.replace(/\p{Cc}/gu, "")
+    .trim()
+    .slice(0, 200);
+  return clean || null;
+};
+
 const findLibraryCopy = async (hash: string) => {
   const [row] = await getDb()
     .select()
@@ -137,14 +145,19 @@ export const ingestMedia = async (data: Uint8Array, options: IngestOptions) => {
       height: prepared.height,
       sha256: hash,
       alt: options.alt ?? { fa: "", en: "" },
-      originalName: options.originalName?.slice(0, 200) ?? null,
+      originalName: cleanFileName(options.originalName),
       uploadedBy: options.uploadedBy ?? null,
     });
   const [row] = await (
     shared
       ? insert.onConflictDoNothing({ target: media.sha256, where: sql`scope = 'library'` })
       : insert
-  ).returning();
+  )
+    .returning()
+    .catch(async (error: unknown) => {
+      await storage.remove(storageKey).catch((failure: unknown) => console.error(failure));
+      throw error;
+    });
   if (row) return row;
   await storage.remove(storageKey);
   const raced = await findLibraryCopy(hash);

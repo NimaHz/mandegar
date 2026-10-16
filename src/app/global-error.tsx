@@ -4,7 +4,7 @@ import "@/styles/globals.css";
 
 import { House, RotateCcw, TriangleAlert } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { StatusScreen } from "@/features/info/components/status-screen";
@@ -14,7 +14,7 @@ import { en } from "@/i18n/dictionaries/en";
 import { fa } from "@/i18n/dictionaries/fa";
 import { localizePath } from "@/i18n/paths";
 import { routes } from "@/lib/routes";
-import { themeBootScript } from "@/lib/theme";
+import { applyStoredTheme } from "@/lib/theme";
 import { fontVariables } from "@/styles/fonts";
 
 const dictionaries = { fa, en } as const;
@@ -30,6 +30,8 @@ export default function GlobalError({ error, retry }: GlobalErrorProps) {
   const { common, site } = dictionaries[locale];
   const { hreflang, dir } = localeMeta[locale];
 
+  useLayoutEffect(() => applyStoredTheme(), []);
+
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -37,7 +39,6 @@ export default function GlobalError({ error, retry }: GlobalErrorProps) {
   return (
     <html lang={hreflang} dir={dir} className={fontVariables} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
         <title>{`${common.errorTitle} | ${site.name}`}</title>
       </head>
       <body className="min-h-dvh overflow-x-clip">

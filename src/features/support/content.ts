@@ -164,6 +164,7 @@ export interface TrackContent {
     privacy: string;
   };
   tokenInvalid: { title: string; body: string };
+  tokenFailed: { title: string };
   view: {
     codeLabel: string;
     type: string;
@@ -196,6 +197,9 @@ export interface TrackContent {
     sent: string;
     empty: string;
     closed: string;
+    rateLimited: string;
+    tooLarge: string;
+    fileType: string;
     generic: string;
     cannotReply: string;
     closedNote: string;
@@ -912,6 +916,9 @@ export const trackContent: Record<Locale, TrackContent> = {
       title: "این لینک معتبر نیست",
       body: "شاید لینک ناقص کپی شده باشد. با کد رهگیری و شماره موبایل پیگیری کن.",
     },
+    tokenFailed: {
+      title: "فعلاً نتوانستیم این درخواست را باز کنیم",
+    },
     view: {
       codeLabel: "کد رهگیری",
       type: "نوع درخواست",
@@ -944,6 +951,9 @@ export const trackContent: Record<Locale, TrackContent> = {
       sent: "پاسخت ارسال شد",
       empty: "پیامت را بنویس.",
       closed: "این درخواست بسته شده و دیگر پاسخ نمی‌پذیرد.",
+      rateLimited: "از این اتصال پاسخ‌های زیادی فرستاده شده است. کمی بعد دوباره امتحان کن.",
+      tooLarge: "حجم پیوست‌ها زیاد است؛ یکی را حذف کن یا فایل کوچک‌تری بگذار.",
+      fileType: "یکی از پیوست‌ها پذیرفته نشد؛ آن را حذف کن و فقط عکس یا PDF سالم بفرست.",
       generic: "پاسخ ارسال نشد. دوباره امتحان کن.",
       cannotReply:
         "برای پاسخ دادن، این صفحه را از لینک اختصاصی پیگیری که در رسید درخواست گرفتی باز کن.",
@@ -979,6 +989,9 @@ export const trackContent: Record<Locale, TrackContent> = {
       title: "This link isn't valid",
       body: "It may have been copied incompletely. Track with your code and mobile number instead.",
     },
+    tokenFailed: {
+      title: "We couldn't open this request just now",
+    },
     view: {
       codeLabel: "Tracking code",
       type: "Request type",
@@ -1011,6 +1024,10 @@ export const trackContent: Record<Locale, TrackContent> = {
       sent: "Reply sent",
       empty: "Write your message first.",
       closed: "This request is closed and no longer takes replies.",
+      rateLimited: "Too many replies from this connection. Please try again a little later.",
+      tooLarge: "The attachments are too large. Remove one or use a smaller file.",
+      fileType:
+        "One of the attachments wasn't accepted. Remove it and send only intact photos or PDFs.",
       generic: "Your reply wasn't sent. Please try again.",
       cannotReply: "To reply, open this page from the private tracking link on your receipt.",
       closedNote: "This request is closed. If something new comes up, send a new request.",

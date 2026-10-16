@@ -78,8 +78,10 @@ const needsProduct = (type: string) => PRODUCT_TYPES.includes(type);
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-const isPastIsoDate = (value: string) =>
-  ISO_DATE.test(value) && !Number.isNaN(Date.parse(value)) && value <= todayIsoDate();
+export const isIsoDate = (value: string) =>
+  ISO_DATE.test(value) && !Number.isNaN(Date.parse(value));
+
+const isPastIsoDate = (value: string) => isIsoDate(value) && value <= todayIsoDate();
 
 const text = (min: number, max: number, short: string, long = short) =>
   z.string().trim().min(min, short).max(max, long);

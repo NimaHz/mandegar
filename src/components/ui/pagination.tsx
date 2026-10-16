@@ -2,6 +2,7 @@ import { ChevronsLeft, ChevronsRight } from "lucide-react";
 import Link from "next/link";
 import type { UrlObject } from "url";
 
+import { LinkPending } from "@/components/providers/navigation-progress";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/fa";
 import { fill } from "@/i18n/fill";
@@ -45,6 +46,7 @@ export function Pagination({ page, pageCount, createHref, locale, labels }: Pagi
           className={arrowClass}
         >
           <ChevronsRight className="size-4 ltr:rotate-180" aria-hidden />
+          <LinkPending />
         </Link>
       )}
       <div className="flex overflow-hidden rounded-control border border-ink bg-surface">
@@ -63,18 +65,21 @@ export function Pagination({ page, pageCount, createHref, locale, labels }: Pagi
               )}
             >
               {number}
+              <LinkPending />
             </Link>
           );
         })}
         {!pages.includes(pageCount) && (
           <Link href={createHref(pageCount)} className={cn(cell, "border-s border-ink px-4")}>
             {labels.paginationLast}
+            <LinkPending />
           </Link>
         )}
       </div>
       {page < pageCount && (
         <Link href={createHref(page + 1)} aria-label={labels.paginationNext} className={arrowClass}>
           <ChevronsLeft className="size-4 ltr:rotate-180" aria-hidden />
+          <LinkPending />
         </Link>
       )}
     </nav>

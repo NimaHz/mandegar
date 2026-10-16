@@ -71,7 +71,10 @@ function ChapterList({ chapters, activeIndex, labels, onSelect }: ChapterListPro
   return (
     <nav aria-label={labels.chapters} className="flex flex-col gap-2">
       <p className="text-label font-bold text-ink">{labels.chapters}</p>
-      <ol className="-mx-1 scrollbar-none flex gap-2 overflow-x-auto px-1 pb-1">
+      <ol
+        tabIndex={onSelect ? undefined : 0}
+        className="-mx-1 scrollbar-none flex gap-2 overflow-x-auto px-1 pb-1"
+      >
         {chapters.map((chapter, index) => {
           const clock = formatClock(locale, chapter.startSec);
           const active = index === activeIndex;

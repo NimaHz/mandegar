@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { RevealGroup, RevealItem } from "@/components/motion/reveal";
+import { ModelCodeText } from "@/components/shared/model-code-text";
 import { Badge } from "@/components/ui/badge";
 import { SectionHeading } from "@/components/ui/section-heading";
 import type { Locale } from "@/i18n/config";
@@ -62,7 +63,7 @@ export function LatestPosts({ posts, locale }: LatestPostsProps) {
                     href={localizePath(locale, routes.post(post.slug))}
                     className="outline-none after:absolute after:inset-0 after:rounded-card focus-visible:after:ring-2 focus-visible:after:ring-primary focus-visible:after:ring-inset"
                   >
-                    {post.title}
+                    <ModelCodeText text={post.title} />
                   </Link>
                 </h3>
                 <p className="line-clamp-2 text-label leading-6 text-body">{post.excerpt}</p>

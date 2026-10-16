@@ -2,6 +2,8 @@ import { Marked, type Tokens } from "marked";
 
 import { cn } from "@/lib/cn";
 
+import { MODEL_CODE } from "./model-code-text";
+
 const escapeMarkup = (value: string) =>
   value
     .replaceAll("<", "&lt;")
@@ -20,8 +22,6 @@ const SAFE_URL = /^(https?:|mailto:|tel:|\/(?![/\\])|#)/i;
 const URL_NOISE = /[\p{Cc}\s]/u;
 
 const isSafeUrl = (href: string) => SAFE_URL.test(href) && !URL_NOISE.test(href);
-
-const MODEL_CODE = /\b([A-Z]+-\d[\dA-Z]*)\b/g;
 
 const headingSlug = (text: string) =>
   text

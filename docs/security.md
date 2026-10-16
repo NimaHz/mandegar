@@ -67,6 +67,8 @@ Two layers:
   hour; ticket replies 20 per hour; ticket tracking 20 misses per 10 minutes; warranty lookups 10
   failures per minute and 50 per day. Responses are `429` with `Retry-After`.
 - **nginx** (`limit_req`): `/api/auth`, `/api/tickets`, `/api/contact` and `/api/warranty` per IP.
+  Its rejections use the app's JSON error shape: `429` `RATE_LIMITED`, and `413`
+  `PAYLOAD_TOO_LARGE` for a body over `client_max_body_size`, so the forms show the right message.
 
 The client IP comes from `X-Real-IP`, which nginx sets from the connection. Behind a CDN, configure
 `set_real_ip_from` (see docs/deploy.md), otherwise all visitors share one bucket.

@@ -35,7 +35,7 @@ export function PolicyPlans({ locale, policies, content }: PolicyPlansProps) {
                 <header className="flex flex-wrap items-end justify-between gap-4">
                   <div className="flex flex-col gap-2">
                     <h3 className="font-display text-xl font-black text-ink">{policy.name}</h3>
-                    {policy.partsMonths !== null && (
+                    {policy.partsMonths > 0 && (
                       <span className="self-start rounded-full bg-chip px-3 py-1 text-xs font-semibold text-ink-soft">
                         {fill(content.parts, { count: formatNumber(locale, policy.partsMonths) })}
                       </span>

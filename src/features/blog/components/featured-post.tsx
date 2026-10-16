@@ -1,6 +1,7 @@
 import { ArrowLeft, Sparkles } from "lucide-react";
 import Link from "next/link";
 
+import { ModelCodeText } from "@/components/shared/model-code-text";
 import { Badge } from "@/components/ui/badge";
 import type { Locale } from "@/i18n/config";
 import { localizePath } from "@/i18n/paths";
@@ -55,7 +56,7 @@ export function FeaturedPost({ post, locale, layout = "tall" }: FeaturedPostProp
         </div>
         <h2 className="font-display text-[1.5rem] leading-[1.5] font-black text-balance text-ink sm:text-[1.875rem]">
           <Link href={localizePath(locale, routes.post(post.slug))} className={stretchedLink}>
-            {post.title}
+            <ModelCodeText text={post.title} />
           </Link>
         </h2>
         <p className="line-clamp-3 max-w-2xl text-lead leading-8 text-pretty text-body">

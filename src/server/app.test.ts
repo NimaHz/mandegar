@@ -26,6 +26,7 @@ import { productionEnvIssues } from "@/server/env";
 import { randomToken, sha256 } from "@/server/lib/crypto";
 import { isUniqueViolation } from "@/server/lib/db-errors";
 import { issueFormToken } from "@/server/lib/form-guard";
+import { ingestMedia } from "@/server/modules/media/service";
 import { getStorage } from "@/server/storage";
 import { field, loadTestEnv, postJson, request, testIp } from "@/server/testing/http";
 import { warrantyService } from "@/services/db/warranty";
@@ -387,6 +388,22 @@ describe("warranty lookup", () => {
     assert.equal(field(field(wrongType.json, "error"), "code"), "UNSUPPORTED_MEDIA");
   });
 
+  it("answers deeply nested input with 400 instead of overflowing the stack", async () => {
+    const depth = 20_000;
+    const nested = await request("/warranty/lookup", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: `${"[".repeat(depth)}${"]".repeat(depth)}`,
+      ip: testIp(),
+    });
+    assert.equal(nested.status, 400, JSON.stringify(nested.json));
+    assert.equal(field(field(nested.json, "error"), "code"), "BAD_REQUEST");
+    const form = new FormData();
+    form.set(Array.from({ length: depth }, () => "a").join("."), "x");
+    const multipart = await request("/contact", { method: "POST", body: form, ip: testIp() });
+    assert.equal(multipart.status, 400, JSON.stringify(multipart.json));
+  });
+
   it("rejects cross-origin writes", async () => {
     const { app } = await import("@/server/app");
     const response = await app.handle(
@@ -425,8 +442,8 @@ describe("warranty lookup", () => {
       ]);
       const listed = fa.filter((policy) => policy.months === months);
       assert.deepEqual(
-        listed.map((policy) => [policy.id, policy.name]),
-        [[ids[1], `current ${suffix}`]],
+        listed.map((policy) => [policy.id, policy.name, policy.partsMonths]),
+        [[ids[1], `current ${suffix}`, months]],
       );
       assert.deepEqual(
         en.filter((policy) => policy.months === months).map((policy) => policy.name),
@@ -620,6 +637,50 @@ describe("tickets", () => {
       .from(media)
       .where(eq(media.originalName, name));
     assert.deepEqual(left, []);
+  });
+
+  it("stores an attachment name without control characters", async () => {
+    const name = `scan-${suffix}`;
+    const form = new FormData();
+    form.set("token", state.accessToken);
+    form.set("body", "The scanned invoice.");
+    const pdf = new TextEncoder().encode(
+      `%PDF-1.4\n% ${suffix} scan\n1 0 obj << >> endobj\n%%EOF\n`,
+    );
+    form.append(
+      "attachments",
+      new File([pdf], `${name}\u0000\u0007.pdf`, { type: "application/pdf" }),
+    );
+    const response = await request(`/tickets/${state.trackingCode}/messages`, {
+      method: "POST",
+      body: form,
+      ip,
+    });
+    assert.equal(response.status, 200, JSON.stringify(response.json));
+    const stored = await getDb()
+      .select({ id: media.id })
+      .from(media)
+      .where(eq(media.originalName, `${name}.pdf`));
+    assert.equal(stored.length, 1);
+  });
+
+  it("removes the stored file when its media row cannot be written", async (t) => {
+    const storage = await getStorage();
+    const put = t.mock.method(storage, "put");
+    const remove = t.mock.method(storage, "remove");
+    const pdf = new TextEncoder().encode(
+      `%PDF-1.4\n% ${suffix} orphan\n1 0 obj << >> endobj\n%%EOF\n`,
+    );
+    await assert.rejects(
+      ingestMedia(pdf, { kinds: ["document"], scope: "ticket", uploadedBy: crypto.randomUUID() }),
+    );
+    const key = put.mock.calls[0]?.arguments[0];
+    assert.ok(key);
+    assert.deepEqual(
+      remove.mock.calls.map((call) => call.arguments[0]),
+      [key],
+    );
+    assert.equal(await storage.get(key, null), null);
   });
 
   it("keeps the open-request limit per phone under concurrent submissions", async () => {

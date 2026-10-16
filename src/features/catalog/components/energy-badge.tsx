@@ -30,7 +30,7 @@ export function EnergyBadge({ value, label, size = "md", className }: EnergyBadg
       aria-hidden={label ? undefined : true}
       title={label}
       className={cn(
-        "inline-flex shrink-0 items-center rounded-s-[0.3125rem] font-code font-extrabold tracking-tight",
+        "relative inline-flex shrink-0 items-center rounded-s-[0.3125rem] font-code font-extrabold tracking-tight",
         "ltr:[clip-path:polygon(0_0,calc(100%-0.5rem)_0,100%_50%,calc(100%-0.5rem)_100%,0_100%)]",
         "rtl:[clip-path:polygon(0.5rem_0,100%_0,100%_100%,0.5rem_100%,0_50%)]",
         energyTones[value],

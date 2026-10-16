@@ -12,10 +12,10 @@ import { AnimatePresence, m } from "motion/react";
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
 
 import { EASE_OUT_EXPO } from "@/components/motion/easing";
+import { useTrackedNavigation } from "@/components/providers/navigation-progress";
 import { Portal } from "@/components/ui/portal";
 import { useModal } from "@/hooks/use-modal";
 import { useDictionary, useLocale } from "@/i18n/locale-provider";
@@ -38,7 +38,7 @@ export function SearchDialog() {
   const isOpen = useSearchDialog((state) => state.isOpen);
   const open = useSearchDialog((state) => state.open);
   const close = useSearchDialog((state) => state.close);
-  const router = useRouter();
+  const { navigate, navigateFrom } = useTrackedNavigation();
   const dialogRef = useRef<HTMLDivElement>(null);
   const listId = useId();
   const [query, setQuery] = useState("");
@@ -73,7 +73,7 @@ export function SearchDialog() {
       event.preventDefault();
       const hit = hits[highlighted];
       dismiss();
-      router.push(
+      navigate(
         hit
           ? (hit.href as Route)
           : (`${localizePath(locale, routes.products)}?q=${encodeURIComponent(term)}` as Route),
@@ -166,6 +166,7 @@ export function SearchDialog() {
                           key={href}
                           href={localizePath(locale, href)}
                           onClick={dismiss}
+                          onNavigate={navigateFrom(localizePath(locale, href))}
                           className="inline-flex h-9 items-center gap-2 rounded-full border border-line bg-raised px-3.5 text-sm font-semibold text-ink-soft transition-colors hover:border-primary/40 hover:text-primary"
                         >
                           <Icon className="size-4" aria-hidden />
@@ -200,6 +201,7 @@ export function SearchDialog() {
                         <Link
                           href={hit.href as Route}
                           onClick={dismiss}
+                          onNavigate={navigateFrom(hit.href as Route)}
                           onMouseEnter={() => setActive(index)}
                           className={cn(
                             "flex items-center gap-3 rounded-field p-2 transition-colors",

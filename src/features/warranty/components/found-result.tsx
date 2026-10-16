@@ -12,6 +12,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 
+import { ModelCodeText } from "@/components/shared/model-code-text";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import type { Locale } from "@/i18n/config";
@@ -155,10 +156,12 @@ export function FoundResult({ match, locale, content, headingId }: FoundResultPr
                 href={productHref}
                 className={cn(nameClass, "transition-colors hover:text-primary")}
               >
-                {product.name}
+                <ModelCodeText text={product.name} />
               </Link>
             ) : (
-              <p className={nameClass}>{product.name}</p>
+              <p className={nameClass}>
+                <ModelCodeText text={product.name} />
+              </p>
             )}
           </div>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-3.5">
@@ -184,7 +187,7 @@ export function FoundResult({ match, locale, content, headingId }: FoundResultPr
                     <span className="text-white/65">{result.monthsLabel}</span>
                   </span>
                 </p>
-                {match.partsMonths !== null && (
+                {match.partsMonths > 0 && (
                   <span className="mb-1 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 ring-1 ring-white/15">
                     {fill(result.parts, { count: formatNumber(locale, match.partsMonths) })}
                   </span>

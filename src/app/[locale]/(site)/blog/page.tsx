@@ -102,7 +102,7 @@ export default async function BlogPage({ searchParams }: PageProps<"/[locale]/bl
             ]}
             countLabel={pluralize(locale, result.total, content.count)}
           />
-          <PendingRegion>
+          <PendingRegion className="flex flex-col gap-6">
             {result.items.length === 0 ? (
               <EmptyState
                 icon={BookOpenText}
@@ -125,19 +125,19 @@ export default async function BlogPage({ searchParams }: PageProps<"/[locale]/bl
                 featured={result.page === 1}
               />
             )}
+            <div className="mt-4">
+              <Pagination
+                page={result.page}
+                pageCount={result.pageCount}
+                locale={locale}
+                labels={ui}
+                createHref={(page) => ({
+                  pathname: blogPath,
+                  search: serializeBlogSearchParams({ ...filters, page: page === 1 ? null : page }),
+                })}
+              />
+            </div>
           </PendingRegion>
-          <div className="mt-4">
-            <Pagination
-              page={result.page}
-              pageCount={result.pageCount}
-              locale={locale}
-              labels={ui}
-              createHref={(page) => ({
-                pathname: blogPath,
-                search: serializeBlogSearchParams({ ...filters, page: page === 1 ? null : page }),
-              })}
-            />
-          </div>
         </section>
       </div>
     </TransitionProvider>

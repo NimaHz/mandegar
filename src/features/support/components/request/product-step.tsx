@@ -214,6 +214,7 @@ export function ProductStep({ locale, models, copy }: ProductStepProps) {
         name="purchaseDate"
         render={({ field, fieldState }) => (
           <PurchaseDateInput
+            ref={field.ref}
             locale={locale}
             value={field.value}
             onChange={field.onChange}

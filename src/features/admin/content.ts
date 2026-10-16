@@ -511,7 +511,7 @@ export const adminContent = {
       namePlaceholder: { fa: "مراقبت ماندگار ۱۸", en: "Mandegar Care 18" },
       months: "مدت گارانتی (ماه)",
       partsMonths: "تأمین قطعه (ماه)",
-      partsHint: "خالی یعنی با مدت گارانتی برابر است",
+      partsHint: "خالی یعنی با مدت گارانتی برابر است؛ ۰ یعنی تأمین قطعه در سایت نمایش داده نمی‌شود",
       effectiveFrom: "اعتبار از تاریخ",
       startRule: "شروع گارانتی",
       coverage: "موارد تحت پوشش",
