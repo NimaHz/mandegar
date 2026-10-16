@@ -43,7 +43,9 @@ export function FaqSheet({ faq, onClose, readOnly }: FaqSheetProps) {
     const saved = await run(
       () =>
         faq
-          ? apiClient.api.admin.faqs({ id: faq.id }).patch(values)
+          ? apiClient.api.admin
+              .faqs({ id: faq.id })
+              .patch({ ...values, expectedUpdatedAt: faq.updatedAt })
           : apiClient.api.admin.faqs.post(values),
       { success: copy.saved, onError: (error) => applyFieldErrors(form.setError, error) },
     );

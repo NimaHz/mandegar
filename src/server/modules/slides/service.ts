@@ -7,6 +7,7 @@ import { routes } from "@/lib/routes";
 import { getDb } from "@/server/db/client";
 import { heroSlides } from "@/server/db/schema";
 import { cacheTags } from "@/server/lib/cache-tags";
+import { assertUnchanged } from "@/server/lib/concurrency";
 import { guardDelete, guardWrite } from "@/server/lib/db-errors";
 import { notFound, orNotFound, ValidationFailure } from "@/server/lib/http-error";
 import { revalidateContent } from "@/server/lib/revalidate";
@@ -54,12 +55,6 @@ const revalidateSlides = (rows: SlideRow[]) => {
   );
 };
 
-const requireSlide = async (id: string) => {
-  const [row] = await getDb().select().from(heroSlides).where(eq(heroSlides.id, id));
-  if (!row) throw notFound("Slide not found");
-  return row;
-};
-
 export const createSlide = async (input: z.output<typeof slideInputSchema>) => {
   const values = {
     ...input,
@@ -74,22 +69,34 @@ export const createSlide = async (input: z.output<typeof slideInputSchema>) => {
   return orNotFound(await slidesAdmin.get(row.id));
 };
 
-export const updateSlide = async (id: string, patch: z.output<typeof slidePatchSchema>) => {
-  const before = await requireSlide(id);
+export const updateSlide = async (
+  id: string,
+  { expectedUpdatedAt, ...patch }: z.output<typeof slidePatchSchema>,
+) => {
   const values = toValues(patch);
-  assertWindow({
-    startsAt: values.startsAt === undefined ? before.startsAt : values.startsAt,
-    endsAt: values.endsAt === undefined ? before.endsAt : values.endsAt,
-  });
   await assertSlideMedia(patch);
-  const [row] = await guardWrite(() =>
-    getDb()
-      .update(heroSlides)
-      .set({ ...values, updatedAt: new Date() })
-      .where(eq(heroSlides.id, id))
-      .returning(),
+  const [before, row] = await guardWrite(() =>
+    getDb().transaction(async (tx) => {
+      const [current] = await tx
+        .select()
+        .from(heroSlides)
+        .where(eq(heroSlides.id, id))
+        .for("update");
+      if (!current) throw notFound("Slide not found");
+      assertUnchanged(current.updatedAt, expectedUpdatedAt);
+      assertWindow({
+        startsAt: values.startsAt === undefined ? current.startsAt : values.startsAt,
+        endsAt: values.endsAt === undefined ? current.endsAt : values.endsAt,
+      });
+      const [updated] = await tx
+        .update(heroSlides)
+        .set({ ...values, updatedAt: new Date() })
+        .where(eq(heroSlides.id, id))
+        .returning();
+      if (!updated) throw notFound("Slide not found");
+      return [current, updated] as const;
+    }),
   );
-  if (!row) throw notFound("Slide not found");
   revalidateSlides([before, row]);
   return orNotFound(await slidesAdmin.get(id));
 };

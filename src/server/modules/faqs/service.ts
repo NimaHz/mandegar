@@ -7,6 +7,7 @@ import { routes } from "@/lib/routes";
 import { getDb } from "@/server/db/client";
 import { faqs } from "@/server/db/schema";
 import { cacheTags } from "@/server/lib/cache-tags";
+import { assertUnchanged } from "@/server/lib/concurrency";
 import { guardWrite } from "@/server/lib/db-errors";
 import { notFound, orNotFound } from "@/server/lib/http-error";
 import { revalidateContent } from "@/server/lib/revalidate";
@@ -29,15 +30,25 @@ export const createFaq = async (input: z.output<typeof faqInputSchema>) => {
   return orNotFound(await faqsAdmin.get(row.id));
 };
 
-export const updateFaq = async (id: string, patch: z.output<typeof faqPatchSchema>) => {
-  const [row] = await guardWrite(() =>
-    getDb()
-      .update(faqs)
-      .set({ ...patch, updatedAt: new Date() })
-      .where(eq(faqs.id, id))
-      .returning({ id: faqs.id }),
+export const updateFaq = async (
+  id: string,
+  { expectedUpdatedAt, ...patch }: z.output<typeof faqPatchSchema>,
+) => {
+  await guardWrite(() =>
+    getDb().transaction(async (tx) => {
+      const [row] = await tx
+        .select({ updatedAt: faqs.updatedAt })
+        .from(faqs)
+        .where(eq(faqs.id, id))
+        .for("update");
+      if (!row) throw notFound("FAQ not found");
+      assertUnchanged(row.updatedAt, expectedUpdatedAt);
+      await tx
+        .update(faqs)
+        .set({ ...patch, updatedAt: new Date() })
+        .where(eq(faqs.id, id));
+    }),
   );
-  if (!row) throw notFound("FAQ not found");
   revalidateFaqs();
   return orNotFound(await faqsAdmin.get(id));
 };

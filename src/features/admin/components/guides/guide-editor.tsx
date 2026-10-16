@@ -5,7 +5,7 @@ import { Trash } from "lucide-react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { FormProvider, useForm, useWatch } from "react-hook-form";
+import { FormProvider, useWatch } from "react-hook-form";
 
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { apiClient } from "@/lib/api-client";
@@ -17,6 +17,8 @@ import type { AdminApiError } from "../../lib/api-error";
 import { clockValue, parseClock } from "../../lib/format";
 import { applyFieldErrors } from "../../lib/server-errors";
 import { useAdminMutation } from "../../lib/use-admin-mutation";
+import { useEditorForm } from "../../lib/use-editor-form";
+import { leaveGuardedEntry } from "../../lib/use-unsaved-guard";
 import { zodOptions } from "../../lib/zod";
 import {
   blankText,
@@ -41,7 +43,7 @@ import { PanelCard } from "../panel-card";
 import { PanelHeading } from "../panel-heading";
 
 const copy = adminContent.guides;
-const { common } = adminContent;
+const { common, conflict } = adminContent;
 
 interface GuideEditorProps {
   guide: AdminGuide | null;
@@ -111,7 +113,10 @@ function TextListSection({
 export function GuideEditor({ guide, canWrite }: GuideEditorProps) {
   const router = useRouter();
   const { run, pending } = useAdminMutation();
-  const form = useForm<GuideFormInput, unknown, GuideFormValues>({
+  const { form, isDirty, capture, commit, discard, rebase } = useEditorForm<
+    GuideFormInput,
+    GuideFormValues
+  >({
     resolver: zodResolver(guideFormSchema, zodOptions),
     defaultValues: toForm(guide),
   });
@@ -119,8 +124,18 @@ export function GuideEditor({ guide, canWrite }: GuideEditorProps) {
   const kind = useWatch({ control: form.control, name: "video.kind" });
   const steps: unknown = useWatch({ control: form.control, name: "steps" });
 
+  const reload = async () => {
+    if (!guide) return;
+    const latest = await run(() => apiClient.api.admin.guides({ id: guide.id }).get(), {
+      success: conflict.reloaded,
+      description: conflict.reloadedHint,
+      onSuccess: (data) => setVersion(data.updatedAt),
+    });
+    if (latest) rebase(toForm(latest));
+  };
+
   const onSubmit = form.handleSubmit(async (values) => {
-    const snapshot = form.getValues();
+    const snapshot = capture();
     const body = toBody(values);
     const onError = (error: AdminApiError) => applyFieldErrors(form.setError, error);
     if (guide) {
@@ -133,9 +148,10 @@ export function GuideEditor({ guide, canWrite }: GuideEditorProps) {
           success: copy.saved,
           onSuccess: (data) => setVersion(data.updatedAt),
           onError,
+          onStale: () => void reload(),
         },
       );
-      if (saved) form.reset(snapshot);
+      if (saved) commit(snapshot, toForm(saved));
       return;
     }
     const created = await run(() => apiClient.api.admin.guides.post(body), {
@@ -144,7 +160,8 @@ export function GuideEditor({ guide, canWrite }: GuideEditorProps) {
       onError,
     });
     if (created) {
-      form.reset(snapshot);
+      commit(snapshot);
+      await leaveGuardedEntry();
       router.replace(adminRoutes.guide(created.id) as Route);
     }
   });
@@ -156,7 +173,8 @@ export function GuideEditor({ guide, canWrite }: GuideEditorProps) {
       refresh: false,
     });
     if (done) {
-      form.reset(form.getValues());
+      commit(capture());
+      await leaveGuardedEntry();
       router.replace(adminRoutes.guides);
       router.refresh();
     }
@@ -333,9 +351,9 @@ export function GuideEditor({ guide, canWrite }: GuideEditorProps) {
 
               {canWrite && (
                 <SaveBar
-                  dirty={form.formState.isDirty}
+                  dirty={isDirty}
                   pending={pending}
-                  onDiscard={() => form.reset()}
+                  onDiscard={discard}
                   submitLabel={guide ? common.saveChanges : common.create}
                   isNew={!guide}
                 />

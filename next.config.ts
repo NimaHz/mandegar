@@ -37,6 +37,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  cacheHandler: isProduction ? require.resolve("./src/server/cache-handler.mjs") : undefined,
   reactStrictMode: true,
   reactCompiler: true,
   typedRoutes: true,

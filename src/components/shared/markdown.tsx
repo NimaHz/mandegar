@@ -2,13 +2,18 @@ import { Marked, type Tokens } from "marked";
 
 import { cn } from "@/lib/cn";
 
-const escapeHtml = (value: string) =>
+const escapeMarkup = (value: string) =>
   value
-    .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+
+const escapeHtml = (value: string) => escapeMarkup(value.replaceAll("&", "&amp;"));
+
+const BARE_AMPERSAND = /&(?!#\d{1,7};|#x[\da-f]{1,6};|\w+;)/gi;
+
+const escapeText = (value: string) => escapeMarkup(value.replace(BARE_AMPERSAND, "&amp;"));
 
 const SAFE_URL = /^(https?:|mailto:|tel:|\/(?![/\\])|#)/i;
 
@@ -47,15 +52,17 @@ const parser = new Marked({
     html: ({ text }: Tokens.HTML | Tokens.Tag) => escapeHtml(text),
     text(token: Tokens.Text | Tokens.Escape) {
       if ("tokens" in token && token.tokens) return this.parser.parseInline(token.tokens);
-      const text = "escaped" in token && token.escaped ? token.text : escapeHtml(token.text);
-      return text.replace(MODEL_CODE, '<bdi dir="ltr" class="whitespace-nowrap">$1</bdi>');
+      return escapeText(token.text).replace(
+        MODEL_CODE,
+        '<bdi dir="ltr" class="whitespace-nowrap">$1</bdi>',
+      );
     },
     heading({ tokens, depth, text }: Tokens.Heading) {
       const level = Math.min(Math.max(depth, 2), 4);
       return `<h${level} id="${escapeHtml(slugHeading(text))}">${this.parser.parseInline(tokens)}</h${level}>`;
     },
-    link({ href, title, tokens }: Tokens.Link) {
-      const body = this.parser.parseInline(tokens);
+    link({ href, title, text, tokens, autolink }: Tokens.Link) {
+      const body = autolink ? escapeHtml(text) : this.parser.parseInline(tokens);
       if (!isSafeUrl(href)) return body;
       const external = /^https?:/i.test(href);
       const titleAttr = title ? ` title="${escapeHtml(title)}"` : "";

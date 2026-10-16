@@ -73,7 +73,9 @@ export function SlideSheet({ slide, nextOrder, onClose, readOnly }: SlideSheetPr
     const saved = await run(
       () =>
         slide
-          ? apiClient.api.admin.slides({ id: slide.id }).patch(body)
+          ? apiClient.api.admin
+              .slides({ id: slide.id })
+              .patch({ ...body, expectedUpdatedAt: slide.updatedAt })
           : apiClient.api.admin.slides.post(body),
       { success: copy.saved, onError: (error) => applyFieldErrors(form.setError, error) },
     );

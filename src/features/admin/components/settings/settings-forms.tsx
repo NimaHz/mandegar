@@ -6,10 +6,8 @@ import { type ReactNode, useId, useState } from "react";
 import {
   type FieldValues,
   FormProvider,
-  useForm,
+  type Resolver,
   useFormContext,
-  type UseFormReturn,
-  useFormState,
   useWatch,
 } from "react-hook-form";
 import { z } from "zod";
@@ -25,12 +23,13 @@ import {
   seoSettingsSchema,
   statsSettingsSchema,
 } from "@/server/modules/settings/schema";
-import type { SettingKey, SettingsValues } from "@/types/admin";
+import type { SettingKey, SettingsValues, SettingVersions } from "@/types/admin";
 import type { SocialLinks } from "@/types/content";
 
 import { adminContent } from "../../content";
 import { applyFieldErrors } from "../../lib/server-errors";
 import { type EdenResult, useAdminMutation } from "../../lib/use-admin-mutation";
+import { useEditorForm } from "../../lib/use-editor-form";
 import { zodOptions } from "../../lib/zod";
 import { blankText, blankToNull } from "../../schemas";
 import { CodeInput, NumberInput } from "../form/fields";
@@ -41,6 +40,7 @@ import { SaveBar } from "../form/save-bar";
 import { PanelHeading } from "../panel-heading";
 
 const copy = adminContent.settings;
+const { conflict } = adminContent;
 const socialKeys = Object.keys(copy.socials) as (keyof SocialLinks)[];
 
 const social = z.preprocess(
@@ -84,36 +84,80 @@ const companyFormSchema = companySettingsSchema.extend({
   registrationNo: z.preprocess(blankToNull, companySettingsSchema.shape.registrationNo),
 });
 
-interface SectionShellProps<TInput extends FieldValues, TOutput extends FieldValues> {
-  form: UseFormReturn<TInput, unknown, TOutput>;
-  save: (values: TOutput) => Promise<EdenResult<unknown>>;
+const resolvers = {
+  contact: zodResolver(contactFormSchema, zodOptions),
+  stats: zodResolver(statsSettingsSchema, zodOptions),
+  company: zodResolver(companyFormSchema, zodOptions),
+  seo: zodResolver(seoSettingsSchema, zodOptions),
+};
+
+interface SettingSection<TValue> {
+  value: TValue;
+  updatedAt: string | null;
+}
+
+interface SectionShellProps<TValue, TInput extends FieldValues, TOutput extends FieldValues> {
+  value: TValue;
+  version: string | null;
+  toForm: (value: TValue) => TInput;
+  resolver: Resolver<TInput, unknown, TOutput>;
+  save: (
+    values: TOutput,
+    expectedUpdatedAt: string | undefined,
+  ) => Promise<EdenResult<SettingSection<TValue>>>;
+  load: () => Promise<EdenResult<SettingSection<TValue>>>;
   children: ReactNode;
 }
 
-function SectionShell<TInput extends FieldValues, TOutput extends FieldValues>({
-  form,
+function SectionShell<TValue, TInput extends FieldValues, TOutput extends FieldValues>({
+  value,
+  version: loadedVersion,
+  toForm,
+  resolver,
   save,
+  load,
   children,
-}: SectionShellProps<TInput, TOutput>) {
+}: SectionShellProps<TValue, TInput, TOutput>) {
   const { run, pending } = useAdminMutation();
-  const { isDirty } = useFormState({ control: form.control });
-  const onSubmit = form.handleSubmit(async (values) => {
-    const snapshot = form.getValues();
-    const saved = await run(() => save(values), {
-      success: copy.saved,
-      onError: (error) => applyFieldErrors(form.setError, error),
+  const { form, isDirty, capture, commit, discard, rebase } = useEditorForm<TInput, TOutput>({
+    resolver,
+    defaultValues: toForm(value),
+  });
+  const [version, setVersion] = useState(loadedVersion);
+
+  const reload = async () => {
+    const latest = await run(load, {
+      success: conflict.reloaded,
+      description: conflict.reloadedHint,
+      onSuccess: (data) => setVersion(data.updatedAt),
     });
-    if (saved) form.reset(snapshot);
+    if (latest) rebase(toForm(latest.value));
+  };
+
+  const onSubmit = form.handleSubmit(async (values) => {
+    const snapshot = capture();
+    const saved = await run(() => save(values, version ?? undefined), {
+      success: copy.saved,
+      onSuccess: (data) => setVersion(data.updatedAt),
+      onError: (error) => applyFieldErrors(form.setError, error),
+      onStale: () => void reload(),
+    });
+    if (saved) commit(snapshot, toForm(saved.value));
   });
 
   return (
     <FormProvider {...form}>
       <form noValidate onSubmit={onSubmit} className="flex flex-col gap-4">
         {children}
-        <SaveBar dirty={isDirty} pending={pending} onDiscard={() => form.reset()} />
+        <SaveBar dirty={isDirty} pending={pending} onDiscard={discard} />
       </form>
     </FormProvider>
   );
+}
+
+interface SectionProps<TKey extends SettingKey> {
+  value: SettingsValues[TKey];
+  version: string | null;
 }
 
 interface LabeledRepeaterProps {
@@ -161,22 +205,27 @@ function LocationPreview() {
   );
 }
 
-function ContactForm({ value }: { value: SettingsValues["contact"] }) {
-  const form = useForm<
-    z.input<typeof contactFormSchema>,
-    unknown,
-    z.output<typeof contactFormSchema>
-  >({
-    resolver: zodResolver(contactFormSchema, zodOptions),
-    defaultValues: {
-      ...value,
-      socials: Object.fromEntries(socialKeys.map((key) => [key, value.socials[key] ?? ""])),
-      location: value.location ?? { lat: null, lng: null },
-    },
-  });
+const contactToForm = (value: SettingsValues["contact"]): z.input<typeof contactFormSchema> => ({
+  ...value,
+  socials: Object.fromEntries(socialKeys.map((key) => [key, value.socials[key] ?? ""])) as Record<
+    keyof SocialLinks,
+    string
+  >,
+  location: value.location ?? { lat: null, lng: null },
+});
 
+function ContactForm({ value, version }: SectionProps<"contact">) {
   return (
-    <SectionShell form={form} save={(values) => apiClient.api.admin.settings.contact.put(values)}>
+    <SectionShell
+      value={value}
+      version={version}
+      toForm={contactToForm}
+      resolver={resolvers.contact}
+      save={(values, expectedUpdatedAt) =>
+        apiClient.api.admin.settings.contact.put({ ...values, expectedUpdatedAt })
+      }
+      load={() => apiClient.api.admin.settings.contact.get()}
+    >
       <FormSection
         step={1}
         title={copy.contact.phones}
@@ -246,18 +295,18 @@ function ContactForm({ value }: { value: SettingsValues["contact"] }) {
   );
 }
 
-function StatsForm({ value }: { value: SettingsValues["stats"] }) {
-  const form = useForm<
-    z.input<typeof statsSettingsSchema>,
-    unknown,
-    z.output<typeof statsSettingsSchema>
-  >({
-    resolver: zodResolver(statsSettingsSchema, zodOptions),
-    defaultValues: value,
-  });
-
+function StatsForm({ value, version }: SectionProps<"stats">) {
   return (
-    <SectionShell form={form} save={(values) => apiClient.api.admin.settings.stats.put(values)}>
+    <SectionShell
+      value={value}
+      version={version}
+      toForm={(stats): z.input<typeof statsSettingsSchema> => stats}
+      resolver={resolvers.stats}
+      save={(values, expectedUpdatedAt) =>
+        apiClient.api.admin.settings.stats.put({ ...values, expectedUpdatedAt })
+      }
+      load={() => apiClient.api.admin.settings.stats.get()}
+    >
       <FormSection title={copy.stats.section} description={copy.stats.hint}>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <NumberInput name="years" label={copy.stats.years} />
@@ -270,22 +319,24 @@ function StatsForm({ value }: { value: SettingsValues["stats"] }) {
   );
 }
 
-function CompanyForm({ value }: { value: SettingsValues["company"] }) {
-  const form = useForm<
-    z.input<typeof companyFormSchema>,
-    unknown,
-    z.output<typeof companyFormSchema>
-  >({
-    resolver: zodResolver(companyFormSchema, zodOptions),
-    defaultValues: {
-      ...value,
-      nationalId: value.nationalId ?? "",
-      registrationNo: value.registrationNo ?? "",
-    },
-  });
+const companyToForm = (value: SettingsValues["company"]): z.input<typeof companyFormSchema> => ({
+  ...value,
+  nationalId: value.nationalId ?? "",
+  registrationNo: value.registrationNo ?? "",
+});
 
+function CompanyForm({ value, version }: SectionProps<"company">) {
   return (
-    <SectionShell form={form} save={(values) => apiClient.api.admin.settings.company.put(values)}>
+    <SectionShell
+      value={value}
+      version={version}
+      toForm={companyToForm}
+      resolver={resolvers.company}
+      save={(values, expectedUpdatedAt) =>
+        apiClient.api.admin.settings.company.put({ ...values, expectedUpdatedAt })
+      }
+      load={() => apiClient.api.admin.settings.company.get()}
+    >
       <FormSection title={copy.company.section} description={copy.company.hint} localized>
         <LocalizedField name="legalName" label={copy.company.legalName} maxLength={200} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -298,18 +349,18 @@ function CompanyForm({ value }: { value: SettingsValues["company"] }) {
   );
 }
 
-function SeoForm({ value }: { value: SettingsValues["seo"] }) {
-  const form = useForm<
-    z.input<typeof seoSettingsSchema>,
-    unknown,
-    z.output<typeof seoSettingsSchema>
-  >({
-    resolver: zodResolver(seoSettingsSchema, zodOptions),
-    defaultValues: value,
-  });
-
+function SeoForm({ value, version }: SectionProps<"seo">) {
   return (
-    <SectionShell form={form} save={(values) => apiClient.api.admin.settings.seo.put(values)}>
+    <SectionShell
+      value={value}
+      version={version}
+      toForm={(seo): z.input<typeof seoSettingsSchema> => seo}
+      resolver={resolvers.seo}
+      save={(values, expectedUpdatedAt) =>
+        apiClient.api.admin.settings.seo.put({ ...values, expectedUpdatedAt })
+      }
+      load={() => apiClient.api.admin.settings.seo.get()}
+    >
       <FormSection title={copy.seo.section} description={copy.seo.hint} localized>
         <LocalizedField name="defaultTitle" label={copy.seo.title} maxLength={80} />
         <LocalizedTextarea
@@ -323,7 +374,12 @@ function SeoForm({ value }: { value: SettingsValues["seo"] }) {
   );
 }
 
-export function SettingsForms({ settings }: { settings: SettingsValues }) {
+interface SettingsFormsProps {
+  settings: SettingsValues;
+  versions: SettingVersions;
+}
+
+export function SettingsForms({ settings, versions }: SettingsFormsProps) {
   const tabsId = useId();
   const [tab, setTab] = useState<SettingKey>("contact");
   const items = (Object.keys(copy.tabs) as SettingKey[]).map((value) => ({
@@ -331,10 +387,10 @@ export function SettingsForms({ settings }: { settings: SettingsValues }) {
     label: copy.tabs[value],
   }));
   const panels: Record<SettingKey, ReactNode> = {
-    contact: <ContactForm value={settings.contact} />,
-    stats: <StatsForm value={settings.stats} />,
-    company: <CompanyForm value={settings.company} />,
-    seo: <SeoForm value={settings.seo} />,
+    contact: <ContactForm value={settings.contact} version={versions.contact} />,
+    stats: <StatsForm value={settings.stats} version={versions.stats} />,
+    company: <CompanyForm value={settings.company} version={versions.company} />,
+    seo: <SeoForm value={settings.seo} version={versions.seo} />,
   };
 
   return (

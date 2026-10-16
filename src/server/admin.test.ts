@@ -7,6 +7,7 @@ import sharp from "sharp";
 
 import { getEnv } from "@/config/env";
 import { createTrackingCode, formatTrackingCode } from "@/lib/tracking-code";
+import { createWarrantyCode } from "@/lib/warranty-code";
 import { hashPassword } from "@/server/auth/password";
 import { closeDb, getDb } from "@/server/db/client";
 import {
@@ -14,6 +15,7 @@ import {
   authors,
   brands,
   categories,
+  contactMessages,
   faqs,
   guides,
   heroSlides,
@@ -24,6 +26,7 @@ import {
   products,
   serviceCenters,
   sessions,
+  ticketMessages,
   tickets,
   users,
   warrantyCodes,
@@ -507,6 +510,73 @@ describe("user administration", () => {
     assert.equal(rows.find((row) => row.id === open)?.assigneeId, null);
     assert.equal(rows.find((row) => row.id === closed)?.assigneeId, agent.id);
   });
+
+  it("returns a reopened ticket to the queue when its agent can no longer work it", async () => {
+    const agent = await addUser("reopen", { role: "support" });
+    const token = randomToken(32);
+    const trackingCode = createTrackingCode();
+    const phone = `0937${String(Date.now()).slice(-7)}`;
+    const resolved = await insertTicket({
+      assigneeId: agent.id,
+      status: "resolved",
+      resolvedAt: new Date(),
+      trackingCode,
+      accessTokenHash: sha256(token),
+      phone,
+    });
+    const closed = await insertTicket({
+      assigneeId: agent.id,
+      status: "closed",
+      closedAt: new Date(),
+      phone,
+    });
+    const kept = await insertTicket({
+      assigneeId: accounts.support.id,
+      status: "closed",
+      closedAt: new Date(),
+      phone,
+    });
+    try {
+      const { cookie } = await login(accounts.owner.email);
+      const deactivated = await postJson(
+        `/admin/users/${agent.id}`,
+        { active: false },
+        { cookie, method: "PATCH" },
+      );
+      assert.equal(deactivated.status, 200, JSON.stringify(deactivated.json));
+      const form = new FormData();
+      form.set("token", token);
+      form.set("body", "It stopped working again.");
+      const reply = await request(`/tickets/${trackingCode}/messages`, {
+        method: "POST",
+        body: form,
+        ip: testIp(),
+      });
+      assert.equal(reply.status, 200, JSON.stringify(reply.json));
+      for (const id of [closed, kept]) {
+        const reopened = await postJson(
+          `/admin/tickets/${id}`,
+          { status: "in-review" },
+          { cookie, method: "PATCH" },
+        );
+        assert.equal(reopened.status, 200, JSON.stringify(reopened.json));
+      }
+      const rows = await getDb()
+        .select({ id: tickets.id, status: tickets.status, assigneeId: tickets.assigneeId })
+        .from(tickets)
+        .where(inArray(tickets.id, [resolved, closed, kept]));
+      assert.deepEqual(
+        [resolved, closed, kept].map((id) => rows.find((row) => row.id === id)),
+        [
+          { id: resolved, status: "in-review", assigneeId: null },
+          { id: closed, status: "in-review", assigneeId: null },
+          { id: kept, status: "in-review", assigneeId: accounts.support.id },
+        ],
+      );
+    } finally {
+      await getDb().delete(notificationOutbox).where(eq(notificationOutbox.recipient, phone));
+    }
+  });
 });
 
 describe("catalog administration", () => {
@@ -595,6 +665,11 @@ describe("catalog administration", () => {
           field(entry, "entityId") === created.productId && field(entry, "action") === "create",
       ),
     );
+    const creations = await request(`/admin/audit?entity=products&action=create`, { cookie });
+    const createdEntries = field(creations.json, "items");
+    assert.ok(Array.isArray(createdEntries));
+    assert.ok(createdEntries.some((entry) => field(entry, "entityId") === created.productId));
+    assert.ok(createdEntries.every((entry) => field(entry, "action") === "create"));
   });
 
   it("uploads media, attaches it and refuses to delete it while in use", async () => {
@@ -631,12 +706,38 @@ describe("catalog administration", () => {
       { cookie, method: "PUT" },
     );
     assert.equal(images.status, 200);
+    const sheet = new FormData();
+    sheet.set(
+      "file",
+      new File([new TextEncoder().encode(`%PDF-1.4\n% ${suffix}\n%%EOF\n`)], "sheet.pdf", {
+        type: "application/pdf",
+      }),
+    );
+    const document = await request("/admin/media", { method: "POST", body: sheet, cookie });
+    assert.equal(document.status, 200, JSON.stringify(document.json));
+    const documentId = String(field(document.json, "id"));
+    created.libraryMediaIds.push(documentId);
+    const galleryError = async (mediaIds: string[]) => {
+      const response = await postJson(
+        `/admin/products/${created.productId}/images`,
+        { images: mediaIds.map((mediaId) => ({ mediaId, alt: { fa: "", en: "" } })) },
+        { cookie, method: "PUT" },
+      );
+      assert.equal(response.status, 422);
+      return field(field(field(response.json, "error"), "fields"), "images");
+    };
+    assert.equal(await galleryError([documentId]), "Must be an image");
+    assert.equal(await galleryError([crypto.randomUUID()]), "Referenced item not found");
+    assert.equal(
+      await galleryError([created.mediaId, created.mediaId]),
+      "Each image must be a distinct uploaded image",
+    );
     const refused = await request(`/admin/media/${created.mediaId}`, { method: "DELETE", cookie });
     assert.equal(refused.status, 409);
     assert.equal(errorCode(refused.json), "IN_USE");
   });
 
-  it("counts Markdown images in product and category descriptions as usages", async () => {
+  it("counts Markdown images in descriptions and product FAQ answers as usages", async () => {
     const { cookie } = await login(accounts.owner.email);
     const png = await sharp({
       create: {
@@ -686,6 +787,34 @@ describe("catalog administration", () => {
     );
     const refused = await request(`/admin/media/${inlineId}`, { method: "DELETE", cookie });
     assert.equal(errorCode(refused.json), "IN_USE");
+    const answered = await postJson(
+      `/admin/products/${created.productId}`,
+      {
+        description: { fa: "توضیح", en: "Description" },
+        faqs: [
+          {
+            question: { fa: "پرسش", en: "Question" },
+            answer: { fa: `![نما](${url})`, en: "Answer" },
+          },
+        ],
+      },
+      { cookie, method: "PATCH" },
+    );
+    assert.equal(answered.status, 200, JSON.stringify(answered.json));
+    const cleared = await postJson(
+      `/admin/categories/${created.categoryId}`,
+      { description: { fa: "", en: "" } },
+      { cookie, method: "PATCH" },
+    );
+    assert.equal(cleared.status, 200, JSON.stringify(cleared.json));
+    const faqUsages = await request(`/admin/media/${inlineId}/usages`, { cookie });
+    assert.deepEqual(
+      (faqUsages.json as unknown[]).map((usage) => [field(usage, "entity"), field(usage, "id")]),
+      [["product", created.productId]],
+      JSON.stringify(faqUsages.json),
+    );
+    const kept = await request(`/admin/media/${inlineId}`, { method: "DELETE", cookie });
+    assert.equal(errorCode(kept.json), "IN_USE");
   });
 
   it("generates one batch warranty code per product and year", async () => {
@@ -711,6 +840,13 @@ describe("catalog administration", () => {
     });
     assert.equal(csv.status, 200);
     assert.match(String(csv.json), /code,formatted,model/);
+    const blocked = await request(`/admin/products/${created.productId}`, {
+      method: "DELETE",
+      cookie,
+    });
+    assert.equal(blocked.status, 409);
+    assert.equal(errorCode(blocked.json), "HAS_WARRANTY_CODES");
+    assert.equal((await request(`/admin/products/${created.productId}`, { cookie })).status, 200);
     await getDb().delete(warrantyCodes).where(eq(warrantyCodes.productId, created.productId));
   });
 
@@ -779,6 +915,61 @@ describe("catalog administration", () => {
     }
   });
 
+  it("waits for a code being issued before it decides whether policy terms are locked", async () => {
+    const { cookie } = await login(accounts.owner.email);
+    const text = { fa: "آزمون", en: "Test" };
+    const policy = await postJson(
+      "/admin/warranty-policies",
+      {
+        name: { fa: `هم‌زمان ${suffix}`, en: `Test race ${suffix}` },
+        months: 9,
+        partsMonths: null,
+        startRule: text,
+        coverage: [text],
+        exclusions: [],
+        effectiveFrom: "2024-01-01",
+      },
+      { cookie },
+    );
+    assert.equal(policy.status, 200, JSON.stringify(policy.json));
+    const policyId = String(field(policy.json, "id"));
+    try {
+      const state = { settled: false };
+      const edit = await getDb().transaction(async (tx) => {
+        await tx.insert(warrantyCodes).values({
+          code: createWarrantyCode(1402),
+          kind: "batch",
+          productId: created.productId,
+          productionYear: 1402,
+          policyId,
+        });
+        const pending = postJson(
+          `/admin/warranty-policies/${policyId}`,
+          { months: 12 },
+          { cookie, method: "PATCH" },
+        ).finally(() => {
+          state.settled = true;
+        });
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        assert.equal(state.settled, false, "the policy edit waits for the code insert");
+        return { pending };
+      });
+      const lengthened = await edit.pending;
+      assert.equal(lengthened.status, 422, JSON.stringify(lengthened.json));
+      assert.deepEqual(Object.keys(Object(field(field(lengthened.json, "error"), "fields"))), [
+        "months",
+      ]);
+      const [row] = await getDb()
+        .select({ months: warrantyPolicies.months })
+        .from(warrantyPolicies)
+        .where(eq(warrantyPolicies.id, policyId));
+      assert.equal(row?.months, 9);
+    } finally {
+      await getDb().delete(warrantyCodes).where(eq(warrantyCodes.policyId, policyId));
+      await getDb().delete(warrantyPolicies).where(eq(warrantyPolicies.id, policyId));
+    }
+  });
+
   it("rejects contact settings with a malformed email or phone", async () => {
     const { cookie } = await login(accounts.owner.email);
     const current = await request("/admin/settings", { cookie });
@@ -797,6 +988,32 @@ describe("catalog administration", () => {
     const fields = field(field(saved.json, "error"), "fields");
     assert.ok(field(fields, "phones.0.value"));
     assert.ok(field(fields, "emails.0.value"));
+  });
+
+  it("refuses a settings save based on an older version", async () => {
+    const { cookie } = await login(accounts.owner.email);
+    const put = (body: unknown) =>
+      postJson("/admin/settings/stats", body, { cookie, method: "PUT" });
+    const loaded = await request("/admin/settings/stats", { cookie });
+    assert.equal(loaded.status, 200, JSON.stringify(loaded.json));
+    const stats = field(loaded.json, "value") as object;
+    const first = await put(stats);
+    assert.equal(first.status, 200, JSON.stringify(first.json));
+    assert.deepEqual(field(first.json, "value"), stats);
+    const version = String(field(first.json, "updatedAt"));
+    const second = await put({ ...stats, expectedUpdatedAt: version });
+    assert.equal(second.status, 200, JSON.stringify(second.json));
+    const next = String(field(second.json, "updatedAt"));
+    assert.notEqual(next, version);
+    assert.equal(
+      field((await request("/admin/settings/stats", { cookie })).json, "updatedAt"),
+      next,
+    );
+    const stale = await put({ ...stats, expectedUpdatedAt: version });
+    assert.equal(stale.status, 409);
+    assert.equal(errorCode(stale.json), "STALE");
+    const fresh = await put({ ...stats, expectedUpdatedAt: next });
+    assert.equal(fresh.status, 200, JSON.stringify(fresh.json));
   });
 
   it("returns dashboard stats", async () => {
@@ -1051,6 +1268,73 @@ describe("staff ticket replies", () => {
     const libraryId = String(field(upload.json, "id"));
     created.attachmentIds.push(libraryId);
     assert.notEqual(libraryId, attachmentId, "library uploads never reuse a ticket file");
+    const [legacy] = await getDb()
+      .insert(ticketMessages)
+      .values({
+        ticketId: created.ticketId,
+        authorType: "staff",
+        authorId: accounts.owner.id,
+        body: "A message from before ticket files had their own scope.",
+        internal: true,
+        attachmentMediaIds: [libraryId],
+      })
+      .returning({ id: ticketMessages.id });
+    assert.ok(legacy);
+    try {
+      const usages = await request(`/admin/media/${libraryId}/usages`, { cookie });
+      assert.deepEqual(
+        (usages.json as unknown[]).map((usage) => [field(usage, "entity"), field(usage, "id")]),
+        [["ticket", created.ticketId]],
+        JSON.stringify(usages.json),
+      );
+      const kept = await request(`/admin/media/${libraryId}`, { method: "DELETE", cookie });
+      assert.equal(errorCode(kept.json), "IN_USE");
+    } finally {
+      await getDb().delete(ticketMessages).where(eq(ticketMessages.id, legacy.id));
+    }
+  });
+
+  it("finds tickets and messages by a mobile number in any common format", async () => {
+    const { cookie } = await login(accounts.support.email);
+    const national = customerPhone.slice(1);
+    const [message] = await getDb()
+      .insert(contactMessages)
+      .values({
+        department: "support",
+        name: "Test Customer",
+        phone: customerPhone,
+        subject: `Mobile search ${suffix}`,
+        body: "Please call me back about the heater.",
+        ipHash: sha256(randomToken(16)),
+      })
+      .returning({ id: contactMessages.id });
+    assert.ok(message);
+    try {
+      for (const q of [
+        customerPhone,
+        national,
+        `+98${national}`,
+        `98${national}`,
+        `0098${national}`,
+        `+98 ${national.slice(0, 3)} ${national.slice(3, 6)} ${national.slice(6)}`,
+      ]) {
+        const search = `q=${encodeURIComponent(q)}`;
+        const found = await request(`/admin/tickets?${search}`, { cookie });
+        assert.equal(found.status, 200);
+        const ticketIds = (field(found.json, "items") as unknown[]).map((item) =>
+          field(item, "id"),
+        );
+        assert.ok(ticketIds.includes(created.ticketId), q);
+        const messages = await request(`/admin/messages?${search}`, { cookie });
+        assert.equal(messages.status, 200);
+        const messageIds = (field(messages.json, "items") as unknown[]).map((item) =>
+          field(item, "id"),
+        );
+        assert.ok(messageIds.includes(message.id), q);
+      }
+    } finally {
+      await getDb().delete(contactMessages).where(eq(contactMessages.id, message.id));
+    }
   });
 
   it("applies a chosen status with the reply and texts the customer once", async () => {
@@ -1353,6 +1637,37 @@ describe("content and catalog consistency", () => {
     assert.equal(field(drafted.json, "publishedAt"), null);
   });
 
+  it("keeps the stored publish time when a save sends the same minute", async () => {
+    const publishedAt = "2026-01-02T03:04:05.678Z";
+    const id = await make(
+      "/admin/posts",
+      postBody(`${tag}-minute`, { status: "published", publishedAt }),
+      removePost,
+    );
+    const stored = async () => {
+      const [row] = await getDb()
+        .select({ publishedAt: posts.publishedAt })
+        .from(posts)
+        .where(eq(posts.id, id));
+      return row?.publishedAt?.toISOString();
+    };
+    assert.equal(await stored(), publishedAt);
+    const same = await send(
+      `/admin/posts/${id}`,
+      { publishedAt: "2026-01-02T03:04:00.000Z" },
+      "PATCH",
+    );
+    assert.equal(same.status, 200, JSON.stringify(same.json));
+    assert.equal(await stored(), publishedAt);
+    const moved = await send(
+      `/admin/posts/${id}`,
+      { publishedAt: "2026-01-02T03:05:00.000Z" },
+      "PATCH",
+    );
+    assert.equal(moved.status, 200, JSON.stringify(moved.json));
+    assert.equal(await stored(), "2026-01-02T03:05:00.000Z");
+  });
+
   it("answers an empty PATCH with the stored record", async () => {
     const faqId = await make(
       "/admin/faqs",
@@ -1597,6 +1912,95 @@ describe("content and catalog consistency", () => {
       assert.equal(second.status, 409, target);
       assert.equal(errorCode(second.json), "STALE", target);
     }
+  });
+
+  it("refuses stale sheet saves, including one that would undo a slide reorder", async () => {
+    const removeSlide = (id: string) => getDb().delete(heroSlides).where(eq(heroSlides.id, id));
+    const faqId = await make(
+      "/admin/faqs",
+      {
+        group: "general",
+        question: text("پرسش هم‌زمان؟", "Concurrent question?"),
+        answer: text("پاسخ", "Answer"),
+        sortOrder: 9000,
+        published: false,
+      },
+      (id) => getDb().delete(faqs).where(eq(faqs.id, id)),
+    );
+    const slideId = await make("/admin/slides", slideBody(), removeSlide);
+    const otherId = await make("/admin/slides", slideBody({ sortOrder: 9010 }), removeSlide);
+    const centerId = await make(
+      "/admin/service-centers",
+      {
+        slug: `${tag}-stale-center`,
+        kind: "service",
+        name: text("مرکز آزمون", "Test center"),
+        province: "23",
+        city: text("تهران", "Tehran"),
+        address: text("نشانی", "Address"),
+        phones: [],
+        hours: text("۹ تا ۱۷", "9 to 5"),
+        lat: null,
+        lng: null,
+        categoryIds: [],
+        active: false,
+      },
+      (id) => getDb().delete(serviceCenters).where(eq(serviceCenters.id, id)),
+    );
+    const policyId = await make(
+      "/admin/warranty-policies",
+      {
+        name: text(`سیاست ${tag}`, `Policy ${tag}`),
+        months: 9,
+        partsMonths: null,
+        startRule: text("شروع", "Start"),
+        coverage: [],
+        exclusions: [],
+        effectiveFrom: "2024-01-01",
+      },
+      (id) => getDb().delete(warrantyPolicies).where(eq(warrantyPolicies.id, id)),
+    );
+    const edits: [string, Record<string, unknown>][] = [
+      [`/admin/brands/${scope.brandId}`, { sortOrder: 98 }],
+      [`/admin/authors/${scope.authorId}`, { role: text("نقش تازه", "New role") }],
+      [`/admin/faqs/${faqId}`, { sortOrder: 9001 }],
+      [`/admin/service-centers/${centerId}`, { hours: text("۸ تا ۱۶", "8 to 4") }],
+      [`/admin/slides/${slideId}`, { subtitle: text("زیرعنوان تازه", "New subtitle") }],
+      [`/admin/warranty-policies/${policyId}`, { months: 10 }],
+    ];
+    for (const [target, body] of edits) {
+      const version = String(
+        field((await request(target, { cookie: scope.cookie })).json, "updatedAt"),
+      );
+      const first = await send(target, { ...body, expectedUpdatedAt: version }, "PATCH");
+      assert.equal(first.status, 200, `${target} ${JSON.stringify(first.json)}`);
+      const second = await send(target, { ...body, expectedUpdatedAt: version }, "PATCH");
+      assert.equal(second.status, 409, target);
+      assert.equal(errorCode(second.json), "STALE", target);
+    }
+    const opened = await request(`/admin/slides/${slideId}`, { cookie: scope.cookie });
+    const ordered = await postJson(
+      "/admin/slides/order",
+      { ids: [otherId, slideId] },
+      { cookie: scope.cookie, method: "PUT" },
+    );
+    assert.equal(ordered.status, 200, JSON.stringify(ordered.json));
+    const undone = await send(
+      `/admin/slides/${slideId}`,
+      {
+        ...slideBody({ title: text("عنوان تازه", "Fixed typo") }),
+        sortOrder: field(opened.json, "sortOrder"),
+        expectedUpdatedAt: String(field(opened.json, "updatedAt")),
+      },
+      "PATCH",
+    );
+    assert.equal(undone.status, 409);
+    assert.equal(errorCode(undone.json), "STALE");
+    const [slide] = await getDb()
+      .select({ sortOrder: heroSlides.sortOrder, title: heroSlides.title })
+      .from(heroSlides)
+      .where(eq(heroSlides.id, slideId));
+    assert.deepEqual(slide, { sortOrder: 10, title: text("اسلاید آزمون", "Test slide") });
   });
 
   it("checks guide chapters against the video and stores them in order", async () => {

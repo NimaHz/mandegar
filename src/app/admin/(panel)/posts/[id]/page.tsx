@@ -30,7 +30,7 @@ export default async function AdminPostPage({ params }: PageProps<"/admin/posts/
   if (!post) notFound();
   return (
     <PostEditor
-      key={post.updatedAt}
+      key={post.id}
       post={post}
       authors={authors}
       products={products}

@@ -25,10 +25,6 @@ export default async function AdminGuidePage({ params }: PageProps<"/admin/guide
   const guide = await adminApi.guides.get(id);
   if (!guide) notFound();
   return (
-    <GuideEditor
-      key={guide.updatedAt}
-      guide={guide}
-      canWrite={permissions.includes("content:write")}
-    />
+    <GuideEditor key={guide.id} guide={guide} canWrite={permissions.includes("content:write")} />
   );
 }

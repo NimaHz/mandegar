@@ -70,7 +70,7 @@ export function AuditList({ result, actors, filtered }: AuditListProps) {
         <span className="flex flex-col gap-0.5">
           <span className="font-bold text-ink">{auditEntityLabel(log.entity)}</span>
           {log.entityId && (
-            <CodeText className="text-2xs text-muted">{log.entityId.slice(0, 8)}</CodeText>
+            <CodeText className="text-2xs text-muted">{log.entityId.slice(-8)}</CodeText>
           )}
         </span>
       ),
@@ -100,6 +100,11 @@ export function AuditList({ result, actors, filtered }: AuditListProps) {
               key: "entity",
               label: copy.columns.entity,
               options: Object.entries(copy.entities).map(([value, label]) => ({ value, label })),
+            },
+            {
+              key: "action",
+              label: copy.columns.action,
+              options: Object.entries(copy.actions).map(([value, label]) => ({ value, label })),
             },
             { key: "actorId", label: copy.columns.actor, options: toOptions(actors) },
           ]}

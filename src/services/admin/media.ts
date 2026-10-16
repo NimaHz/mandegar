@@ -1,6 +1,18 @@
 import "server-only";
 
-import { and, type AnyColumn, asc, count, desc, eq, inArray, or, type SQL, sql } from "drizzle-orm";
+import {
+  and,
+  type AnyColumn,
+  arrayContains,
+  asc,
+  count,
+  desc,
+  eq,
+  inArray,
+  or,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 
 import { formatTrackingCode } from "@/lib/tracking-code";
 import { getDb } from "@/server/db/client";
@@ -149,6 +161,7 @@ export const mediaAdmin = {
                 .where(eq(productImages.mediaId, id)),
             ),
             mentions(products.description, storageKey),
+            sql`strpos(${products.faqs}::text, ${storageKey}) > 0`,
           ),
         ),
       db
@@ -185,7 +198,7 @@ export const mediaAdmin = {
         .selectDistinct({ id: tickets.id, label: tickets.trackingCode })
         .from(ticketMessages)
         .innerJoin(tickets, eq(tickets.id, ticketMessages.ticketId))
-        .where(sql`${id}::uuid = any(${ticketMessages.attachmentMediaIds})`),
+        .where(arrayContains(ticketMessages.attachmentMediaIds, [id])),
     ]);
     return [
       ...usage("brand", brandRows),

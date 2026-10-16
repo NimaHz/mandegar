@@ -64,13 +64,19 @@ export const mobileSchema = z
     return mobile;
   });
 
-export const provinceSchema = z.string().trim().refine(isProvinceCode, "Unknown province");
+export const provinceSchemaWith = (message: string) =>
+  z.string().trim().refine(isProvinceCode, message);
 
-export const urlOrPathSchema = z
-  .string()
-  .trim()
-  .max(500)
-  .refine((value) => /^\/(?![/\\])/.test(value) || /^https:\/\//.test(value), "Invalid link");
+export const provinceSchema = provinceSchemaWith("Unknown province");
+
+export const urlOrPathSchemaWith = (message: string) =>
+  z
+    .string()
+    .trim()
+    .max(500)
+    .refine((value) => /^\/(?![/\\])/.test(value) || /^https:\/\//.test(value), message);
+
+export const urlOrPathSchema = urlOrPathSchemaWith("Invalid link");
 
 export const iconSchema = z
   .string()

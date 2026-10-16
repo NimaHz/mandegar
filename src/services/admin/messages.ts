@@ -39,6 +39,7 @@ export const messagesAdmin = {
           contactMessages.email,
           contactMessages.subject,
         ],
+        mobile: [contactMessages.phone],
       }),
       query.status ? eq(contactMessages.status, query.status) : undefined,
       query.department ? eq(contactMessages.department, query.department) : undefined,

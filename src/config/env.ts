@@ -4,10 +4,13 @@ import { z } from "zod";
 
 const publishedSessionSecret = "replace-with-at-least-32-random-characters";
 
+export const blankAsUnset = <TSchema extends z.ZodType>(schema: TSchema) =>
+  z.preprocess((value) => (value === "" ? undefined : value), schema);
+
 const envSchema = z.object({
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
-  NEXT_PUBLIC_SITE_URL: z.url().default("http://localhost:3000"),
-  APP_ORIGIN: z.url().default("http://localhost:3000"),
+  NEXT_PUBLIC_SITE_URL: blankAsUnset(z.url().default("http://localhost:3000")),
+  APP_ORIGIN: blankAsUnset(z.url().default("http://localhost:3000")),
   SESSION_SECRET: z
     .string()
     .min(32)
@@ -19,7 +22,7 @@ const envSchema = z.object({
     (value) => (value === "" ? undefined : value),
     z.string().min(32).optional(),
   ),
-  UPLOAD_DIR: z.string().min(1).default("uploads"),
+  UPLOAD_DIR: blankAsUnset(z.string().min(1).default("uploads")),
 });
 
 export type Env = z.infer<typeof envSchema>;

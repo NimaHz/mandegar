@@ -7,6 +7,7 @@ import { routes } from "@/lib/routes";
 import { getDb } from "@/server/db/client";
 import { serviceCenters } from "@/server/db/schema";
 import { cacheTags } from "@/server/lib/cache-tags";
+import { assertUnchanged } from "@/server/lib/concurrency";
 import { guardWrite } from "@/server/lib/db-errors";
 import { notFound, orNotFound } from "@/server/lib/http-error";
 import { revalidateContent } from "@/server/lib/revalidate";
@@ -31,16 +32,23 @@ export const createServiceCenter = async (input: z.output<typeof serviceCenterIn
 
 export const updateServiceCenter = async (
   id: string,
-  patch: z.output<typeof serviceCenterPatchSchema>,
+  { expectedUpdatedAt, ...patch }: z.output<typeof serviceCenterPatchSchema>,
 ) => {
-  const [row] = await guardWrite(() =>
-    getDb()
-      .update(serviceCenters)
-      .set({ ...patch, updatedAt: new Date() })
-      .where(eq(serviceCenters.id, id))
-      .returning({ id: serviceCenters.id }),
+  await guardWrite(() =>
+    getDb().transaction(async (tx) => {
+      const [row] = await tx
+        .select({ updatedAt: serviceCenters.updatedAt })
+        .from(serviceCenters)
+        .where(eq(serviceCenters.id, id))
+        .for("update");
+      if (!row) throw notFound("Service centre not found");
+      assertUnchanged(row.updatedAt, expectedUpdatedAt);
+      await tx
+        .update(serviceCenters)
+        .set({ ...patch, updatedAt: new Date() })
+        .where(eq(serviceCenters.id, id));
+    }),
   );
-  if (!row) throw notFound("Service centre not found");
   revalidateCenters();
   return orNotFound(await serviceCentersAdmin.get(id));
 };

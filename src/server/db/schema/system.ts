@@ -75,6 +75,12 @@ export const rateLimits = pgTable("rate_limits", {
   count: integer().notNull(),
 });
 
+export const cacheTagExpirations = pgTable("cache_tag_expirations", {
+  tag: text().primaryKey(),
+  staleAt: timestamptz(),
+  expiredAt: timestamptz(),
+});
+
 export const settings = pgTable("settings", {
   key: text().$type<SettingKey>().primaryKey(),
   value: jsonb().$type<SettingsValues[SettingKey]>().notNull(),

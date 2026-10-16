@@ -30,7 +30,7 @@ export default async function AdminCategoryPage({ params }: PageProps<"/admin/ca
   if (!category) notFound();
   return (
     <CategoryEditor
-      key={category.updatedAt}
+      key={category.id}
       category={category}
       categories={categories}
       guides={guides}

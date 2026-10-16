@@ -51,7 +51,9 @@ export function AuthorSheet({ author, onClose, readOnly }: AuthorSheetProps) {
     const saved = await run(
       () =>
         author
-          ? apiClient.api.admin.authors({ id: author.id }).patch(body)
+          ? apiClient.api.admin
+              .authors({ id: author.id })
+              .patch({ ...body, expectedUpdatedAt: author.updatedAt })
           : apiClient.api.admin.authors.post(body),
       { success: copy.saved, onError: (error) => applyFieldErrors(form.setError, error) },
     );

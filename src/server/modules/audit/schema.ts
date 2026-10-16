@@ -10,5 +10,12 @@ export const auditQuerySchema = listQuerySchema.extend({
       .max(40)
       .regex(/^[a-z-]+$/),
   ),
+  action: optionalFilter(
+    z
+      .string()
+      .trim()
+      .max(40)
+      .regex(/^[a-z.-]+$/),
+  ),
   actorId: optionalFilter(z.uuid()),
 });

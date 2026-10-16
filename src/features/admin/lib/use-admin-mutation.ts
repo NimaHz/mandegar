@@ -2,12 +2,14 @@
 
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useId, useState } from "react";
 
-import { toast } from "@/components/ui/toast";
+import { dismissToast, toast } from "@/components/ui/toast";
 import { adminRoutes } from "@/lib/routes";
 
+import { adminContent } from "../content";
 import { type AdminApiError, type EdenFailure, toApiError } from "./api-error";
+import { firstFieldMessage } from "./server-errors";
 
 export interface EdenResult<TData> {
   data: TData | null;
@@ -21,17 +23,31 @@ export interface MutationOptions<TData> {
   refresh?: boolean;
   onSuccess?: (data: TData) => void;
   onError?: (error: AdminApiError) => void;
+  onStale?: () => void;
 }
 
 const headerOf = (headers: unknown, name: string) =>
   headers instanceof Headers ? headers.get(name) : null;
 
 export const notifyError = (error: AdminApiError) =>
-  toast({ title: error.message, tone: "danger" });
+  toast({ title: error.message, description: firstFieldMessage(error), tone: "danger" });
+
+const notifyStale = (id: string, reload: () => void) =>
+  toast({
+    id,
+    title: adminContent.conflict.title,
+    description: adminContent.conflict.description,
+    tone: "danger",
+    duration: 0,
+    action: { label: adminContent.conflict.reload, onClick: reload },
+  });
 
 export function useAdminMutation() {
   const router = useRouter();
   const [pending, setPending] = useState(0);
+  const staleToast = `stale-${useId()}`;
+
+  useEffect(() => () => dismissToast(staleToast), [staleToast]);
 
   const run = async <TData>(
     request: () => Promise<EdenResult<TData>>,
@@ -50,10 +66,12 @@ export function useAdminMutation() {
         }
         if (error.code === "PASSWORD_CHANGE_REQUIRED") router.push(adminRoutes.account);
         options.onError?.(error);
-        notifyError(error);
+        if (error.code === "STALE" && options.onStale) notifyStale(staleToast, options.onStale);
+        else notifyError(error);
         return null;
       }
       const data = result.data;
+      dismissToast(staleToast);
       const title = typeof options.success === "function" ? options.success(data) : options.success;
       if (title) toast({ title, description: options.description, tone: "success" });
       options.onSuccess?.(data);

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  expectedUpdatedAtSchema,
   listQuerySchema,
   localizedText,
   optionalLocalizedText,
@@ -21,6 +22,8 @@ export const brandInputSchema = z.object({
   published: z.boolean(),
 });
 
-export const brandPatchSchema = brandInputSchema.partial();
+export const brandPatchSchema = brandInputSchema
+  .partial()
+  .extend({ expectedUpdatedAt: expectedUpdatedAtSchema });
 
 export const brandsQuerySchema = listQuerySchema;

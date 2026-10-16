@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-import { listQuerySchema, localizedText, optionalFilter } from "@/server/lib/validation";
+import {
+  expectedUpdatedAtSchema,
+  listQuerySchema,
+  localizedText,
+  optionalFilter,
+} from "@/server/lib/validation";
 import { faqGroups } from "@/types/content";
 
 export const faqInputSchema = z.object({
@@ -11,6 +16,8 @@ export const faqInputSchema = z.object({
   published: z.boolean(),
 });
 
-export const faqPatchSchema = faqInputSchema.partial();
+export const faqPatchSchema = faqInputSchema
+  .partial()
+  .extend({ expectedUpdatedAt: expectedUpdatedAtSchema });
 
 export const faqsQuerySchema = listQuerySchema.extend({ group: optionalFilter(z.enum(faqGroups)) });

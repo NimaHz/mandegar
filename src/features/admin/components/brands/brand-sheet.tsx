@@ -54,7 +54,9 @@ export function BrandSheet({ brand, onClose, readOnly }: BrandSheetProps) {
     const saved = await run(
       () =>
         brand
-          ? apiClient.api.admin.brands({ id: brand.id }).patch(values)
+          ? apiClient.api.admin
+              .brands({ id: brand.id })
+              .patch({ ...values, expectedUpdatedAt: brand.updatedAt })
           : apiClient.api.admin.brands.post(values),
       { success: copy.saved, onError: (error) => applyFieldErrors(form.setError, error) },
     );

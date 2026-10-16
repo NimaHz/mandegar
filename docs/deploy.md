@@ -38,7 +38,7 @@ Point the server at an Iranian Ubuntu mirror, for example ArvanCloud:
 sudo sed -i 's#http://[a-z.]*archive.ubuntu.com#https://mirror.arvancloud.ir#g; s#http://security.ubuntu.com#https://mirror.arvancloud.ir#g' \
   /etc/apt/sources.list.d/ubuntu.sources
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y git curl rsync ufw certbot nginx postgresql
+sudo apt install -y git curl rsync ufw certbot nginx postgresql rclone
 sudo timedatectl set-timezone Asia/Tehran
 sudo ufw allow OpenSSH && sudo ufw allow 80,443/tcp && sudo ufw enable
 ```
@@ -130,8 +130,12 @@ NPM_REGISTRY=<npm mirror URL, e.g. https://mirror-npm.runflare.com/>
 
 - `deploy/release.sh` and `deploy/backup.sh` source this file and systemd reads it as well, so keep
   every value on one line, unquoted and shell-safe.
-- `UPLOAD_DIR` must be the absolute path above. Values in the file override the unit's own
-  `Environment=` lines, so do not set `HOSTNAME`, `PORT` or `NODE_ENV` here.
+- `UPLOAD_DIR` must be the absolute path above; the unit does not set it. Values in the file
+  override the unit's own `Environment=` lines, so do not set `HOSTNAME`, `PORT` or `NODE_ENV` here.
+- `.env.example` leaves `NEXT_PUBLIC_SITE_URL`, `APP_ORIGIN` and `UPLOAD_DIR` blank. In production
+  they have no defaults: `/api/health` fails, and the release script rolls back, until both URLs
+  are the same `https://` origin, `UPLOAD_DIR` is an absolute path, and `NEXT_PUBLIC_SITE_URL`
+  equals the value the running release was built with (see the environment reference).
 - `NEXT_PUBLIC_SITE_URL` is compiled into the build (canonical URLs, sitemaps, Open Graph). Changing
   it requires a new release.
 - `NPM_REGISTRY` is used only by the release script, for Corepack (to fetch pnpm) and pnpm (as
@@ -204,7 +208,9 @@ already loads enabled modules) and add `brotli on; brotli_static on; brotli_comp
 ```bash
 cd /opt/mandegar/source
 registry="$(sudo sed -n 's/^NPM_REGISTRY=//p' /etc/mandegar/mandegar.env)"
-COREPACK_NPM_REGISTRY="${registry:-https://registry.npmjs.org/}" \
+integrity_keys="$(sudo sed -n 's/^COREPACK_INTEGRITY_KEYS=//p' /etc/mandegar/mandegar.env)"
+env ${integrity_keys:+COREPACK_INTEGRITY_KEYS="$integrity_keys"} \
+  COREPACK_NPM_REGISTRY="${registry:-https://registry.npmjs.org/}" \
   pnpm_config_registry="${registry:-https://registry.npmjs.org/}" \
   corepack pnpm install --frozen-lockfile --prod=false
 set -a && . <(sudo cat /etc/mandegar/mandegar.env) && set +a
@@ -220,16 +226,33 @@ bash deploy/release.sh
 ```
 
 Dependencies are installed before the environment file is loaded, so package install scripts never
-see the production secrets.
+see the production secrets. `COREPACK_INTEGRITY_KEYS` is passed only when the environment file sets
+it, as the release script does.
 
-The seed is idempotent. Besides the owner account it loads the placeholder catalog and content;
-product photos are downloaded from the internet when reachable, and replaced by generated
-placeholders otherwise. Replace the placeholder content in the admin before launch. Content is only
-seeded into tables that are still empty, so a later run never overwrites, republishes or restores
-anything edited, archived or deleted in the admin, unless every row of a table was deleted: that
-table gets its placeholders again. To reload all placeholders, seed an empty database. To run it
-again later, lend yourself the uploads directory for the duration:
-`sudo chown -R "$USER" /var/lib/mandegar/uploads && corepack pnpm db:seed; sudo chown -R mandegar:mandegar /var/lib/mandegar/uploads`.
+The seed is idempotent. In production it creates the owner account, the two warranty policies and
+the site settings, and nothing else. To start from placeholder content instead of an empty site,
+run it as `SEED_DEMO=true corepack pnpm db:seed`: that adds four brands, six categories, 18
+products with photos and manuals, guides with Aparat video hashes that do not exist, blog posts
+and authors, hero slides, FAQs and service centres, all published. Product photos are downloaded
+from the internet when reachable and replaced by generated placeholders otherwise. Demo warranty
+codes and support tickets are seeded only on a local stack (`APP_ORIGIN` on `localhost` and
+`NODE_ENV` not `production`), never on a server, so the placeholder products stay deletable.
+Replace or delete every placeholder in the admin before launch: archive or delete products,
+categories, brands, guides, posts, slides, FAQs and service centres, and edit the settings, which
+start with placeholder company details, contact details and statistics.
+
+Content is only seeded into tables that are still empty, so a later run never overwrites,
+republishes or restores anything edited, archived or deleted in the admin, unless every row of a
+table was deleted: that table gets its placeholders again. To run it again later, run it as the
+`mandegar` user with the environment file loaded, so the media it writes belong to the service:
+
+```bash
+cd /opt/mandegar/source
+sudo bash -c 'set -a && . /etc/mandegar/mandegar.env && set +a && export SEED_DEMO=true &&
+  exec runuser -u mandegar -- node_modules/.bin/tsx --conditions=react-server src/server/db/seed.ts'
+```
+
+Leave out `export SEED_DEMO=true &&` to create only the owner, policies and settings.
 
 The unit binds to `localhost`, not `127.0.0.1`. Next.js reports loopback hosts as `localhost`
 inside the proxy, so with a `127.0.0.1` bind its locale rewrites no longer match the server origin
@@ -263,6 +286,14 @@ address nginx uses. If the new release does not become healthy within a minute, 
 to the previous release, deletes the failed one and exits with an error. It keeps the five newest
 releases (`KEEP_RELEASES`). The site is unavailable for the few seconds the restart takes; nginx
 answers 502 during that window and keeps serving cached static assets.
+
+Edits made in the admin while a release builds, or before any restart, reach the new process. The
+production cache handler (`src/server/cache-handler.mjs`) extends Next.js's file-system ISR cache
+and stores every cache-tag expiry in the `cache_tag_expirations` table; each process loads them
+before it serves a cached page or data entry, so pages prerendered by the build, or rendered before
+a restart, are rendered again when an edit expired one of their tags. If the table cannot be read,
+the app logs `Could not load cache tag expirations`, serves the cache as it is and retries after
+30 seconds.
 
 To roll back by hand, point `current` at an older release and restart:
 
@@ -335,6 +366,8 @@ sudo tail -f /var/log/nginx/access.log /var/log/nginx/error.log
 
 - nginx stamps every request with `X-Request-ID` (`rid=` in the access log), passes it to the app
   and returns it to the client, so a user-reported ID can be traced.
+- The access log masks the private tracking token (`t=`) and the signature of customer attachment
+  links (`signature=`), in the request line and in the referrer.
 - `GET /api/health` returns 200 with `{ status: "ok", configuration: true, database: true }`, or an
   error when the database is down or the environment file fails validation (see the environment
   reference). The release script waits for it, so a release with an invalid setting is rolled
@@ -350,8 +383,9 @@ sudo tail -f /var/log/nginx/access.log /var/log/nginx/error.log
   caches both in `/var/cache/nginx` for 30 days, keyed by URL and, for images, by the format the
   `Accept` header negotiates (AVIF, WebP or the original), so releases and restarts do not
   re-encode them. Inspect hits with the `X-Cache-Status` response header.
-- Running several app processes needs a shared ISR cache (a custom `cacheHandler`, for example on
-  Redis) and the S3 storage driver for uploads; until then keep one process.
+- Running several app processes needs a shared ISR cache and the S3 storage driver for uploads;
+  until then keep one process. The cache handler shares tag expiries through PostgreSQL but reads
+  them once per process and keeps rendered pages on the local disk.
 - If the catalog grows large, tune PostgreSQL with `shared_buffers` around 25% of RAM in a file
   under `/etc/postgresql/16/main/conf.d/`, then `sudo systemctl restart postgresql`.
 
@@ -388,7 +422,7 @@ Application settings, in `/etc/mandegar/mandegar.env`:
 | `APP_ORIGIN`                         | yes      | `https://mandegar.ir`                   | Only origin allowed for non-GET API requests              |
 | `SESSION_SECRET`                     | yes      | 64 hex characters                       | Signs form tokens, derives ALTCHA & TOTP keys, hashes IPs |
 | `SESSION_SECRET_PREVIOUS`            | no       |                                         | Old `SESSION_SECRET` while rotating (docs/security.md)    |
-| `UPLOAD_DIR`                         | yes      | `/var/lib/mandegar/uploads`             | Local media directory (`uploads` in development)          |
+| `UPLOAD_DIR`                         | yes      | `/var/lib/mandegar/uploads`             | Absolute media directory (`uploads` in development)       |
 | `STORAGE_DRIVER`                     | no       | `local`                                 | `local` or `s3`                                           |
 | `S3_ENDPOINT`                        | for s3   | `https://s3.ir-thr-at1.arvanstorage.ir` | S3-compatible endpoint                                    |
 | `S3_REGION`                          | no       | `default`                               | S3 region                                                 |
@@ -402,6 +436,7 @@ Application settings, in `/etc/mandegar/mandegar.env`:
 | `KAVENEGAR_TEMPLATE_TICKET_UPDATED`  | no       | `mandegar-ticket-updated`               | Verify-lookup template for ticket updates                 |
 | `SEED_OWNER_EMAIL`                   | seed     |                                         | Owner account created by the seed                         |
 | `SEED_OWNER_PASSWORD`                | seed     | 12+ characters                          | Initial owner password; never overwritten by later seeds  |
+| `SEED_DEMO`                          | no       | blank (`false` on a server)             | `true` seeds placeholder content (step 8)                 |
 | `GOOGLE_SITE_VERIFICATION`           | no       |                                         | Search Console verification token                         |
 | `BING_SITE_VERIFICATION`             | no       |                                         | Bing Webmaster verification token                         |
 | `INDEXNOW_ENABLED`                   | no       | `false`                                 | Set to `true` to send IndexNow pings (see docs/seo.md)    |
@@ -424,6 +459,13 @@ setting is one of the base settings every request reads (`DATABASE_URL` through 
 journal (`journalctl -u mandegar`) shows a message naming the variable, and the release script rolls
 the release back. The app also refuses the placeholder `SESSION_SECRET` that older copies of
 `.env.example` shipped.
+
+In production, `/api/health` also answers 503 with `configuration: false`, and the journal lists
+each problem after `Invalid production environment`, while `NEXT_PUBLIC_SITE_URL`, `APP_ORIGIN` or
+`UPLOAD_DIR` is blank or missing, either URL is not `https://` (plain `http://` is accepted only
+for `localhost`, `127.0.0.1` and `[::1]`), `APP_ORIGIN` is not the origin of `NEXT_PUBLIC_SITE_URL`,
+`UPLOAD_DIR` is a relative path, or `NEXT_PUBLIC_SITE_URL` differs from the value compiled into the
+running release. After changing `NEXT_PUBLIC_SITE_URL`, release again.
 
 Release and backup scripts, set in the shell that runs them:
 

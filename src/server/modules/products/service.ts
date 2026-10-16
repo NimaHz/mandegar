@@ -6,11 +6,19 @@ import type { z } from "zod";
 import type { Locale } from "@/i18n/config";
 import { routes } from "@/lib/routes";
 import { type Executor, getDb } from "@/server/db/client";
-import { brands, categories, media, posts, productImages, products } from "@/server/db/schema";
+import {
+  brands,
+  categories,
+  media,
+  posts,
+  productImages,
+  products,
+  warrantyCodes,
+} from "@/server/db/schema";
 import { cacheTags } from "@/server/lib/cache-tags";
 import { assertUnchanged } from "@/server/lib/concurrency";
 import { guardDelete, guardWrite } from "@/server/lib/db-errors";
-import { notFound, ValidationFailure } from "@/server/lib/http-error";
+import { conflict, notFound, ValidationFailure } from "@/server/lib/http-error";
 import { publishedAtFor } from "@/server/lib/published-at";
 import { revalidateContent } from "@/server/lib/revalidate";
 import { assertLibraryMedia } from "@/server/modules/media/service";
@@ -152,18 +160,22 @@ const lockProduct = async (tx: Executor, id: string) => {
 
 const writeImages = async (tx: Executor, id: string, images: ImageInput) => {
   const mediaIds = [...new Set(images.map((image) => image.mediaId))];
+  if (mediaIds.length !== images.length) {
+    throw new ValidationFailure({ images: "Each image must be a distinct uploaded image" });
+  }
   const found =
-    mediaIds.length === images.length && mediaIds.length > 0
+    mediaIds.length > 0
       ? await tx
-          .select({ id: media.id })
+          .select({ kind: media.kind })
           .from(media)
-          .where(
-            and(inArray(media.id, mediaIds), eq(media.kind, "image"), eq(media.scope, "library")),
-          )
+          .where(and(inArray(media.id, mediaIds), eq(media.scope, "library")))
           .for("share")
       : [];
-  if (mediaIds.length !== images.length || found.length !== mediaIds.length) {
-    throw new ValidationFailure({ images: "Each image must be a distinct uploaded image" });
+  if (found.length !== mediaIds.length) {
+    throw new ValidationFailure({ images: "Referenced item not found" });
+  }
+  if (found.some((row) => row.kind !== "image")) {
+    throw new ValidationFailure({ images: "Must be an image" });
   }
   const primaryIndex = Math.max(
     0,
@@ -236,6 +248,18 @@ export const deleteProduct = async (id: string) => {
   const before = await requireProduct(id);
   await guardDelete(() =>
     getDb().transaction(async (tx) => {
+      await lockProduct(tx, id);
+      const [issued] = await tx
+        .select({ id: warrantyCodes.id })
+        .from(warrantyCodes)
+        .where(eq(warrantyCodes.productId, id))
+        .limit(1);
+      if (issued) {
+        throw conflict(
+          "Product has issued warranty codes; archive it instead",
+          "HAS_WARRANTY_CODES",
+        );
+      }
       await tx.delete(products).where(eq(products.id, id));
       await tx
         .update(products)

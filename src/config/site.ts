@@ -4,7 +4,7 @@ import { THEME_COLORS } from "@/lib/theme";
 export const siteConfig = {
   name: { fa: "ماندگار", en: "Mandegar" } satisfies Record<Locale, string>,
   latinName: "Mandegar",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
   themeColor: THEME_COLORS.light,
   contact: {
     isPlaceholder: true,

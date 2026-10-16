@@ -12,9 +12,11 @@ import {
   or,
   type SQL,
 } from "drizzle-orm";
+import type { z } from "zod";
 
 import { siteConfig } from "@/config/site";
 import type { Locale } from "@/i18n/config";
+import { isRecord } from "@/lib/guards";
 import { provinceName } from "@/lib/provinces";
 import { routes } from "@/lib/routes";
 import { getDb } from "@/server/db/client";
@@ -99,10 +101,22 @@ type SettingRow = typeof settings.$inferSelect;
 
 const settingRows = () => getDb().select().from(settings);
 
+const fieldwise = (shape: Record<string, z.ZodType>, stored: unknown, fallback: unknown) =>
+  Object.fromEntries(
+    Object.entries(shape).map(([name, schema]) => {
+      const parsed = schema.safeParse(isRecord(stored) ? stored[name] : undefined);
+      return [name, parsed.success ? parsed.data : isRecord(fallback) ? fallback[name] : undefined];
+    }),
+  );
+
 const parseSettings = (rows: SettingRow[]): SettingsValues => {
   const value = <TKey extends keyof SettingsValues>(key: TKey): SettingsValues[TKey] => {
-    const parsed = settingsSchemas[key].safeParse(rows.find((row) => row.key === key)?.value);
-    return parsed.success ? (parsed.data as SettingsValues[TKey]) : defaultSettings[key];
+    const schema = settingsSchemas[key];
+    const stored = rows.find((row) => row.key === key)?.value;
+    const whole = schema.safeParse(stored);
+    if (whole.success) return whole.data as SettingsValues[TKey];
+    const merged = schema.safeParse(fieldwise(schema.shape, stored, defaultSettings[key]));
+    return merged.success ? (merged.data as SettingsValues[TKey]) : defaultSettings[key];
   };
   return {
     contact: value("contact"),

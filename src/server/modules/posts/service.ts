@@ -19,6 +19,15 @@ import type { postInputSchema, postPatchSchema } from "./schema";
 
 type PostRow = typeof posts.$inferSelect;
 
+const MINUTE_MS = 60_000;
+
+const minuteOf = (date: Date) => Math.floor(date.getTime() / MINUTE_MS);
+
+const requestedPublishedAt = (current: Date | null, requested: string | null | undefined) =>
+  current && requested && minuteOf(new Date(requested)) === minuteOf(current)
+    ? undefined
+    : requested;
+
 const requirePost = async (id: string) => {
   const [row] = await getDb().select().from(posts).where(eq(posts.id, id));
   if (!row) throw notFound("Post not found");
@@ -96,7 +105,7 @@ export const updatePost = async (
           publishedAt: publishedAtFor(
             (patch.status ?? current.status) === "published",
             current.publishedAt,
-            patch.publishedAt,
+            requestedPublishedAt(current.publishedAt, patch.publishedAt),
           ),
         })
         .where(eq(posts.id, id))

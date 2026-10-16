@@ -23,7 +23,7 @@ interface EdenResponse<TData> {
 
 const origin =
   typeof window === "undefined"
-    ? (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000")
+    ? process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
     : window.location.origin;
 
 export const apiClient = treaty<App>(origin, {

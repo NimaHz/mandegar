@@ -1,7 +1,7 @@
 import { asc, desc, lte } from "drizzle-orm";
 
 import type { Locale } from "@/i18n/config";
-import { todayIsoDate } from "@/lib/dates";
+import { tehranMidnight, todayIsoDate } from "@/lib/dates";
 import { formatWarrantyCode, parseWarrantyCode } from "@/lib/warranty-code";
 import { getDb } from "@/server/db/client";
 import { warrantyPolicies } from "@/server/db/schema";
@@ -76,6 +76,15 @@ const toMatch = (row: CodeRow, locale: Locale): WarrantyMatch => {
       },
     },
   };
+};
+
+export const warrantySchedules = {
+  policies: async () => {
+    const rows = await getDb()
+      .selectDistinct({ effectiveFrom: warrantyPolicies.effectiveFrom })
+      .from(warrantyPolicies);
+    return rows.map((row) => tehranMidnight(row.effectiveFrom).getTime());
+  },
 };
 
 export const warrantyService: WarrantyService = {

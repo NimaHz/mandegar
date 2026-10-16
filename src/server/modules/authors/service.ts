@@ -7,6 +7,7 @@ import { routes } from "@/lib/routes";
 import { getDb } from "@/server/db/client";
 import { authors, posts } from "@/server/db/schema";
 import { cacheTags } from "@/server/lib/cache-tags";
+import { assertUnchanged } from "@/server/lib/concurrency";
 import { guardDelete, guardWrite } from "@/server/lib/db-errors";
 import { notFound, orNotFound } from "@/server/lib/http-error";
 import { revalidateContent } from "@/server/lib/revalidate";
@@ -40,15 +41,27 @@ export const createAuthor = async (input: z.output<typeof authorInputSchema>) =>
   return orNotFound(await authorsAdmin.get(row.id));
 };
 
-export const updateAuthor = async (id: string, patch: z.output<typeof authorPatchSchema>) => {
+export const updateAuthor = async (
+  id: string,
+  { expectedUpdatedAt, ...patch }: z.output<typeof authorPatchSchema>,
+) => {
   const before = orNotFound(await authorsAdmin.get(id), "Author not found");
   await assertLibraryMedia({ avatarMediaId: patch.avatarMediaId }, "image");
   const [row] = await guardWrite(() =>
-    getDb()
-      .update(authors)
-      .set({ ...patch, updatedAt: new Date() })
-      .where(eq(authors.id, id))
-      .returning(),
+    getDb().transaction(async (tx) => {
+      const [current] = await tx
+        .select({ updatedAt: authors.updatedAt })
+        .from(authors)
+        .where(eq(authors.id, id))
+        .for("update");
+      if (!current) throw notFound("Author not found");
+      assertUnchanged(current.updatedAt, expectedUpdatedAt);
+      return tx
+        .update(authors)
+        .set({ ...patch, updatedAt: new Date() })
+        .where(eq(authors.id, id))
+        .returning();
+    }),
   );
   if (!row) throw notFound("Author not found");
   await revalidateAuthor(id, [before.slug, row.slug]);

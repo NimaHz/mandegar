@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-import { listQuerySchema, localizedText, urlOrPathSchema } from "@/server/lib/validation";
+import {
+  expectedUpdatedAtSchema,
+  listQuerySchema,
+  localizedText,
+  urlOrPathSchema,
+} from "@/server/lib/validation";
 import { slideTones } from "@/types/admin";
 
 export const slideInputSchema = z.object({
@@ -17,7 +22,9 @@ export const slideInputSchema = z.object({
   endsAt: z.iso.datetime({ offset: true }).nullable(),
 });
 
-export const slidePatchSchema = slideInputSchema.partial();
+export const slidePatchSchema = slideInputSchema
+  .partial()
+  .extend({ expectedUpdatedAt: expectedUpdatedAtSchema });
 
 export const slideOrderSchema = z.object({
   ids: z

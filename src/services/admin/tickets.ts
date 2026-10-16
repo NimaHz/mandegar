@@ -65,6 +65,7 @@ const whereOf = (query: Partial<AdminTicketsQuery>) =>
   and(
     searchColumns(query.q, {
       text: [tickets.trackingCode, tickets.name, tickets.phone, tickets.subject, tickets.city],
+      mobile: [tickets.phone],
     }),
     query.type ? eq(tickets.type, query.type) : undefined,
     query.status ? eq(tickets.status, query.status) : undefined,

@@ -65,7 +65,10 @@ export function CenterSheet({ center, categories, onClose, readOnly }: CenterShe
     const saved = await run(
       () =>
         center
-          ? apiClient.api.admin["service-centers"]({ id: center.id }).patch(body)
+          ? apiClient.api.admin["service-centers"]({ id: center.id }).patch({
+              ...body,
+              expectedUpdatedAt: center.updatedAt,
+            })
           : apiClient.api.admin["service-centers"].post(body),
       { success: copy.saved, onError: (error) => applyFieldErrors(form.setError, error) },
     );

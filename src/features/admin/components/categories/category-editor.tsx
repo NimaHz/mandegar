@@ -5,7 +5,7 @@ import { Trash } from "lucide-react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider } from "react-hook-form";
 
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { apiClient } from "@/lib/api-client";
@@ -16,6 +16,8 @@ import { adminContent } from "../../content";
 import { toOptions } from "../../lib/options";
 import { applyFieldErrors } from "../../lib/server-errors";
 import { useAdminMutation } from "../../lib/use-admin-mutation";
+import { useEditorForm } from "../../lib/use-editor-form";
+import { leaveGuardedEntry } from "../../lib/use-unsaved-guard";
 import { zodOptions } from "../../lib/zod";
 import {
   blankText,
@@ -38,7 +40,7 @@ import { PanelHeading } from "../panel-heading";
 import { SpecGroupsEditor } from "../products/spec-groups-editor";
 
 const copy = adminContent.categories;
-const { common } = adminContent;
+const { common, conflict } = adminContent;
 
 interface CategoryEditorProps {
   category: AdminCategory | null;
@@ -72,7 +74,10 @@ const toForm = (category: AdminCategory | null): CategoryFormInput => ({
 export function CategoryEditor({ category, categories, guides, canWrite }: CategoryEditorProps) {
   const router = useRouter();
   const { run, pending } = useAdminMutation();
-  const form = useForm<CategoryFormInput, unknown, CategoryFormValues>({
+  const { form, isDirty, capture, commit, discard, rebase } = useEditorForm<
+    CategoryFormInput,
+    CategoryFormValues
+  >({
     resolver: zodResolver(categoryFormSchema, zodOptions),
     defaultValues: toForm(category),
   });
@@ -83,8 +88,18 @@ export function CategoryEditor({ category, categories, guides, canWrite }: Categ
     ? []
     : toOptions(categories.filter((option) => option.id !== category?.id && !option.hint));
 
+  const reload = async () => {
+    if (!category) return;
+    const latest = await run(() => apiClient.api.admin.categories({ id: category.id }).get(), {
+      success: conflict.reloaded,
+      description: conflict.reloadedHint,
+      onSuccess: (data) => setVersion(data.updatedAt),
+    });
+    if (latest) rebase(toForm(latest));
+  };
+
   const onSubmit = form.handleSubmit(async (values) => {
-    const snapshot = form.getValues();
+    const snapshot = capture();
     const onError = (error: Parameters<typeof applyFieldErrors>[1]) =>
       applyFieldErrors(form.setError, error);
     if (category) {
@@ -97,9 +112,10 @@ export function CategoryEditor({ category, categories, guides, canWrite }: Categ
           success: copy.saved,
           onSuccess: (data) => setVersion(data.updatedAt),
           onError,
+          onStale: () => void reload(),
         },
       );
-      if (saved) form.reset(snapshot);
+      if (saved) commit(snapshot, toForm(saved));
       return;
     }
     const created = await run(() => apiClient.api.admin.categories.post(values), {
@@ -108,7 +124,8 @@ export function CategoryEditor({ category, categories, guides, canWrite }: Categ
       onError,
     });
     if (created) {
-      form.reset(snapshot);
+      commit(snapshot);
+      await leaveGuardedEntry();
       router.replace(adminRoutes.category(created.id) as Route);
     }
   });
@@ -120,7 +137,8 @@ export function CategoryEditor({ category, categories, guides, canWrite }: Categ
       refresh: false,
     });
     if (done) {
-      form.reset(form.getValues());
+      commit(capture());
+      await leaveGuardedEntry();
       router.replace(adminRoutes.categories);
       router.refresh();
     }
@@ -186,9 +204,9 @@ export function CategoryEditor({ category, categories, guides, canWrite }: Categ
               </FormSection>
               {canWrite && (
                 <SaveBar
-                  dirty={form.formState.isDirty}
+                  dirty={isDirty}
                   pending={pending}
-                  onDiscard={() => form.reset()}
+                  onDiscard={discard}
                   submitLabel={category ? common.saveChanges : common.create}
                   isNew={!category}
                 />

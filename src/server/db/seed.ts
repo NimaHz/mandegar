@@ -1,5 +1,7 @@
+import { getEnv } from "@/config/env";
 import { formatWarrantyCode } from "@/lib/warranty-code";
 import { closeDb } from "@/server/db/client";
+import { isLocalOrigin, isProduction } from "@/server/env";
 import { loadEnvFiles } from "@/server/load-env-files";
 import type { LocalizedText } from "@/types/common";
 
@@ -42,30 +44,48 @@ const photoAlts = () => {
   return Object.fromEntries(alts);
 };
 
-const seed = async () => {
-  loadEnvFiles();
-  const owner = await seedOwner();
-  log(`owner: ${owner.email}`);
+const demoRequested = (localStack: boolean) => {
+  const flag = process.env.SEED_DEMO?.trim() ?? "";
+  if (flag === "") return localStack;
+  if (flag === "true" || flag === "false") return flag === "true";
+  throw new Error(`SEED_DEMO must be true, false or empty, got ${flag}`);
+};
+
+const seedDemo = async (ownerId: string, localStack: boolean) => {
   const photos = await photoLibrary(photoAlts());
   log(`photos: ${photos.size}`);
-  await seedPolicies();
   const brandIds = await seedBrands();
   const guideIds = await seedGuides(photos);
   const categoryIds = await seedCategories(photos, guideIds);
   const productIds = await seedProducts(photos, categoryIds, brandIds);
   log(`brands: ${brandIds.size}, categories: ${categoryIds.size}, products: ${productIds.size}`);
+  await seedSlides(photos);
+  await seedFaqs();
+  await seedPosts(photos, productIds);
+  await seedServiceCenters(categoryIds);
+  if (!localStack) {
+    log("warranty codes and tickets: skipped outside a local stack");
+    return;
+  }
   const codes = await seedWarrantyCodes(productIds);
   log(`warranty codes: ${codes.length}`);
   for (const code of codes.slice(0, 6)) {
     log(`  ${formatWarrantyCode(code.code)}  ${code.product.modelCode} ${code.productionYear}`);
   }
-  await seedSlides(photos);
-  await seedFaqs();
-  await seedPosts(photos, productIds);
-  await seedServiceCenters(categoryIds);
-  await seedSettings();
-  const tickets = await seedTickets(productIds, owner.id);
+  const tickets = await seedTickets(productIds, ownerId);
   for (const ticket of tickets) log(`  ticket ${ticket.trackingCode} ${ticket.phone}`);
+};
+
+const seed = async () => {
+  loadEnvFiles();
+  const localStack = !isProduction() && isLocalOrigin(getEnv().APP_ORIGIN);
+  const demo = demoRequested(localStack);
+  const owner = await seedOwner();
+  log(`owner: ${owner.email}`);
+  await seedPolicies();
+  if (demo) await seedDemo(owner.id, localStack);
+  else log("demo content: skipped (SEED_DEMO=true loads it)");
+  await seedSettings(demo);
   log("seed complete");
 };
 

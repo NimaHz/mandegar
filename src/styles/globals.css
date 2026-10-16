@@ -102,7 +102,7 @@
 
   @keyframes rise {
     from {
-      opacity: 0;
+      opacity: 0.01;
       transform: translateY(12px);
     }
     to {
@@ -113,7 +113,7 @@
 
   @keyframes fade {
     from {
-      opacity: 0;
+      opacity: 0.01;
     }
     to {
       opacity: 1;

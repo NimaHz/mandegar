@@ -1,6 +1,7 @@
 const TEHRAN_OFFSET_MINUTES = 210;
 const KEEP_RATIO = 0.6;
 const SENTENCE_END = /[.!?؟](?=\s)/g;
+const MARKDOWN_ESCAPE = /\\([!-/:-@[-`{-~])/g;
 
 export const tehranIso = (value: string | Date) => {
   const shifted = new Date(new Date(value).getTime() + TEHRAN_OFFSET_MINUTES * 60_000);
@@ -20,6 +21,7 @@ export const isoDuration = (totalSeconds: number) => {
 
 export const plainText = (markdown: string) =>
   markdown
+    .replace(MARKDOWN_ESCAPE, "$1")
     .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/^\s*(?:#{1,6}|>|[-*+]|\d+\.)\s+/gm, "")

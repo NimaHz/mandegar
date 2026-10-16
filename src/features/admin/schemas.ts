@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { isRecord } from "@/lib/guards";
 import { toLatinDigits } from "@/lib/persian";
-import { localizedText } from "@/server/lib/validation";
+import { localizedText, provinceSchemaWith, urlOrPathSchemaWith } from "@/server/lib/validation";
 import { authorInputSchema } from "@/server/modules/authors/schema";
 import { brandInputSchema } from "@/server/modules/brands/schema";
 import { categoryInputSchema } from "@/server/modules/categories/schema";
@@ -140,7 +140,7 @@ export type GuideFormValues = z.output<typeof guideFormSchema>;
 export const slideFormSchema = slideInputSchema
   .extend({
     ctaLabel: nullableText(40),
-    ctaHref: nullableString(slideInputSchema.shape.ctaHref.unwrap()),
+    ctaHref: nullableString(urlOrPathSchemaWith(adminContent.validation.link)),
     startsAt: z.string().nullable(),
     endsAt: z.string().nullable(),
   })
@@ -175,6 +175,7 @@ export type PostFormInput = z.input<typeof postFormSchema>;
 export type PostFormValues = z.output<typeof postFormSchema>;
 
 export const serviceCenterFormSchema = serviceCenterInputSchema.extend({
+  province: provinceSchemaWith(adminContent.validation.choice),
   phones: z.array(z.object({ value: serviceCenterInputSchema.shape.phones.element })).max(6),
 });
 export type ServiceCenterFormInput = z.input<typeof serviceCenterFormSchema>;

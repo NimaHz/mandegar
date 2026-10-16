@@ -182,6 +182,8 @@ export interface SettingsValues {
 export const settingKeys = ["contact", "seo", "stats", "company"] as const;
 export type SettingKey = (typeof settingKeys)[number];
 
+export type SettingVersions = Record<SettingKey, string | null>;
+
 export interface AdminIdentity {
   id: string;
   name: string;
@@ -682,5 +684,6 @@ export interface AdminPostsQuery extends AdminListQuery {
 
 export interface AdminAuditQuery extends AdminListQuery {
   entity: string | null;
+  action: string | null;
   actorId: string | null;
 }

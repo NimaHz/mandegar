@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  expectedUpdatedAtSchema,
   listQuerySchema,
   localeSchema,
   localizedText,
@@ -24,7 +25,9 @@ export const warrantyPolicyInputSchema = z.object({
   effectiveFrom: z.iso.date(),
 });
 
-export const warrantyPolicyPatchSchema = warrantyPolicyInputSchema.partial();
+export const warrantyPolicyPatchSchema = warrantyPolicyInputSchema
+  .partial()
+  .extend({ expectedUpdatedAt: expectedUpdatedAtSchema });
 
 export const warrantyPoliciesQuerySchema = listQuerySchema;
 

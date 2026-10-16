@@ -2,17 +2,23 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 
+import { siteConfig } from "@/config/site";
 import { getDb } from "@/server/db/client";
-import { getServerEnv } from "@/server/env";
+import { getServerEnv, isProduction, productionEnvIssues } from "@/server/env";
 
 const checkConfiguration = () => {
   try {
     getServerEnv();
-    return true;
   } catch (error) {
     console.error(error);
     return false;
   }
+  const issues = isProduction() ? productionEnvIssues(process.env, siteConfig.url) : [];
+  if (issues.length === 0) return true;
+  console.error(
+    `Invalid production environment:\n${issues.map((issue) => `✖ ${issue}`).join("\n")}`,
+  );
+  return false;
 };
 
 const checkDatabase = async () => {

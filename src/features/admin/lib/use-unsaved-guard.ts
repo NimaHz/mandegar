@@ -26,13 +26,31 @@ const guardHistory = () => {
   pushGuarded();
 };
 
-const guard = { dirty: 0, leaving: false };
+const guard = { dirty: 0, leaving: false, releasing: false };
+
+export const leaveGuardedEntry = () =>
+  new Promise<void>((resolve) => {
+    if (!onEntry(GUARDED_KEY)) {
+      resolve();
+      return;
+    }
+    const onPopState = (event: PopStateEvent) => {
+      event.stopImmediatePropagation();
+      window.removeEventListener("popstate", onPopState, true);
+      window.history.replaceState({ ...historyState(), [SHADOW_KEY]: false }, "");
+      guard.releasing = false;
+      resolve();
+    };
+    guard.releasing = true;
+    window.addEventListener("popstate", onPopState, true);
+    window.history.back();
+  });
 
 export function useUnsavedGuard(dirty: boolean) {
   useEffect(() => {
     const href = window.location.href;
     const onPopState = (event: PopStateEvent) => {
-      if (window.location.href !== href || !onEntry(SHADOW_KEY)) return;
+      if (guard.releasing || window.location.href !== href || !onEntry(SHADOW_KEY)) return;
       event.stopImmediatePropagation();
       if (guard.dirty > 0 && !guard.leaving && !window.confirm(adminContent.common.leaveConfirm)) {
         pushGuarded();

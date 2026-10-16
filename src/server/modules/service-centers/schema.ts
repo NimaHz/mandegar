@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  expectedUpdatedAtSchema,
   listQuerySchema,
   localizedText,
   optionalFilter,
@@ -27,7 +28,9 @@ export const serviceCenterInputSchema = z.object({
   active: z.boolean(),
 });
 
-export const serviceCenterPatchSchema = serviceCenterInputSchema.partial();
+export const serviceCenterPatchSchema = serviceCenterInputSchema
+  .partial()
+  .extend({ expectedUpdatedAt: expectedUpdatedAtSchema });
 
 export const serviceCentersQuerySchema = listQuerySchema.extend({
   province: optionalFilter(provinceSchema),

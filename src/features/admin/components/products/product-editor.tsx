@@ -6,7 +6,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import { FormProvider, useForm, useWatch } from "react-hook-form";
+import { FormProvider, useWatch } from "react-hook-form";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/ui/confirm-button";
@@ -23,6 +23,8 @@ import { enumOptions, toOptions } from "../../lib/options";
 import { applyFieldErrors } from "../../lib/server-errors";
 import { slugify } from "../../lib/slug";
 import { useAdminMutation } from "../../lib/use-admin-mutation";
+import { useEditorForm } from "../../lib/use-editor-form";
+import { leaveGuardedEntry } from "../../lib/use-unsaved-guard";
 import { zodOptions } from "../../lib/zod";
 import {
   blankText,
@@ -52,7 +54,7 @@ import { GalleryManager } from "./gallery-manager";
 import { blankSpecItem, SpecGroupsEditor } from "./spec-groups-editor";
 
 const copy = adminContent.products;
-const { common, statuses } = adminContent;
+const { common, conflict, statuses } = adminContent;
 
 interface ProductEditorProps {
   product: AdminProduct | null;
@@ -110,19 +112,14 @@ export function ProductEditor({
 }: ProductEditorProps) {
   const router = useRouter();
   const { run, pending } = useAdminMutation();
-  const form = useForm<ProductFormInput, unknown, ProductFormValues>({
+  const { form, isDirty, isSubmitting, capture, commit, discard, rebase } = useEditorForm<
+    ProductFormInput,
+    ProductFormValues
+  >({
     resolver: zodResolver(productFormSchema, zodOptions),
     defaultValues: toForm(product),
   });
-  const {
-    control,
-    handleSubmit,
-    reset,
-    getValues,
-    setValue,
-    setError,
-    formState: { isDirty, isSubmitting },
-  } = form;
+  const { control, handleSubmit, getValues, setValue, setError } = form;
   const [version, setVersion] = useState(product?.updatedAt);
   const prefilled = useRef<string | null>(null);
   const [categoryId, nameEn] = useWatch({ control, name: ["categoryId", "name.en"] });
@@ -161,8 +158,18 @@ export function ProductEditor({
 
   const applyServerErrors = (error: AdminApiError) => applyFieldErrors(setError, error);
 
+  const reload = async () => {
+    if (!product) return;
+    const latest = await run(() => apiClient.api.admin.products({ id: product.id }).get(), {
+      success: conflict.reloaded,
+      description: conflict.reloadedHint,
+      onSuccess: (data) => setVersion(data.updatedAt),
+    });
+    if (latest) rebase(toForm(latest));
+  };
+
   const onSubmit = handleSubmit(async (values) => {
-    const snapshot = getValues();
+    const snapshot = capture();
     if (product) {
       const saved = await run(
         () =>
@@ -173,9 +180,10 @@ export function ProductEditor({
           success: copy.savedToast,
           onSuccess: (data) => setVersion(data.updatedAt),
           onError: applyServerErrors,
+          onStale: () => void reload(),
         },
       );
-      if (saved) reset(snapshot);
+      if (saved) commit(snapshot, toForm(saved));
       return;
     }
     const created = await run(() => apiClient.api.admin.products.post(values), {
@@ -184,7 +192,8 @@ export function ProductEditor({
       onError: applyServerErrors,
     });
     if (!created) return;
-    reset(snapshot);
+    commit(snapshot);
+    await leaveGuardedEntry();
     router.replace(adminRoutes.product(created.id) as Route);
   });
 
@@ -195,7 +204,8 @@ export function ProductEditor({
       refresh: false,
     });
     if (done) {
-      reset(getValues());
+      commit(capture());
+      await leaveGuardedEntry();
       router.replace(adminRoutes.products);
       router.refresh();
     }
@@ -434,6 +444,7 @@ export function ProductEditor({
                       <LocalizedTextarea
                         name={`faqs.${index}.answer`}
                         label={copy.fields.answer}
+                        markdown
                         rows={3}
                       />
                     </>
@@ -470,7 +481,7 @@ export function ProductEditor({
                 <SaveBar
                   dirty={isDirty}
                   pending={isSubmitting || pending}
-                  onDiscard={() => reset()}
+                  onDiscard={discard}
                   submitLabel={product ? common.saveChanges : copy.createSubmit}
                   isNew={!product}
                 />

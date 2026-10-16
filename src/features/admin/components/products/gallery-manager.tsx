@@ -14,7 +14,7 @@ import type { AdminMediaRef } from "@/types/admin";
 
 import { adminContent } from "../../content";
 import { faNumber } from "../../lib/format";
-import { acceptFor } from "../../lib/upload";
+import { acceptFor, acceptsFile } from "../../lib/upload";
 import { useDragReorder } from "../../lib/use-drag-reorder";
 import { LocalizedField } from "../form/localized-field";
 import { useReadOnly } from "../form/read-only";
@@ -77,12 +77,19 @@ export function GalleryManager({ name, initialMedia }: GalleryManagerProps) {
     });
   };
 
+  const rejectKind = () =>
+    toast({ title: adminContent.mediaField.wrongKind.image, tone: "danger" });
+
   const onFiles = async (files: FileList | null) => {
-    const list = Array.from(files ?? []).slice(0, MAX_IMAGES - currentCount());
+    const chosen = Array.from(files ?? []);
+    const accepted = chosen.filter((file) => acceptsFile("image", file));
+    if (accepted.length < chosen.length) rejectKind();
+    const list = accepted.slice(0, MAX_IMAGES - currentCount());
     setQueue((count) => count + list.length);
     for (const file of list) {
       const uploaded = await upload(file);
-      if (uploaded && currentCount() < MAX_IMAGES) add(uploaded);
+      if (uploaded && uploaded.kind !== "image") rejectKind();
+      else if (uploaded && currentCount() < MAX_IMAGES) add(uploaded);
       setQueue((count) => count - 1);
     }
   };
@@ -116,7 +123,7 @@ export function GalleryManager({ name, initialMedia }: GalleryManagerProps) {
         <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
           {fields.map((field, index) => {
             const value = images[index];
-            const ref = value ? media[value.mediaId] : undefined;
+            const ref = value ? (media[value.mediaId] ?? initialMedia[value.mediaId]) : undefined;
             const title = fill(copy.image, { index: faNumber(index + 1) });
             return (
               <li

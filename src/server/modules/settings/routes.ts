@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
 
+import { expectedUpdatedAtSchema } from "@/server/lib/validation";
 import { auth } from "@/server/plugins/auth";
 import { settingsAdmin } from "@/services/admin/system";
 
@@ -9,24 +10,34 @@ import {
   seoSettingsSchema,
   statsSettingsSchema,
 } from "./schema";
-import { saveSetting } from "./service";
+import { readSetting, saveSetting } from "./service";
+
+const versioned = { expectedUpdatedAt: expectedUpdatedAtSchema };
 
 export const settingsAdminRoutes = new Elysia({ prefix: "/admin/settings" })
   .use(auth)
   .get("/", () => settingsAdmin.get(), { can: "settings:write" })
-  .put("/contact", ({ body }) => saveSetting("contact", body), {
-    can: "settings:write",
-    body: contactSettingsSchema,
-  })
-  .put("/seo", ({ body }) => saveSetting("seo", body), {
-    can: "settings:write",
-    body: seoSettingsSchema,
-  })
-  .put("/stats", ({ body }) => saveSetting("stats", body), {
-    can: "settings:write",
-    body: statsSettingsSchema,
-  })
-  .put("/company", ({ body }) => saveSetting("company", body), {
-    can: "settings:write",
-    body: companySettingsSchema,
-  });
+  .get("/contact", () => readSetting("contact"), { can: "settings:write" })
+  .put(
+    "/contact",
+    ({ body: { expectedUpdatedAt, ...value } }) => saveSetting("contact", value, expectedUpdatedAt),
+    { can: "settings:write", body: contactSettingsSchema.extend(versioned) },
+  )
+  .get("/seo", () => readSetting("seo"), { can: "settings:write" })
+  .put(
+    "/seo",
+    ({ body: { expectedUpdatedAt, ...value } }) => saveSetting("seo", value, expectedUpdatedAt),
+    { can: "settings:write", body: seoSettingsSchema.extend(versioned) },
+  )
+  .get("/stats", () => readSetting("stats"), { can: "settings:write" })
+  .put(
+    "/stats",
+    ({ body: { expectedUpdatedAt, ...value } }) => saveSetting("stats", value, expectedUpdatedAt),
+    { can: "settings:write", body: statsSettingsSchema.extend(versioned) },
+  )
+  .get("/company", () => readSetting("company"), { can: "settings:write" })
+  .put(
+    "/company",
+    ({ body: { expectedUpdatedAt, ...value } }) => saveSetting("company", value, expectedUpdatedAt),
+    { can: "settings:write", body: companySettingsSchema.extend(versioned) },
+  );

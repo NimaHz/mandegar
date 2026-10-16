@@ -2,7 +2,7 @@ import "server-only";
 
 import { isDeepStrictEqual } from "node:util";
 
-import { eq } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import type { z } from "zod";
 
 import { getEnv } from "@/config/env";
@@ -13,6 +13,7 @@ import { createWarrantyCode } from "@/lib/warranty-code";
 import { getDb } from "@/server/db/client";
 import { products, warrantyCodes, warrantyPolicies } from "@/server/db/schema";
 import { cacheTags } from "@/server/lib/cache-tags";
+import { assertUnchanged } from "@/server/lib/concurrency";
 import { toCsv } from "@/server/lib/csv";
 import { guardDelete, guardWrite } from "@/server/lib/db-errors";
 import { conflict, notFound, orNotFound, ValidationFailure } from "@/server/lib/http-error";
@@ -46,25 +47,37 @@ const policyTerms = ["months", "partsMonths", "startRule", "coverage", "exclusio
 
 export const updateWarrantyPolicy = async (
   id: string,
-  patch: z.output<typeof warrantyPolicyPatchSchema>,
+  { expectedUpdatedAt, ...patch }: z.output<typeof warrantyPolicyPatchSchema>,
 ) => {
-  const current = orNotFound(await warrantyPoliciesAdmin.get(id), "Policy not found");
-  const locked =
-    current.codeCount > 0
-      ? policyTerms.filter(
-          (key) => patch[key] !== undefined && !isDeepStrictEqual(patch[key], current[key]),
-        )
-      : [];
-  if (locked.length > 0) {
-    throw new ValidationFailure(
-      Object.fromEntries(locked.map((key) => [key, "Locked once codes are issued"])),
-    );
-  }
   await guardWrite(() =>
-    getDb()
-      .update(warrantyPolicies)
-      .set({ ...patch, updatedAt: new Date() })
-      .where(eq(warrantyPolicies.id, id)),
+    getDb().transaction(async (tx) => {
+      const [current] = await tx
+        .select()
+        .from(warrantyPolicies)
+        .where(eq(warrantyPolicies.id, id))
+        .for("update");
+      if (!current) throw notFound("Policy not found");
+      assertUnchanged(current.updatedAt, expectedUpdatedAt);
+      const [issued] = await tx
+        .select({ total: count() })
+        .from(warrantyCodes)
+        .where(eq(warrantyCodes.policyId, id));
+      const locked =
+        (issued?.total ?? 0) > 0
+          ? policyTerms.filter(
+              (key) => patch[key] !== undefined && !isDeepStrictEqual(patch[key], current[key]),
+            )
+          : [];
+      if (locked.length > 0) {
+        throw new ValidationFailure(
+          Object.fromEntries(locked.map((key) => [key, "Locked once codes are issued"])),
+        );
+      }
+      await tx
+        .update(warrantyPolicies)
+        .set({ ...patch, updatedAt: new Date() })
+        .where(eq(warrantyPolicies.id, id));
+    }),
   );
   revalidateContent([cacheTags.warranty], [routes.warranty]);
   return orNotFound(await warrantyPoliciesAdmin.get(id));
@@ -94,17 +107,25 @@ export const generateBatchCode = async (input: z.output<typeof warrantyGenerateS
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
       const [row] = await guardWrite(() =>
-        getDb()
-          .insert(warrantyCodes)
-          .values({
-            code: createWarrantyCode(input.productionYear),
-            kind: "batch",
-            productId: product.id,
-            productionYear: input.productionYear,
-            policyId,
-            note: input.note ?? null,
-          })
-          .returning({ id: warrantyCodes.id }),
+        getDb().transaction(async (tx) => {
+          const [policy] = await tx
+            .select({ id: warrantyPolicies.id })
+            .from(warrantyPolicies)
+            .where(eq(warrantyPolicies.id, policyId))
+            .for("share");
+          if (!policy) throw new ValidationFailure({ policyId: "Referenced item not found" });
+          return tx
+            .insert(warrantyCodes)
+            .values({
+              code: createWarrantyCode(input.productionYear),
+              kind: "batch",
+              productId: product.id,
+              productionYear: input.productionYear,
+              policyId,
+              note: input.note ?? null,
+            })
+            .returning({ id: warrantyCodes.id });
+        }),
       );
       if (row) return orNotFound(await warrantyCodesAdmin.get(row.id));
     } catch (error) {

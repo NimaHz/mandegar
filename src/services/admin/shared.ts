@@ -1,5 +1,6 @@
-import { type AnyColumn, asc, inArray, or, type SQL, sql } from "drizzle-orm";
+import { type AnyColumn, asc, eq, inArray, or, type SQL, sql } from "drizzle-orm";
 
+import { normalizeMobile } from "@/lib/persian";
 import { routes } from "@/lib/routes";
 import { getDb } from "@/server/db/client";
 import { media } from "@/server/db/schema";
@@ -34,12 +35,14 @@ export const mediaRefs = async (ids: readonly (string | null | undefined)[]) => 
 
 export const searchColumns = (
   q: string | undefined,
-  columns: { localized?: AnyColumn[]; text?: AnyColumn[] },
+  columns: { localized?: AnyColumn[]; text?: AnyColumn[]; mobile?: AnyColumn[] },
 ): SQL | undefined => {
   const key = q ? toFoldedKey(q) : "";
   if (!key) return undefined;
   const pattern = likePattern(key);
+  const mobile = q ? normalizeMobile(q) : null;
   return or(
+    ...(mobile ? (columns.mobile ?? []).map((column) => eq(column, mobile)) : []),
     ...(columns.localized ?? []).map(
       (column) =>
         sql`${foldSearch(sql`(${column}->>'fa') || ' ' || (${column}->>'en')`)} like ${pattern}`,

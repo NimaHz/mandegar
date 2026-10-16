@@ -33,7 +33,7 @@ export default async function AdminProductPage({ params }: PageProps<"/admin/pro
 
   return (
     <ProductEditor
-      key={product.updatedAt}
+      key={product.id}
       product={product}
       categories={categories}
       brands={brands}

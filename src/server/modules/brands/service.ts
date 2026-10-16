@@ -6,6 +6,7 @@ import type { z } from "zod";
 import { routes } from "@/lib/routes";
 import { getDb } from "@/server/db/client";
 import { brands, categories, products } from "@/server/db/schema";
+import { assertUnchanged } from "@/server/lib/concurrency";
 import { guardDelete, guardWrite } from "@/server/lib/db-errors";
 import { notFound } from "@/server/lib/http-error";
 import { assertLibraryMedia } from "@/server/modules/media/service";
@@ -35,14 +36,26 @@ export const createBrand = async (input: z.output<typeof brandInputSchema>) => {
   return loadBrand(row.id);
 };
 
-export const updateBrand = async (id: string, patch: z.output<typeof brandPatchSchema>) => {
+export const updateBrand = async (
+  id: string,
+  { expectedUpdatedAt, ...patch }: z.output<typeof brandPatchSchema>,
+) => {
   const before = await loadBrand(id);
   await assertLibraryMedia({ logoMediaId: patch.logoMediaId }, "image");
   await guardWrite(() =>
-    getDb()
-      .update(brands)
-      .set({ ...patch, updatedAt: new Date() })
-      .where(eq(brands.id, id)),
+    getDb().transaction(async (tx) => {
+      const [row] = await tx
+        .select({ updatedAt: brands.updatedAt })
+        .from(brands)
+        .where(eq(brands.id, id))
+        .for("update");
+      if (!row) throw notFound("Brand not found");
+      assertUnchanged(row.updatedAt, expectedUpdatedAt);
+      await tx
+        .update(brands)
+        .set({ ...patch, updatedAt: new Date() })
+        .where(eq(brands.id, id));
+    }),
   );
   const after = await loadBrand(id);
   await revalidateBrand(id, [before, after]);

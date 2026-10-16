@@ -1,7 +1,8 @@
 "use client";
 
 import { LoaderCircle, SlidersHorizontal } from "lucide-react";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
@@ -17,6 +18,7 @@ import {
 
 import { adminContent } from "../../content";
 import { toOptions } from "../../lib/options";
+import { fieldMessage } from "../../lib/server-errors";
 import { useAdminMutation } from "../../lib/use-admin-mutation";
 import { PanelCard } from "../panel-card";
 
@@ -33,10 +35,13 @@ export function TicketControls({
   ticket: AdminTicket;
   assignees: AdminOption[];
 }) {
+  const assigneeErrorId = useId();
+  const router = useRouter();
   const { run, pending } = useAdminMutation();
   const [status, setStatus] = useState(ticket.status);
   const [priority, setPriority] = useState(ticket.priority);
   const [assigneeId, setAssigneeId] = useState(ticket.assignee?.id ?? "");
+  const [assigneeError, setAssigneeError] = useState<string | null>(null);
   const changed =
     status !== ticket.status ||
     priority !== ticket.priority ||
@@ -58,7 +63,15 @@ export function TicketControls({
           ...(priority !== ticket.priority ? { priority } : {}),
           ...(assigneeId !== (ticket.assignee?.id ?? "") ? { assigneeId: assigneeId || null } : {}),
         }),
-      { success: copy.updated },
+      {
+        success: copy.updated,
+        onError: ({ fields }) => {
+          if (!fields.assigneeId) return;
+          setAssigneeError(fieldMessage(fields.assigneeId));
+          setAssigneeId(ticket.assignee?.id ?? "");
+          router.refresh();
+        },
+      },
     );
 
   const field = "flex flex-col gap-1.5 text-label font-bold text-ink";
@@ -86,15 +99,28 @@ export function TicketControls({
             }}
           />
         </label>
-        <label className={field}>
-          {copy.assignee}
-          <Select
-            options={assigneeOptions}
-            placeholder={copy.unassigned}
-            value={assigneeId}
-            onChange={(event) => setAssigneeId(event.target.value)}
-          />
-        </label>
+        <div className="flex flex-col gap-1.5">
+          <label className={field}>
+            {copy.assignee}
+            <Select
+              options={assigneeOptions}
+              placeholder={copy.unassigned}
+              value={assigneeId}
+              onChange={(event) => {
+                setAssigneeId(event.target.value);
+                setAssigneeError(null);
+              }}
+              aria-invalid={assigneeError ? true : undefined}
+              aria-describedby={assigneeError ? assigneeErrorId : undefined}
+              className={assigneeError ? "border-danger" : undefined}
+            />
+          </label>
+          {assigneeError && (
+            <p id={assigneeErrorId} className="text-xs font-semibold text-danger">
+              {assigneeError}
+            </p>
+          )}
+        </div>
       </div>
       <Button onClick={apply} disabled={!changed || pending} variant={changed ? "primary" : "soft"}>
         {pending && <LoaderCircle className="size-4 animate-spin" aria-hidden />}

@@ -189,10 +189,13 @@ customer data: keep them on the server with mode 600, encrypt off-site copies, a
 - [ ] `SESSION_SECRET` is a fresh 32-byte random value (`openssl rand -hex 32`) and differs from
       every other environment.
 - [ ] The database password is random and only in `/etc/mandegar/mandegar.env` (mode 600).
-- [ ] `NEXT_PUBLIC_SITE_URL` and `APP_ORIGIN` are the final `https://` origin.
+- [ ] `NEXT_PUBLIC_SITE_URL` and `APP_ORIGIN` are the final `https://` origin; `/api/health`
+      reports `configuration: false` until they are.
 - [ ] The seeded owner has signed in, changed the password and enabled TOTP; remove or rotate
       `SEED_OWNER_PASSWORD` in the environment file afterwards.
 - [ ] No placeholder users remain; each staff member has their own account with the least role.
+- [ ] If the seed ran with `SEED_DEMO=true`, every placeholder product, page and setting has been
+      replaced or deleted.
 - [ ] HTTPS works on the apex and `www`, HTTP redirects to HTTPS, and certificate renewal passes
       `certbot renew --dry-run`.
 - [ ] Session cookies are `__Host-` prefixed and `Secure` (production mode); check in the browser.

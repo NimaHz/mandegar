@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  expectedUpdatedAtSchema,
   listQuerySchema,
   localizedText,
   optionalLocalizedText,
@@ -16,6 +17,8 @@ export const authorInputSchema = z.object({
   sameAs: z.array(z.url({ protocol: /^https$/ }).max(300)).max(10),
 });
 
-export const authorPatchSchema = authorInputSchema.partial();
+export const authorPatchSchema = authorInputSchema
+  .partial()
+  .extend({ expectedUpdatedAt: expectedUpdatedAtSchema });
 
 export const authorsQuerySchema = listQuerySchema;

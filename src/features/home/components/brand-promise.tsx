@@ -15,6 +15,7 @@ const statKeys = ["years", "models", "serviceCenters", "warrantyMonths"] as cons
 
 export function BrandPromise({ stats, locale }: BrandPromiseProps) {
   const content = homeContent[locale].promise;
+  const items = statKeys.filter((key) => stats[key] > 0);
 
   return (
     <section
@@ -45,24 +46,26 @@ export function BrandPromise({ stats, locale }: BrandPromiseProps) {
             {content.body}
           </p>
         </Reveal>
-        <Reveal delay={0.1}>
-          <dl
-            aria-label={content.statsLabel}
-            className="grid grid-cols-2 gap-px overflow-hidden rounded-panel bg-white/12 ring-1 ring-white/12"
-          >
-            {statKeys.map((key) => (
-              <div
-                key={key}
-                className="flex flex-col-reverse gap-2 bg-brand-deep/95 p-5 backdrop-blur sm:p-7"
-              >
-                <dt className="text-sm leading-6 text-white/70">{content.stats[key]}</dt>
-                <dd className="font-display text-4xl font-black tracking-tight sm:text-5xl">
-                  <StatTicker value={stats[key]} />
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </Reveal>
+        {items.length > 0 && (
+          <Reveal delay={0.1}>
+            <dl
+              aria-label={content.statsLabel}
+              className="grid grid-cols-2 gap-px overflow-hidden rounded-panel bg-white/12 ring-1 ring-white/12"
+            >
+              {items.map((key) => (
+                <div
+                  key={key}
+                  className="flex flex-col-reverse gap-2 bg-brand-deep/95 p-5 backdrop-blur last:odd:col-span-2 sm:p-7"
+                >
+                  <dt className="text-sm leading-6 text-white/70">{content.stats[key]}</dt>
+                  <dd className="font-display text-4xl font-black tracking-tight sm:text-5xl">
+                    <StatTicker value={stats[key]} />
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </Reveal>
+        )}
       </div>
     </section>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { CalendarRange, GalleryHorizontalEnd, GripVertical, PenLine, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,7 @@ interface SlidesBoardProps {
 }
 
 export function SlidesBoard({ slides, canWrite, now }: SlidesBoardProps) {
+  const router = useRouter();
   const { run, pending } = useAdminMutation();
   const [order, setOrder] = useState(slides.map((slide) => slide.id));
   const sheet = useSheetTarget<AdminSlide>();
@@ -71,7 +73,10 @@ export function SlidesBoard({ slides, canWrite, now }: SlidesBoardProps) {
     setOrder(ids);
     void run(() => apiClient.api.admin.slides.order.put({ ids }), {
       success: copy.orderSaved,
-      onError: () => setOrder(previous),
+      onError: () => {
+        setOrder(previous);
+        router.refresh();
+      },
     });
   };
 

@@ -14,7 +14,6 @@ Environment=NODE_ENV=production
 Environment=HOSTNAME=localhost
 Environment=PORT=3000
 Environment=NODE_OPTIONS=--dns-result-order=ipv4first
-Environment=UPLOAD_DIR=/var/lib/mandegar/uploads
 ExecStart=/usr/local/bin/node server.js
 Restart=on-failure
 RestartSec=5

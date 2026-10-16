@@ -143,6 +143,22 @@ const metaContent = (html, attr, name) => {
   return tag ? decode(tag.match(/content="([^"]*)"/i)?.[1] ?? "") : null;
 };
 
+const linkHref = (html, rel) => {
+  const pattern = new RegExp(`<link[^>]*rel="${rel}"[^>]*>`, "i");
+  const tag = html.match(pattern)?.[0];
+  return tag ? decode(tag.match(/href="([^"]*)"/i)?.[1] ?? "") : null;
+};
+
+const fetchImage = async (url) => {
+  try {
+    const image = await fetch(url);
+    await image.arrayBuffer();
+    return { status: image.status, type: image.headers.get("content-type") ?? "" };
+  } catch (error) {
+    return { status: 0, type: error.cause?.code ?? error.message };
+  }
+};
+
 const checkMetadata = async (html, report) => {
   const title = decode(html.match(/<title>([^<]*)<\/title>/i)?.[1] ?? "");
   const description = metaContent(html, "name", "description");
@@ -152,7 +168,8 @@ const checkMetadata = async (html, report) => {
   if (!description) report.error("metadata: missing meta description");
   else if ([...description].length > 155)
     report.warn(`metadata: description is ${[...description].length} chars (> 155)`);
-  if (!/<link[^>]+rel="canonical"/i.test(html)) report.error("metadata: missing canonical");
+  const canonical = linkHref(html, "canonical");
+  if (!canonical) report.error("metadata: missing canonical");
   for (const hreflang of ["fa-IR", "en", "x-default"]) {
     if (!new RegExp(`<link[^>]+hreflang="${hreflang}"`, "i").test(html))
       report.error(`metadata: missing hreflang ${hreflang}`);
@@ -163,11 +180,16 @@ const checkMetadata = async (html, report) => {
     return;
   }
   if (!metaContent(html, "name", "twitter:card")) report.error("metadata: missing twitter:card");
-  const image = await fetch(ogImage);
-  const type = image.headers.get("content-type") ?? "";
-  await image.arrayBuffer();
-  if (image.status !== 200 || !type.startsWith("image/png"))
-    report.error(`metadata: og:image ${ogImage} returned ${image.status} ${type}`);
+  if (!URL.canParse(ogImage)) {
+    report.error(`metadata: og:image ${ogImage} is not an absolute URL`);
+    return;
+  }
+  const image = new URL(ogImage);
+  if (canonical && URL.canParse(canonical) && new URL(canonical).origin !== image.origin)
+    report.error(`metadata: og:image ${ogImage} is not on the canonical origin`);
+  const { status, type } = await fetchImage(`${base}${image.pathname}${image.search}`);
+  if (status !== 200 || !type.startsWith("image/png"))
+    report.error(`metadata: og:image ${image.pathname}${image.search} returned ${status} ${type}`);
 };
 
 const isExternalStub = (node, path, pagePath) => {

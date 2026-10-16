@@ -19,6 +19,7 @@ import { useFieldError } from "./use-field-error";
 type InputProps = Omit<ComponentProps<typeof Field>, "name" | "error">;
 
 export function TextInput({ name, readOnly, ...props }: InputProps & { name: string }) {
+  "use no memo";
   const { register } = useFormContext();
   const error = useFieldError(name);
   const locked = useReadOnly();
@@ -28,6 +29,7 @@ export function TextInput({ name, readOnly, ...props }: InputProps & { name: str
 const latinDigits = (value: unknown) => (typeof value === "string" ? toLatinDigits(value) : value);
 
 export function CodeInput({ name, className, readOnly, ...props }: InputProps & { name: string }) {
+  "use no memo";
   const { register } = useFormContext();
   const error = useFieldError(name);
   const locked = useReadOnly();
@@ -66,6 +68,7 @@ export function NumberInput({
   readOnly,
   ...props
 }: InputProps & { name: string }) {
+  "use no memo";
   const { register } = useFormContext();
   const error = useFieldError(name);
   const locked = useReadOnly();
@@ -86,6 +89,7 @@ export function NumberInput({
 type TextAreaProps = Omit<ComponentProps<typeof TextAreaField>, "name" | "error">;
 
 export function TextArea({ name, readOnly, ...props }: TextAreaProps & { name: string }) {
+  "use no memo";
   const { register } = useFormContext();
   const error = useFieldError(name);
   const locked = useReadOnly();
@@ -119,6 +123,7 @@ export function SelectInput({
   disabled,
   ...props
 }: SelectInputProps) {
+  "use no memo";
   const { register } = useFormContext();
   const error = useFieldError(name);
   const locked = useReadOnly();

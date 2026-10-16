@@ -6,7 +6,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider } from "react-hook-form";
 
 import { buttonVariants } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/ui/confirm-button";
@@ -23,6 +23,8 @@ import { fromLocalInput, toLocalInput } from "../../lib/datetime";
 import { enumOptions, toOptions } from "../../lib/options";
 import { applyFieldErrors } from "../../lib/server-errors";
 import { useAdminMutation } from "../../lib/use-admin-mutation";
+import { useEditorForm } from "../../lib/use-editor-form";
+import { leaveGuardedEntry } from "../../lib/use-unsaved-guard";
 import { zodOptions } from "../../lib/zod";
 import {
   blankText,
@@ -44,7 +46,7 @@ import { PanelCard } from "../panel-card";
 import { PanelHeading } from "../panel-heading";
 
 const copy = adminContent.posts;
-const { common, statuses } = adminContent;
+const { common, conflict, statuses } = adminContent;
 
 interface PostEditorProps {
   post: AdminPost | null;
@@ -70,14 +72,27 @@ const toForm = (post: AdminPost | null, authorId: string): PostFormInput => ({
 export function PostEditor({ post, authors, products, canWrite }: PostEditorProps) {
   const router = useRouter();
   const { run, pending } = useAdminMutation();
-  const form = useForm<PostFormInput, unknown, PostFormValues>({
+  const { form, isDirty, capture, commit, discard, rebase } = useEditorForm<
+    PostFormInput,
+    PostFormValues
+  >({
     resolver: zodResolver(postFormSchema, zodOptions),
     defaultValues: toForm(post, authors[0]?.id ?? ""),
   });
   const [version, setVersion] = useState(post?.updatedAt);
 
+  const reload = async () => {
+    if (!post) return;
+    const latest = await run(() => apiClient.api.admin.posts({ id: post.id }).get(), {
+      success: conflict.reloaded,
+      description: conflict.reloadedHint,
+      onSuccess: (data) => setVersion(data.updatedAt),
+    });
+    if (latest) rebase(toForm(latest, latest.authorId));
+  };
+
   const onSubmit = form.handleSubmit(async (values) => {
-    const snapshot = form.getValues();
+    const snapshot = capture();
     const body = { ...values, publishedAt: fromLocalInput(values.publishedAt) };
     const onError = (error: AdminApiError) => applyFieldErrors(form.setError, error);
     if (post) {
@@ -88,9 +103,10 @@ export function PostEditor({ post, authors, products, canWrite }: PostEditorProp
           success: copy.saved,
           onSuccess: (data) => setVersion(data.updatedAt),
           onError,
+          onStale: () => void reload(),
         },
       );
-      if (saved) form.reset(snapshot);
+      if (saved) commit(snapshot, toForm(saved, saved.authorId));
       return;
     }
     const created = await run(() => apiClient.api.admin.posts.post(body), {
@@ -99,7 +115,8 @@ export function PostEditor({ post, authors, products, canWrite }: PostEditorProp
       onError,
     });
     if (created) {
-      form.reset(snapshot);
+      commit(snapshot);
+      await leaveGuardedEntry();
       router.replace(adminRoutes.post(created.id) as Route);
     }
   });
@@ -111,7 +128,8 @@ export function PostEditor({ post, authors, products, canWrite }: PostEditorProp
       refresh: false,
     });
     if (done) {
-      form.reset(form.getValues());
+      commit(capture());
+      await leaveGuardedEntry();
       router.replace(adminRoutes.posts);
       router.refresh();
     }
@@ -174,9 +192,9 @@ export function PostEditor({ post, authors, products, canWrite }: PostEditorProp
               </FormSection>
               {canWrite && (
                 <SaveBar
-                  dirty={form.formState.isDirty}
+                  dirty={isDirty}
                   pending={pending}
-                  onDiscard={() => form.reset()}
+                  onDiscard={discard}
                   submitLabel={post ? common.saveChanges : common.create}
                   isNew={!post}
                 />

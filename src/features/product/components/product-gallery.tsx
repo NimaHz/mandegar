@@ -22,6 +22,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
   const locale = useLocale();
   const { gallery } = productContent[locale];
   const [index, setIndex] = useState(0);
+  const [browsed, setBrowsed] = useState(false);
   const [open, setOpen] = useState(false);
   const pointerStart = useRef<number | null>(null);
   const swiped = useRef(false);
@@ -29,7 +30,12 @@ export function ProductGallery({ images }: ProductGalleryProps) {
   const total = formatNumber(locale, count);
   const active = images[index] ?? images[0];
 
-  const goTo = (target: number) => setIndex((target + count) % count);
+  const select = (target: number) => {
+    setIndex(target);
+    setBrowsed(true);
+  };
+
+  const goTo = (target: number) => select((target + count) % count);
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!(event.target instanceof Node) || !event.currentTarget.contains(event.target)) return;
@@ -37,7 +43,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
     event.preventDefault();
     const forward = event.key === (isRtl(event.currentTarget) ? "ArrowLeft" : "ArrowRight");
     const next = (index + (forward ? 1 : -1) + count) % count;
-    setIndex(next);
+    select(next);
     event.currentTarget
       .querySelector<HTMLButtonElement>(`[data-thumb="${next}"]`)
       ?.focus({ preventScroll: true });
@@ -82,10 +88,11 @@ export function ProductGallery({ images }: ProductGalleryProps) {
           src={active.src}
           alt=""
           aria-hidden
-          fill
-          sizes="96px"
+          width={16}
+          height={16}
           loading="lazy"
-          className="-z-10 scale-125 object-cover opacity-40 blur-2xl"
+          fetchPriority="low"
+          className="absolute inset-0 -z-10 size-full scale-125 object-cover opacity-40 blur-2xl"
         />
         <Image
           key={active.src}
@@ -95,7 +102,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
           sizes="(min-width: 1280px) 640px, (min-width: 1024px) 52vw, 100vw"
           loading={index === 0 ? "eager" : "lazy"}
           fetchPriority={index === 0 ? "high" : "auto"}
-          className="animate-fade object-contain"
+          className={cn("object-contain", browsed && "animate-fade")}
         />
         <button
           type="button"
@@ -140,7 +147,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
                 <button
                   type="button"
                   data-thumb={imageIndex}
-                  onClick={() => setIndex(imageIndex)}
+                  onClick={() => select(imageIndex)}
                   aria-label={fill(gallery.image, {
                     current: formatNumber(locale, imageIndex + 1),
                     total,
@@ -170,7 +177,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
         images={images}
         index={index}
         open={open}
-        onIndexChange={setIndex}
+        onIndexChange={select}
         onClose={() => setOpen(false)}
       />
     </div>

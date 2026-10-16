@@ -10,6 +10,7 @@ export type ErrorCode =
   | "CONFLICT"
   | "STALE"
   | "IN_USE"
+  | "HAS_WARRANTY_CODES"
   | "LENGTH_REQUIRED"
   | "PAYLOAD_TOO_LARGE"
   | "UNSUPPORTED_MEDIA"

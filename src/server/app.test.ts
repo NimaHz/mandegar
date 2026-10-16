@@ -22,6 +22,7 @@ import {
   warrantyPolicies,
 } from "@/server/db/schema";
 import { foldSearch, toFoldedKey } from "@/server/db/search";
+import { productionEnvIssues } from "@/server/env";
 import { randomToken, sha256 } from "@/server/lib/crypto";
 import { isUniqueViolation } from "@/server/lib/db-errors";
 import { issueFormToken } from "@/server/lib/form-guard";
@@ -158,6 +159,51 @@ describe("health and search", () => {
     assert.equal(response.status, 200);
     assert.equal(field(response.json, "status"), "ok");
     assert.equal(field(response.json, "configuration"), true);
+  });
+
+  it("reports degraded in production while APP_ORIGIN is not the site origin", async (t) => {
+    const errors = t.mock.method(console, "error", () => undefined);
+    const saved = { NODE_ENV: process.env.NODE_ENV, APP_ORIGIN: process.env.APP_ORIGIN };
+    Reflect.set(process.env, "NODE_ENV", "production");
+    process.env.APP_ORIGIN = "https://mandegar.example";
+    try {
+      const response = await request("/health");
+      assert.equal(response.status, 503);
+      assert.equal(field(response.json, "configuration"), false);
+      assert.match(String(errors.mock.calls[0]?.arguments[0]), /APP_ORIGIN: must be/);
+    } finally {
+      for (const [key, value] of Object.entries(saved)) {
+        if (value === undefined) Reflect.deleteProperty(process.env, key);
+        else Reflect.set(process.env, key, value);
+      }
+    }
+    assert.equal((await request("/health")).status, 200);
+  });
+
+  it("lists production settings left blank or at development values", () => {
+    const site = "https://mandegar.example";
+    const live = { NEXT_PUBLIC_SITE_URL: site, APP_ORIGIN: site, UPLOAD_DIR: "/srv/uploads" };
+    assert.deepEqual(productionEnvIssues(live, site), []);
+    const local = "http://localhost:3000";
+    assert.deepEqual(
+      productionEnvIssues({ ...live, NEXT_PUBLIC_SITE_URL: local, APP_ORIGIN: local }, local),
+      [],
+    );
+    assert.deepEqual(
+      productionEnvIssues({ NEXT_PUBLIC_SITE_URL: "", APP_ORIGIN: " " }, local).map(
+        (issue) => issue.split(":")[0],
+      ),
+      ["NEXT_PUBLIC_SITE_URL", "APP_ORIGIN", "UPLOAD_DIR"],
+    );
+    const issues = productionEnvIssues(
+      { NEXT_PUBLIC_SITE_URL: "http://mandegar.example", APP_ORIGIN: local, UPLOAD_DIR: "uploads" },
+      site,
+    );
+    assert.equal(issues.length, 4);
+    assert.match(issues.join("\n"), /NEXT_PUBLIC_SITE_URL: must be an https:\/\/ origin/);
+    assert.match(issues.join("\n"), /APP_ORIGIN: must be http:\/\/mandegar\.example/);
+    assert.match(issues.join("\n"), /built for https:\/\/mandegar\.example/);
+    assert.match(issues.join("\n"), /UPLOAD_DIR: must be an absolute path/);
   });
 
   it("returns localized hits and nothing for an empty query", async () => {

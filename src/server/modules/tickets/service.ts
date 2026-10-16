@@ -273,6 +273,15 @@ interface StatusMove {
   logged: boolean;
 }
 
+const canWorkTickets = async (executor: Executor, userId: string) => {
+  const [user] = await executor
+    .select({ role: users.role, active: users.active })
+    .from(users)
+    .where(eq(users.id, userId))
+    .for("share");
+  return Boolean(user?.active && hasPermission(user.role, "tickets:write"));
+};
+
 const moveTicket = async (
   executor: Executor,
   current: TicketRow,
@@ -280,10 +289,20 @@ const moveTicket = async (
   values: Partial<typeof tickets.$inferInsert> = {},
 ) => {
   const changed = move.status !== current.status;
+  const reopened =
+    changed &&
+    RESOLVED_STATUSES.includes(current.status) &&
+    !RESOLVED_STATUSES.includes(move.status);
+  const orphaned =
+    reopened &&
+    values.assigneeId === undefined &&
+    current.assigneeId !== null &&
+    !(await canWorkTickets(executor, current.assigneeId));
   await executor
     .update(tickets)
     .set({
       ...values,
+      ...(orphaned ? { assigneeId: null } : {}),
       ...(changed
         ? { status: move.status, ...statusTimestamps(move.status, move.at, current) }
         : {}),
@@ -342,13 +361,9 @@ export const replyAsCustomer = async (
   return ticket;
 };
 
-const assertAssignee = async (assigneeId: string | null | undefined) => {
+const assertAssignee = async (executor: Executor, assigneeId: string | null | undefined) => {
   if (!assigneeId) return;
-  const [user] = await getDb()
-    .select({ role: users.role, active: users.active })
-    .from(users)
-    .where(eq(users.id, assigneeId));
-  if (!user?.active || !hasPermission(user.role, "tickets:write")) {
+  if (!(await canWorkTickets(executor, assigneeId))) {
     throw new ValidationFailure({ assigneeId: "Choose an active support user" });
   }
 };
@@ -359,9 +374,9 @@ export const updateTicket = async (
   input: z.output<typeof ticketUpdateSchema>,
 ) => {
   await requireTicket(id);
-  await assertAssignee(input.assigneeId);
   const { status, ...fields } = input;
   const moved = await getDb().transaction(async (tx) => {
+    await assertAssignee(tx, input.assigneeId);
     const current = await lockTicket(tx, id);
     const next = status ?? current.status;
     const changed = await moveTicket(

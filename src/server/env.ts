@@ -1,11 +1,10 @@
 import "server-only";
 
+import { isAbsolute } from "node:path";
+
 import { z } from "zod";
 
-import { type Env, getEnv } from "@/config/env";
-
-const blankAsUnset = <TSchema extends z.ZodType>(schema: TSchema) =>
-  z.preprocess((value) => (value === "" ? undefined : value), schema);
+import { blankAsUnset, type Env, getEnv } from "@/config/env";
 
 const S3_REQUIRED = [
   "S3_ENDPOINT",
@@ -68,3 +67,41 @@ export const getServerEnv = (): ServerEnv => {
 };
 
 export const isProduction = () => process.env.NODE_ENV === "production";
+
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+export const isLocalOrigin = (url: string) =>
+  URL.canParse(url) && LOCAL_HOSTS.has(new URL(url).hostname);
+
+const PUBLIC_ORIGINS = ["NEXT_PUBLIC_SITE_URL", "APP_ORIGIN"] as const;
+
+const originOf = (url: string | undefined) =>
+  url && URL.canParse(url) ? new URL(url).origin : undefined;
+
+export const productionEnvIssues = (
+  source: Readonly<Record<string, string | undefined>>,
+  builtSiteUrl: string,
+) => {
+  const value = (key: string) => source[key]?.trim() || undefined;
+  const issues: string[] = [];
+  for (const key of [...PUBLIC_ORIGINS, "UPLOAD_DIR"]) {
+    if (!value(key)) issues.push(`${key}: required in production`);
+  }
+  for (const key of PUBLIC_ORIGINS) {
+    const url = value(key);
+    if (url && URL.canParse(url) && new URL(url).protocol !== "https:" && !isLocalOrigin(url)) {
+      issues.push(`${key}: must be an https:// origin`);
+    }
+  }
+  const site = originOf(value("NEXT_PUBLIC_SITE_URL"));
+  const app = originOf(value("APP_ORIGIN"));
+  if (site && app && site !== app) {
+    issues.push(`APP_ORIGIN: must be ${site}, the origin of NEXT_PUBLIC_SITE_URL`);
+  }
+  if (site && site !== originOf(builtSiteUrl)) {
+    issues.push(`NEXT_PUBLIC_SITE_URL: this release was built for ${builtSiteUrl}; release again`);
+  }
+  const uploads = value("UPLOAD_DIR");
+  if (uploads && !isAbsolute(uploads)) issues.push("UPLOAD_DIR: must be an absolute path");
+  return issues;
+};

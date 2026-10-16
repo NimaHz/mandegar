@@ -101,6 +101,8 @@ export const toast = ({
   return key;
 };
 
+export const dismissToast = (id: string) => useToastStore.getState().dismiss(id);
+
 const toneMeta = {
   success: { icon: CircleCheck, tile: "bg-success-soft text-success" },
   info: { icon: Info, tile: "bg-primary-soft text-primary" },

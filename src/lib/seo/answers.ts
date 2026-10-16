@@ -6,6 +6,10 @@ import type { ProductDetail, ProductInsight } from "@/types/catalog";
 import { seoContent } from "./content";
 import type { QuestionEntry } from "./jsonld/faq";
 
+const MARKDOWN_SYNTAX = /[!-,./:-@[-`{-~]|^-/g;
+
+const escapeMarkdown = (text: string) => text.replace(/\s+/g, " ").replace(MARKDOWN_SYNTAX, "\\$&");
+
 const joinList = (locale: Locale, items: string[]) => {
   const { listJoin, listLast } = seoContent[locale];
   if (items.length <= 1) return items.join("");
@@ -58,16 +62,18 @@ export const categoryChoiceFaqs = (
     ? [
         {
           question: fill(copy.chooseQuestion, { category }),
-          answer: fill(copy.chooseAnswer, {
-            label: locale === "en" ? label.toLowerCase() : label,
-            facts: joinList(
-              locale,
-              products.map((product) => {
-                const value = product.keyFacts.find((fact) => fact.label === label)?.value ?? "";
-                return fill(copy.chooseFact, { model: product.modelCode, value });
-              }),
-            ),
-          }),
+          answer: escapeMarkdown(
+            fill(copy.chooseAnswer, {
+              label: locale === "en" ? label.toLowerCase() : label,
+              facts: joinList(
+                locale,
+                products.map((product) => {
+                  const value = product.keyFacts.find((fact) => fact.label === label)?.value ?? "";
+                  return fill(copy.chooseFact, { model: product.modelCode, value });
+                }),
+              ),
+            }),
+          ),
         },
       ]
     : [];
@@ -75,14 +81,16 @@ export const categoryChoiceFaqs = (
     ...choose,
     {
       question: fill(copy.rangeQuestion, { category }),
-      answer: fill(copy.rangeAnswer, {
-        count: formatNumber(locale, products.length),
-        models: joinList(
-          locale,
-          products.map((product) => product.name),
-        ),
-        warranty,
-      }),
+      answer: escapeMarkdown(
+        fill(copy.rangeAnswer, {
+          count: formatNumber(locale, products.length),
+          models: joinList(
+            locale,
+            products.map((product) => product.name),
+          ),
+          warranty,
+        }),
+      ),
     },
   ];
 };

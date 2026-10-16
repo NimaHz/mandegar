@@ -12,6 +12,7 @@ import {
   contactMessages,
   media,
   products,
+  settings,
   tickets,
   users,
   warrantyCodes,
@@ -25,6 +26,8 @@ import type {
   AdminUser,
   DashboardStats,
   Permission,
+  SettingKey,
+  SettingVersions,
 } from "@/types/admin";
 
 import { readSettings } from "../db/content";
@@ -116,6 +119,7 @@ export const auditAdmin = {
     const where = and(
       searchColumns(query.q, { text: [auditLogs.action, auditLogs.entityId] }),
       query.entity ? eq(auditLogs.entity, query.entity) : undefined,
+      query.action ? eq(auditLogs.action, query.action) : undefined,
       query.actorId ? eq(auditLogs.actorId, query.actorId) : undefined,
     );
     return paginate(
@@ -200,6 +204,21 @@ export const statsAdmin = {
   },
 };
 
+const settingVersions = async (): Promise<SettingVersions> => {
+  const rows = await getDb()
+    .select({ key: settings.key, updatedAt: settings.updatedAt })
+    .from(settings);
+  const versionOf = (key: SettingKey) =>
+    isoOrNull(rows.find((row) => row.key === key)?.updatedAt ?? null);
+  return {
+    contact: versionOf("contact"),
+    seo: versionOf("seo"),
+    stats: versionOf("stats"),
+    company: versionOf("company"),
+  };
+};
+
 export const settingsAdmin = {
   get: readSettings,
+  versions: settingVersions,
 };

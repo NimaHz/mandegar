@@ -50,6 +50,7 @@ export function LocalizedField({
   rows,
   className,
 }: LocalizedFieldProps) {
+  "use no memo";
   const id = useId();
   const { register } = useFormContext();
   const { lang, setLang } = useContentLang();

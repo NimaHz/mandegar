@@ -56,7 +56,10 @@ export function PolicySheet({ policy, onClose }: PolicySheetProps) {
     const saved = await run(
       () =>
         policy
-          ? apiClient.api.admin["warranty-policies"]({ id: policy.id }).patch(values)
+          ? apiClient.api.admin["warranty-policies"]({ id: policy.id }).patch({
+              ...values,
+              expectedUpdatedAt: policy.updatedAt,
+            })
           : apiClient.api.admin["warranty-policies"].post(values),
       { success: copy.saved, onError: (error) => applyFieldErrors(form.setError, error) },
     );
