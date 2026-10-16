@@ -3,13 +3,13 @@ import "@/styles/globals.css";
 import type { Metadata } from "next";
 
 import { AppProviders } from "@/components/providers/app-providers";
+import { ThemeBootScript } from "@/components/providers/theme-boot-script";
 import { siteConfig } from "@/config/site";
 import { rootViewport } from "@/config/viewport";
 import { localeMeta, locales } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getLocale } from "@/i18n/get-locale";
 import { OG_HEIGHT, OG_WIDTH, ogImagePath } from "@/lib/seo/og/targets";
-import { themeBootScript } from "@/lib/theme";
 import { api } from "@/services";
 import { fontVariables } from "@/styles/fonts";
 
@@ -79,7 +79,7 @@ export default async function LocaleLayout({ children }: LayoutProps<"/[locale]"
   return (
     <html lang={hreflang} dir={dir} className={fontVariables} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+        <ThemeBootScript />
       </head>
       <body className="min-h-dvh overflow-x-clip">
         <AppProviders locale={locale} dictionary={dictionary}>

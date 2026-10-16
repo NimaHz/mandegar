@@ -4,12 +4,12 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { AppProviders } from "@/components/providers/app-providers";
+import { ThemeBootScript } from "@/components/providers/theme-boot-script";
 import { siteConfig } from "@/config/site";
 import { rootViewport } from "@/config/viewport";
 import { adminContent } from "@/features/admin/content";
 import { fa } from "@/i18n/dictionaries/fa";
 import { fill } from "@/i18n/fill";
-import { themeBootScript } from "@/lib/theme";
 import { fontVariables } from "@/styles/fonts";
 
 export const metadata: Metadata = {
@@ -34,7 +34,7 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
   return (
     <html lang="fa" dir="rtl" className={fontVariables} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+        <ThemeBootScript />
       </head>
       <body className="min-h-dvh overflow-x-clip">
         <AppProviders locale="fa" dictionary={fa} toastPlacement="top">

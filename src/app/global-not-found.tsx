@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 
 import { LogoMark } from "@/components/brand/logo-mark";
+import { ThemeBootScript } from "@/components/providers/theme-boot-script";
 import { buttonVariants } from "@/components/ui/button";
 import { siteConfig } from "@/config/site";
 import {
@@ -18,7 +19,6 @@ import { en } from "@/i18n/dictionaries/en";
 import { fa } from "@/i18n/dictionaries/fa";
 import { localizePath } from "@/i18n/paths";
 import { routes } from "@/lib/routes";
-import { themeBootScript } from "@/lib/theme";
 import { fontVariables } from "@/styles/fonts";
 
 const dictionaries = { fa, en } as const;
@@ -71,7 +71,7 @@ export default async function GlobalNotFound() {
   return (
     <html lang={hreflang} dir={dir} className={fontVariables} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+        <ThemeBootScript />
       </head>
       <body className="min-h-dvh overflow-x-clip">
         <main className="bg-glow bg-dots flex min-h-dvh flex-col items-center justify-center gap-10 px-4 py-14 sm:px-6">

@@ -2,6 +2,7 @@ import { Elysia } from "elysia";
 
 import { getEnv } from "@/config/env";
 import { MB } from "@/lib/format";
+import { isProduction } from "@/server/env";
 import { sign } from "@/server/lib/crypto";
 import { forbidden, HttpError, payloadTooLarge } from "@/server/lib/http-error";
 import { stripNulBytes } from "@/server/lib/validation";
@@ -17,10 +18,25 @@ const bodyLimits: { pattern: RegExp; bytes: number }[] = [
 const bodyLimitFor = (pathname: string) =>
   bodyLimits.find((limit) => limit.pattern.test(pathname))?.bytes ?? MB;
 
+const DEV_TUNNEL_SUFFIXES = [".ngrok-free.dev", ".ngrok-free.app", ".ngrok.app", ".ngrok.io"];
+
+// Dev only: lets the app be reached through localhost or an ngrok tunnel. The hostname must end
+// with a tunnel suffix, so look-alikes such as https://ngrok.evil.com are still rejected.
+const isDevOrigin = (origin: string) => {
+  if (isProduction()) return false;
+  try {
+    const { protocol, hostname } = new URL(origin);
+    if (hostname === "localhost") return true;
+    return protocol === "https:" && DEV_TUNNEL_SUFFIXES.some((suffix) => hostname.endsWith(suffix));
+  } catch {
+    return false;
+  }
+};
+
 const assertSameOrigin = (request: Request) => {
   const origin = request.headers.get("origin");
   if (origin) {
-    if (origin !== new URL(getEnv().APP_ORIGIN).origin) {
+    if (origin !== new URL(getEnv().APP_ORIGIN).origin && !isDevOrigin(origin)) {
       throw forbidden("Cross-origin request rejected", "ORIGIN_REJECTED");
     }
     return;
