@@ -151,7 +151,7 @@ export function Carousel({
                   onClick={() => goTo(index)}
                   aria-label={fill(ui.carouselGoTo, { current: formatNumber(locale, index + 1) })}
                   aria-current={active ? "true" : undefined}
-                  className="group grid h-6 place-items-center rounded-full px-0.5 outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="group grid h-6 min-w-6 place-items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <span
                     aria-hidden

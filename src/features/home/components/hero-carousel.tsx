@@ -320,7 +320,7 @@ export function HeroCarousel({ slides, secondaryHref }: HeroCarouselProps) {
                     key={slide.id}
                     type="button"
                     onClick={() => goTo(slideIndex)}
-                    aria-label={`${fill(ui.carouselGoTo, { current: formatNumber(locale, slideIndex + 1) })}: ${slide.title}`}
+                    aria-label={`${fill(ui.carouselGoTo, { current: pad(slideIndex + 1) })}: ${slide.title}`}
                     aria-current={isActive ? "true" : undefined}
                     className={cn(
                       "group flex min-w-0 flex-1 flex-col gap-2 rounded-sm pt-2 pb-1 text-start outline-none focus-visible:ring-2 focus-visible:ring-current",

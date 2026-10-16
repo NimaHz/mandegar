@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import { absoluteUrl, siteUrl } from "@/lib/seo/urls";
+import { absoluteUrl } from "@/lib/seo/urls";
 
 const disallow = ["/admin", "/api/", "/w/"];
 
@@ -29,6 +29,5 @@ export default function robots(): MetadataRoute.Robots {
       { userAgent: "Bytespider", disallow: "/" },
     ],
     sitemap: absoluteUrl("/sitemap.xml"),
-    host: siteUrl,
   };
 }

@@ -19,6 +19,7 @@ interface LlmsContent {
   summary: string;
   languages: string;
   fullFacts: string;
+  feeds: string;
   sections: { products: string; support: string; guides: string; company: string };
   allProducts: string;
   allGuides: string;
@@ -60,6 +61,7 @@ export const llmsContent: Record<Locale, LlmsContent> = {
       "Mandegar is an Iranian maker of durable home appliances: evaporative coolers, gas and electric heaters, water heaters, kitchen appliances and fans. Every model comes with an official warranty, installation guides and nationwide after-sales service. The website is a catalog: it has no prices, cart or checkout.",
     languages: "Persian is the default language at {fa}. English pages live under {en}.",
     fullFacts: "Full plain-text facts: {url}",
+    feeds: "Blog RSS feeds: {fa} (Persian) and {en} (English)",
     sections: {
       products: "Products by category",
       support: "Support and warranty",
@@ -133,6 +135,7 @@ export const llmsContent: Record<Locale, LlmsContent> = {
       "ماندگار تولیدکننده ایرانی لوازم خانگی بادوام است: کولر آبی، بخاری گازی و برقی، آبگرمکن، لوازم آشپزخانه و پنکه. هر مدل گارانتی رسمی، راهنمای نصب و خدمات پس از فروش در سراسر کشور دارد. این سایت کاتالوگ محصولات است و قیمت، سبد خرید یا پرداخت آنلاین ندارد.",
     languages: "زبان پیش‌فرض فارسی است ({fa}) و صفحه‌های انگلیسی زیر {en} قرار دارند.",
     fullFacts: "اطلاعات کامل به صورت متن ساده: {url}",
+    feeds: "خوراک RSS مجله: {fa} (فارسی) و {en} (انگلیسی)",
     sections: {
       products: "محصولات بر اساس دسته",
       support: "پشتیبانی و گارانتی",

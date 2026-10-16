@@ -4,6 +4,7 @@ import { siteConfig } from "@/config/site";
 import { type Locale, localeMeta, locales } from "@/i18n/config";
 import { languageAlternates, localizePath } from "@/i18n/paths";
 
+import { feedPath } from "./feed";
 import { OG_HEIGHT, OG_WIDTH, ogImagePath, ogPageKey, type OgTarget } from "./og/targets";
 import { summarize, truncate } from "./text";
 
@@ -72,7 +73,11 @@ export const pageMetadata = ({
   return {
     ...(heading && { title: pageTitle(locale, heading) }),
     ...(summary && { description: summary }),
-    alternates: { canonical: url, languages: languageAlternates(path) },
+    alternates: {
+      canonical: url,
+      languages: languageAlternates(path),
+      types: { "application/rss+xml": feedPath(locale) },
+    },
     openGraph: {
       type,
       url,

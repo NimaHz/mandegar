@@ -56,7 +56,7 @@ export async function generateMetadata({
     locale,
     path: listingPath(routes.category(category.slug), filters),
     title: [page, category.seo.title ?? category.name].filter(Boolean).join(" · "),
-    description: category.seo.description ?? category.summary,
+    description: [page, category.seo.description ?? category.summary].filter(Boolean).join(" · "),
     image: category.image
       ? { url: category.image.src, width: category.image.width, height: category.image.height }
       : null,

@@ -48,17 +48,17 @@ export async function generateMetadata({
   const filters = await loadBlogSearchParams(searchParams);
   const [{ nav }] = await Promise.all([getDictionary(locale), loadPosts(locale, filters)]);
   const content = blogContent[locale];
-  const parts = [
-    filters.kind ? content.kinds[filters.kind].plural : null,
-    filters.page > 1 ? fill(content.pageTitle, { page: formatNumber(locale, filters.page) }) : null,
-    nav.blog,
-  ].filter(Boolean);
+  const page =
+    filters.page > 1 ? fill(content.pageTitle, { page: formatNumber(locale, filters.page) }) : null;
+  const parts = [filters.kind ? content.kinds[filters.kind].plural : null, page, nav.blog].filter(
+    Boolean,
+  );
 
   return pageMetadata({
     locale,
     path: canonicalPath(filters),
     title: parts.join(" · "),
-    description: content.metaDescription,
+    description: [page, content.metaDescription].filter(Boolean).join(" · "),
     noindex: Boolean(filters.kind),
   });
 }

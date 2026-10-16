@@ -6,6 +6,7 @@ import { pluralize } from "@/i18n/plural";
 import { routes } from "@/lib/routes";
 import type { ProductDetail } from "@/types/catalog";
 
+import { feedPath } from "./feed";
 import { llmsContent as copy, type LlmsPageKey } from "./llms-content";
 import type { LocaleSnapshot, SiteSnapshot } from "./snapshot";
 import { plainText } from "./text";
@@ -51,6 +52,7 @@ export const llmsText = (snapshot: SiteSnapshot) => {
     "",
     fill(copy.en.languages, { fa: localeUrl("fa", routes.home), en: localeUrl("en", routes.home) }),
     fill(copy.en.fullFacts, { url: absoluteUrl("/llms-full.txt") }),
+    fill(copy.en.feeds, { fa: absoluteUrl(feedPath("fa")), en: absoluteUrl(feedPath("en")) }),
     "",
     `## ${copy.en.sections.products} · ${copy.fa.sections.products}`,
     "",

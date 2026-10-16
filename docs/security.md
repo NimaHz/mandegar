@@ -69,6 +69,10 @@ Two layers:
 - **nginx** (`limit_req`): `/api/auth`, `/api/tickets`, `/api/contact` and `/api/warranty` per IP.
   Its rejections use the app's JSON error shape: `429` `RATE_LIMITED`, and `413`
   `PAYLOAD_TOO_LARGE` for a body over `client_max_body_size`, so the forms show the right message.
+  `/og/` allows 10 requests per second per IP with a burst of 300. A card is rendered at most once
+  per item, language and content version (any other URL gets a `308` to the canonical one) and
+  nginx serves repeats from its cache, so the limit only stops floods and never throttles search
+  engines or link-preview services such as Telegram's, which fetch many cards from a few addresses.
 
 The client IP comes from `X-Real-IP`, which nginx sets from the connection. Behind a CDN, configure
 `set_real_ip_from` (see docs/deploy.md), otherwise all visitors share one bucket.

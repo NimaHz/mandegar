@@ -87,7 +87,7 @@ export async function generateMetadata({
     locale,
     path: view.path,
     title: [page, view.title].filter(Boolean).join(" · "),
-    description: view.description,
+    description: [page, view.description].filter(Boolean).join(" · "),
     og: category ? await ogEntityTarget(locale, "category", category.slug) : undefined,
     noindex: view.noindex,
   });

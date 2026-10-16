@@ -36,6 +36,7 @@ How Mandegar is described to search engines, answer engines and LLM crawlers. Ev
 | `src/app/sitemap.xml/route.ts`, `src/app/sitemaps/[name]/route.ts` | Sitemap index and per-type sitemaps                                                                                                                                                              |
 | `src/app/robots.ts`                                                | robots.txt                                                                                                                                                                                       |
 | `src/lib/seo/llms.ts`, `src/app/llms.txt`, `src/app/llms-full.txt` | LLM-oriented summaries                                                                                                                                                                           |
+| `src/lib/seo/feed.ts`, `src/app/feeds/[name]/route.ts`             | Blog RSS feeds, one per language                                                                                                                                                                 |
 | `src/server/lib/indexnow.ts`                                       | IndexNow ping, called from `revalidateContent()` in `src/server/lib/revalidate.ts`                                                                                                               |
 | `scripts/validate-jsonld.mjs`                                      | Validator for JSON-LD, metadata and the SEO endpoints                                                                                                                                            |
 
@@ -121,12 +122,18 @@ How Mandegar is described to search engines, answer engines and LLM crawlers. Ev
 
 ## robots.txt
 
-Allows everything by default and names the search and AI crawlers explicitly (Googlebot, Bingbot, OAI-SearchBot, ChatGPT-User, GPTBot, Claude-SearchBot, Claude-User, ClaudeBot, PerplexityBot, Perplexity-User, Applebot, Applebot-Extended, Google-Extended, CCBot). Every group disallows only `/admin`, `/api/` and `/w/`. Utility, filtered and paginated pages stay crawlable so crawlers can read their `noindex` and canonical. Bytespider is blocked. The file lists the sitemap index and `Host`.
+Allows everything by default and names the search and AI crawlers explicitly (Googlebot, Bingbot, OAI-SearchBot, ChatGPT-User, GPTBot, Claude-SearchBot, Claude-User, ClaudeBot, PerplexityBot, Perplexity-User, Applebot, Applebot-Extended, Google-Extended, CCBot). Every group disallows only `/admin`, `/api/` and `/w/`. Utility, filtered and paginated pages stay crawlable so crawlers can read their `noindex` and canonical. Bytespider is blocked. The file lists the sitemap index.
 
 ## llms.txt and llms-full.txt
 
 - `/llms.txt`: name, bilingual summary, then sections for products by category (every model), support and warranty, guides, company, and posts under `Optional`. Every link is absolute and given in English and Persian.
 - `/llms-full.txt`: plain-text facts per model in both languages (name, model code, category, brand, summary, key facts, every spec with its unit, warranty months, guide link, FAQs), then support facts: how warranty codes work, how to request and track service, the gas-smell safety rule, hours, phones, emails, address, warranty policies, every service centre and the general FAQs.
+
+## RSS feeds
+
+- `/feeds/blog-fa.xml` and `/feeds/blog-en.xml` (`src/app/feeds/[name]/route.ts`, `src/lib/seo/feed.ts`) are RSS 2.0 feeds of the 30 newest live posts per language: title, link, permalink `guid`, `pubDate`, excerpt, author (`dc:creator`), kind and the cover image (`media:content`), with an `atom:link` self link.
+- Every page made with `pageMetadata` advertises its language's feed with `<link rel="alternate" type="application/rss+xml">`, and `/llms.txt` lists both feeds.
+- They are built from the same snapshot as the sitemaps, cached for an hour and expired by the same cache tags when posts change.
 
 ## IndexNow
 
