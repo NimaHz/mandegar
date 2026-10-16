@@ -51,16 +51,19 @@ export function Logo({ locale, size = "md", tone = "color", homeLabel, className
           {name}
         </span>
         {locale === "fa" && (
-          <span
-            dir="ltr"
-            className={cn(
-              "mt-1.5 font-logo font-extrabold tracking-[0.34em] uppercase",
-              sizes[size].latin,
-              light ? "text-white/70" : "text-muted",
-            )}
-          >
-            {siteConfig.latinName}
-          </span>
+          <>
+            {" "}
+            <span
+              dir="ltr"
+              className={cn(
+                "mt-1.5 font-logo font-extrabold tracking-[0.34em] uppercase",
+                sizes[size].latin,
+                light ? "text-white/70" : "text-muted",
+              )}
+            >
+              {siteConfig.latinName}
+            </span>
+          </>
         )}
       </span>
     </Link>

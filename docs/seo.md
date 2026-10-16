@@ -12,7 +12,7 @@ How Mandegar is described to search engines, answer engines and LLM crawlers. Ev
   - Speakable is US-English news only, so it is not used.
   - The sitelinks search box is retired. `WebSite` has no `SearchAction`.
   - Mandegar publishes no prices. A Product rich result needs `offers`, `review` or `aggregateRating`, and Google flags price-less offers, so Product nodes have **no** `offers`. They still help entity understanding in Google, Bing and LLMs.
-  - `warranty` is valid only on `Offer`/`Demand`. The warranty is a Product `additionalProperty` (`PropertyValue`, name «گارانتی»/"Warranty", value in months, `unitCode` `MON`) plus an Organization-provided `Service` node for after-sales.
+  - `warranty` is valid only on `Offer`/`Demand`. The warranty is a Product `additionalProperty` (`PropertyValue`, name «گارانتی»/"Warranty", value in months, `unitCode` `MON`); after-sales support is a separate Organization-provided `Service` node on the support page.
 - Search in Iran is about 99% Google. Bing matters because Copilot and ChatGPT search use its index; IndexNow keeps Bing and Yandex fresh.
 
 ## Code map
@@ -42,51 +42,51 @@ How Mandegar is described to search engines, answer engines and LLM crawlers. Ev
 
 ## `@id` scheme
 
-| Node                         | `@id`                                                                                                                                                                                |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Organization                 | `${site}/#organization`                                                                                                                                                              |
-| Own brand (Mandegar)         | `${site}/#brand`                                                                                                                                                                     |
-| Logo                         | `${site}/#logo`                                                                                                                                                                      |
-| WebSite                      | `${home}#website` (`${site}/#website` for fa, `${site}/en#website` for en)                                                                                                           |
-| Warranty service             | `${site}/#warranty-service`                                                                                                                                                          |
-| After-sales service          | `${site}/#after-sales-service`                                                                                                                                                       |
-| Any page                     | `${url}#webpage`                                                                                                                                                                     |
-| Breadcrumb                   | `${url}#breadcrumb`                                                                                                                                                                  |
-| Product                      | ItemPage, Product (specs and warranty as `additionalProperty` with UN/CEFACT `unitCode`, `isRelatedTo`, `subjectOf` the guide TechArticle), BreadcrumbList, FAQPage for product FAQs |
-| Partner brand                | `${brandUrl}#brand`                                                                                                                                                                  |
-| Item list                    | `${url}#itemlist`                                                                                                                                                                    |
-| FAQ block                    | `${url}#faq`                                                                                                                                                                         |
-| Guide article, how-to, video | `${guideUrl}#article`, `#howto`, `#video`                                                                                                                                            |
-| Blog                         | `${blogUrl}#blog`                                                                                                                                                                    |
-| Post                         | `${postUrl}#article`                                                                                                                                                                 |
-| Author                       | `${authorUrl}#person`                                                                                                                                                                |
-| Service centre               | `${serviceCentersUrl}#center-${slug}`                                                                                                                                                |
-| Glossary                     | `${glossaryUrl}#glossary`                                                                                                                                                            |
+| Node                         | `@id`                                                                      |
+| ---------------------------- | -------------------------------------------------------------------------- |
+| Organization                 | `${site}/#organization`                                                    |
+| Own brand (Mandegar)         | `${site}/#brand`                                                           |
+| Logo                         | `${site}/#logo`                                                            |
+| WebSite                      | `${home}#website` (`${site}/#website` for fa, `${site}/en#website` for en) |
+| Warranty service             | `${site}/#warranty-service`                                                |
+| After-sales service          | `${site}/#after-sales-service`                                             |
+| Any page                     | `${url}#webpage`                                                           |
+| Breadcrumb                   | `${url}#breadcrumb`                                                        |
+| Product                      | `${productUrl}#product`                                                    |
+| Partner brand                | `${brandUrl}#brand`                                                        |
+| Item list                    | `${url}#itemlist`                                                          |
+| FAQ block                    | `${url}#faq`                                                               |
+| Guide article, how-to, video | `${guideUrl}#article`, `#howto`, `#video`                                  |
+| Blog                         | `${blogUrl}#blog`                                                          |
+| Post                         | `${postUrl}#article`                                                       |
+| Author                       | `${authorUrl}#person`                                                      |
+| Service centre               | `${serviceCentersUrl}#center-${slug}`                                      |
+| Glossary                     | `${glossaryUrl}#glossary`                                                  |
 
 `site` is `NEXT_PUBLIC_SITE_URL`. References to nodes that are not in the page graph are written as small inline definitions (type, name, url), so every reference resolves inside the page.
 
 ## Graph per page
 
-| Page            | Nodes (plus Organization, Brand, WebSite on every page)                                                                                                                                       |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Home            | WebPage, ItemList of featured models                                                                                                                                                          |
-| Products        | CollectionPage, ItemList                                                                                                                                                                      |
-| Category        | CollectionPage, ItemList, BreadcrumbList, FAQPage for the visible "how to choose" answers                                                                                                     |
-| Product         | ItemPage, Product (specs and warranty as `additionalProperty` with UN/CEFACT `unitCode`, `isRelatedTo`, `subjectOf` the guide), after-sales Service, BreadcrumbList, FAQPage for product FAQs |
-| Brands, brand   | CollectionPage `about` the Brand (Mandegar points at the site-wide `/#brand`), ItemList                                                                                                       |
-| Compare         | none (`noindex`)                                                                                                                                                                              |
-| Warranty        | WebPage, warranty Service, FAQPage for warranty FAQs                                                                                                                                          |
-| Support         | WebPage, after-sales Service                                                                                                                                                                  |
-| Guides          | CollectionPage, ItemList                                                                                                                                                                      |
-| Guide           | WebPage, TechArticle, HowTo (steps, tools), VideoObject when a video exists (`Clip` chapters with `?t=` links for uploaded videos), BreadcrumbList                                            |
-| Service centres | CollectionPage, ItemList of LocalBusiness (service) and Store (dealer) with address, phone, geo, `openingHoursSpecification`, `parentOrganization`                                            |
-| Blog            | CollectionPage, Blog                                                                                                                                                                          |
-| Post            | WebPage, BlogPosting (author Person, publisher, dates, image, `about` the related products), BreadcrumbList                                                                                   |
-| Author          | ProfilePage, Person                                                                                                                                                                           |
-| About           | AboutPage, Organization                                                                                                                                                                       |
-| Contact         | ContactPage, Organization contact points                                                                                                                                                      |
-| FAQ             | FAQPage                                                                                                                                                                                       |
-| Glossary        | WebPage, DefinedTermSet                                                                                                                                                                       |
+| Page            | Nodes (plus Organization, Brand, WebSite on every page)                                                                                                                  |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Home            | WebPage, ItemList of featured models                                                                                                                                     |
+| Products        | CollectionPage, ItemList                                                                                                                                                 |
+| Category        | CollectionPage, ItemList, BreadcrumbList, FAQPage for the visible "how to choose" answers                                                                                |
+| Product         | ItemPage, Product (specs and warranty as `additionalProperty` with UN/CEFACT `unitCode`, `isRelatedTo`, `subjectOf` the guide), BreadcrumbList, FAQPage for product FAQs |
+| Brands, brand   | CollectionPage `about` the Brand (Mandegar points at the site-wide `/#brand`), ItemList                                                                                  |
+| Compare         | none (`noindex`)                                                                                                                                                         |
+| Warranty        | WebPage, warranty Service, FAQPage for warranty FAQs                                                                                                                     |
+| Support         | WebPage, after-sales Service                                                                                                                                             |
+| Guides          | CollectionPage, ItemList                                                                                                                                                 |
+| Guide           | WebPage, TechArticle, HowTo (steps, tools), VideoObject when a video exists (`Clip` chapters with `?t=` links for uploaded videos), BreadcrumbList                       |
+| Service centres | CollectionPage, ItemList of LocalBusiness (service) and Store (dealer) with address, phone, geo, `openingHoursSpecification`, `parentOrganization`                       |
+| Blog            | CollectionPage, Blog                                                                                                                                                     |
+| Post            | WebPage, BlogPosting (author Person, publisher, dates, image, `about` the related products), BreadcrumbList                                                              |
+| Author          | ProfilePage, Person                                                                                                                                                      |
+| About           | AboutPage, Organization                                                                                                                                                  |
+| Contact         | ContactPage, Organization contact points                                                                                                                                 |
+| FAQ             | FAQPage                                                                                                                                                                  |
+| Glossary        | WebPage, DefinedTermSet                                                                                                                                                  |
 
 ## Metadata
 

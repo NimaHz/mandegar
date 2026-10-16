@@ -48,7 +48,7 @@ export interface LayoutContent {
 
 export const layoutContent: Record<Locale, LayoutContent> = {
   fa: {
-    homeLabel: "ماندگار (Mandegar)، صفحه اصلی",
+    homeLabel: "ماندگار Mandegar، صفحه اصلی",
     topBar: {
       support: "پشتیبانی",
       quickWarranty: "استعلام گارانتی",
