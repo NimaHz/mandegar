@@ -76,6 +76,7 @@ set +a
 export "${install_env[@]}"
 
 corepack pnpm db:migrate
+corepack pnpm db:backfill-placeholders
 corepack pnpm build
 corepack pnpm standalone:assemble
 

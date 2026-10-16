@@ -22,6 +22,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx --conditions=react-server src/server/db/seed.ts",
+    "db:backfill-placeholders": "tsx --conditions=react-server src/server/db/backfill-placeholders.ts",
     "standalone:assemble": "cp -R public .next/standalone/ && cp -R .next/static .next/standalone/.next/",
     "start:standalone": "node .next/standalone/server.js",
     "deploy:release": "bash deploy/release.sh"

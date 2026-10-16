@@ -1,5 +1,6 @@
 import Image from "next/image";
 
+import { blurProps } from "@/lib/image";
 import type { HeroSlide } from "@/types/content";
 
 interface HeroImageProps {
@@ -15,6 +16,7 @@ export function HeroImage({ slide, priority }: HeroImageProps) {
     return (
       <Image
         src={slide.image.src}
+        {...blurProps(slide.image)}
         alt={slide.image.alt}
         fill
         sizes="100vw"
@@ -29,6 +31,7 @@ export function HeroImage({ slide, priority }: HeroImageProps) {
     <>
       <Image
         src={slide.mobileImage.src}
+        {...blurProps(slide.mobileImage)}
         alt={slide.mobileImage.alt || slide.image.alt}
         fill
         sizes="(min-width: 40rem) 1px, 100vw"
@@ -38,6 +41,7 @@ export function HeroImage({ slide, priority }: HeroImageProps) {
       />
       <Image
         src={slide.image.src}
+        {...blurProps(slide.image)}
         alt={slide.image.alt}
         fill
         sizes="(min-width: 40rem) 100vw, 1px"

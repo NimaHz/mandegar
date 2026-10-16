@@ -21,6 +21,7 @@ import { localizePath } from "@/i18n/paths";
 import { cn } from "@/lib/cn";
 import { jalaliToGregorianYear } from "@/lib/dates";
 import { formatNumber } from "@/lib/format";
+import { blurProps } from "@/lib/image";
 import { routes } from "@/lib/routes";
 import type { WarrantyCodeStatus, WarrantyMatch } from "@/types/warranty";
 
@@ -61,6 +62,7 @@ export function FoundResult({ match, locale, content, headingId }: FoundResultPr
   const photo = product.image ? (
     <Image
       src={product.image.src}
+      {...blurProps(product.image)}
       alt={product.image.alt}
       fill
       sizes="(min-width: 1024px) 26rem, 90vw"

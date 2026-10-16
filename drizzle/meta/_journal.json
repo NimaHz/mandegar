@@ -43,6 +43,13 @@
       "when": 1792126260974,
       "tag": "0005_cache_tags_and_founding_year",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792183945275,
+      "tag": "0006_media_placeholder",
+      "breakpoints": true
     }
   ]
 }

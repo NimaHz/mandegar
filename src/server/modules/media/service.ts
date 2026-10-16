@@ -41,6 +41,7 @@ const acceptedTypes: Record<string, { kind: MediaKind; ext: string }> = {
 };
 
 const MAX_DIMENSION = 2400;
+const PLACEHOLDER_DIMENSION = 16;
 
 interface IngestOptions {
   kinds: readonly MediaKind[];
@@ -58,7 +59,16 @@ interface PreparedFile {
   ext: string;
   width: number | null;
   height: number | null;
+  placeholder: string | null;
 }
+
+export const encodePlaceholder = async (image: Uint8Array) => {
+  const data = await sharp(image)
+    .resize(PLACEHOLDER_DIMENSION, PLACEHOLDER_DIMENSION, { fit: "inside" })
+    .webp({ quality: 50, smartSubsample: true })
+    .toBuffer();
+  return `data:image/webp;base64,${data.toString("base64")}`;
+};
 
 const encodeImage = async (input: Uint8Array): Promise<PreparedFile> => {
   const { data, info } = await sharp(input, { limitInputPixels: 80_000_000 })
@@ -71,7 +81,14 @@ const encodeImage = async (input: Uint8Array): Promise<PreparedFile> => {
     })
     .webp({ quality: 80 })
     .toBuffer({ resolveWithObject: true });
-  return { bytes: data, mime: "image/webp", ext: "webp", width: info.width, height: info.height };
+  return {
+    bytes: data,
+    mime: "image/webp",
+    ext: "webp",
+    width: info.width,
+    height: info.height,
+    placeholder: await encodePlaceholder(data),
+  };
 };
 
 const storageKeyFor = (ext: string, scope: MediaScope, now = new Date()) => {
@@ -119,7 +136,14 @@ const prepare = async (
       throw unsupportedMedia("Image could not be decoded");
     });
   }
-  return { bytes: data, mime: type.mime, ext: type.ext, width: null, height: null };
+  return {
+    bytes: data,
+    mime: type.mime,
+    ext: type.ext,
+    width: null,
+    height: null,
+    placeholder: null,
+  };
 };
 
 export const ingestMedia = async (data: Uint8Array, options: IngestOptions) => {
@@ -143,6 +167,7 @@ export const ingestMedia = async (data: Uint8Array, options: IngestOptions) => {
       size: prepared.bytes.byteLength,
       width: prepared.width,
       height: prepared.height,
+      placeholder: prepared.placeholder,
       sha256: hash,
       alt: options.alt ?? { fa: "", en: "" },
       originalName: cleanFileName(options.originalName),

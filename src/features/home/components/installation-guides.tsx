@@ -10,6 +10,7 @@ import { fill } from "@/i18n/fill";
 import { localizePath } from "@/i18n/paths";
 import { pluralize } from "@/i18n/plural";
 import { durationMinutes, formatNumber } from "@/lib/format";
+import { blurProps } from "@/lib/image";
 import { routes } from "@/lib/routes";
 import type { GuideListItem } from "@/types/content";
 
@@ -49,6 +50,7 @@ export function InstallationGuides({ guides, locale }: InstallationGuidesProps) 
                     {guide.poster && (
                       <Image
                         src={guide.poster.src}
+                        {...blurProps(guide.poster)}
                         alt=""
                         fill
                         sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw"

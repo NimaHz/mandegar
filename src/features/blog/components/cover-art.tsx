@@ -2,6 +2,7 @@ import Image from "next/image";
 
 import { LogoMark } from "@/components/brand/logo-mark";
 import { cn } from "@/lib/cn";
+import { blurProps } from "@/lib/image";
 import type { ImageAsset } from "@/types/common";
 import type { PostKind } from "@/types/content";
 
@@ -24,6 +25,7 @@ export function CoverArt({ cover, kind, sizes, alt = "", priority, className }: 
       {cover ? (
         <Image
           src={cover.src}
+          {...blurProps(cover)}
           alt={alt}
           fill
           sizes={sizes}

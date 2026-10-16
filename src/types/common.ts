@@ -20,6 +20,8 @@ export interface ImageAsset {
   alt: string;
   width: number;
   height: number;
+  /** Tiny blurred data URL shown while the real image loads. */
+  placeholder?: string | null;
 }
 
 export interface GeoPoint {

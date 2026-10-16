@@ -10,6 +10,7 @@ import type { Locale } from "@/i18n/config";
 import { localizePath } from "@/i18n/paths";
 import { pluralize } from "@/i18n/plural";
 import { cn } from "@/lib/cn";
+import { blurProps } from "@/lib/image";
 import { routes } from "@/lib/routes";
 import type { CategorySummary } from "@/types/catalog";
 
@@ -69,6 +70,7 @@ export function CategoriesBento({ categories, locale }: CategoriesBentoProps) {
                 {category.image && (
                   <Image
                     src={category.image.src}
+                    {...blurProps(category.image)}
                     alt=""
                     fill
                     sizes={tileSizes[tile.size]}

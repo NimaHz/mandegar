@@ -8,6 +8,7 @@ import { fill } from "@/i18n/fill";
 import { localizePath } from "@/i18n/paths";
 import { pluralize } from "@/i18n/plural";
 import { durationMinutes, formatNumber } from "@/lib/format";
+import { blurProps } from "@/lib/image";
 import { routes } from "@/lib/routes";
 import type { GuideListItem } from "@/types/content";
 
@@ -30,6 +31,7 @@ export function GuideCard({ guide, locale, copy, priority = false }: GuideCardPr
         {guide.poster && (
           <Image
             src={guide.poster.src}
+            {...blurProps(guide.poster)}
             alt={guide.poster.alt}
             fill
             sizes="(min-width: 1280px) 26rem, (min-width: 768px) 45vw, 92vw"

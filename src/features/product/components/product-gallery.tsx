@@ -84,16 +84,24 @@ export function ProductGallery({ images }: ProductGalleryProps) {
         onPointerUp={onPointerUp}
         className="relative isolate aspect-square touch-pan-y overflow-hidden rounded-panel bg-sunken select-none sm:aspect-5/4"
       >
-        <Image
-          src={active.src}
-          alt=""
-          aria-hidden
-          width={16}
-          height={16}
-          loading="lazy"
-          fetchPriority="low"
-          className="absolute inset-0 -z-10 size-full scale-125 object-cover opacity-40 blur-2xl"
-        />
+        {active.placeholder ? (
+          <span
+            aria-hidden
+            style={{ backgroundImage: `url(${active.placeholder})` }}
+            className="absolute inset-0 -z-10 scale-125 bg-cover bg-center opacity-40 blur-2xl"
+          />
+        ) : (
+          <Image
+            src={active.src}
+            alt=""
+            aria-hidden
+            width={16}
+            height={16}
+            loading="lazy"
+            fetchPriority="low"
+            className="absolute inset-0 -z-10 size-full scale-125 object-cover opacity-40 blur-2xl"
+          />
+        )}
         <Image
           key={active.src}
           src={active.src}

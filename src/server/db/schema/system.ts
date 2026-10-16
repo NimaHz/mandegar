@@ -34,6 +34,7 @@ export const media = pgTable(
     size: integer().notNull(),
     width: integer(),
     height: integer(),
+    placeholder: text(),
     durationSec: integer(),
     sha256: text().notNull(),
     alt: localized().default({ fa: "", en: "" }),

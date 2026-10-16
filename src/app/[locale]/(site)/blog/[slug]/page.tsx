@@ -17,6 +17,7 @@ import { findRelatedPosts, getAuthor, getPost } from "@/features/blog/query";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getLocale } from "@/i18n/get-locale";
 import { localizePath } from "@/i18n/paths";
+import { blurProps } from "@/lib/image";
 import { routes } from "@/lib/routes";
 import { postGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -91,6 +92,7 @@ export default async function PostPage({ params }: PageProps<"/[locale]/blog/[sl
           <figure className="relative aspect-[16/10] animate-fade overflow-hidden rounded-panel border border-line bg-sunken shadow-card sm:aspect-[16/9] lg:aspect-[21/9]">
             <Image
               src={post.cover.src}
+              {...blurProps(post.cover)}
               alt={post.cover.alt}
               fill
               sizes="(min-width: 80rem) 76rem, 100vw"

@@ -7,6 +7,7 @@ import { fill } from "@/i18n/fill";
 import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
+import { blurProps } from "@/lib/image";
 import type { GuideStep } from "@/types/content";
 
 import type { GuidesContent } from "../content";
@@ -93,6 +94,7 @@ export function GuideSteps({ slug, steps, copy }: GuideStepsProps) {
                 <div className="relative aspect-[4/3] bg-sunken max-sm:order-first sm:aspect-auto sm:min-h-full">
                   <Image
                     src={step.image.src}
+                    {...blurProps(step.image)}
                     alt={step.image.alt}
                     fill
                     sizes="(min-width: 640px) 15rem, 92vw"

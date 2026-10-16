@@ -31,6 +31,7 @@ export const toImage = (
         alt: pickExact(row.alt, locale) || fallbackAlt,
         width: row.width ?? 0,
         height: row.height ?? 0,
+        placeholder: row.placeholder,
       }
     : null;
 

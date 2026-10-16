@@ -10,6 +10,7 @@ import { fill } from "@/i18n/fill";
 import { localizePath } from "@/i18n/paths";
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
+import { blurProps } from "@/lib/image";
 import { routes } from "@/lib/routes";
 import type { ProductListItem } from "@/types/catalog";
 
@@ -49,6 +50,7 @@ export function ProductCard({
         {product.image ? (
           <Image
             src={product.image.src}
+            {...blurProps(product.image)}
             alt={product.image.alt}
             fill
             sizes={PRODUCT_CARD_SIZES}

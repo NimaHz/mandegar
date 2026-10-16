@@ -7,6 +7,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { localizePath } from "@/i18n/paths";
+import { blurProps } from "@/lib/image";
 import { routes } from "@/lib/routes";
 import type { PostDetail } from "@/types/content";
 
@@ -37,6 +38,7 @@ export function RelatedProducts({ products, locale }: RelatedProductsProps) {
                 {product.image ? (
                   <Image
                     src={product.image.src}
+                    {...blurProps(product.image)}
                     alt=""
                     fill
                     sizes="(min-width: 64rem) 18rem, (min-width: 48rem) 33vw, 50vw"

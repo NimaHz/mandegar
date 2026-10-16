@@ -153,7 +153,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/[locale
             result={result}
             filters={filters}
             pathname={localizePath(locale, routes.products)}
-            priorityCount={2}
+            priorityCount={3}
           />
         </div>
       </section>
