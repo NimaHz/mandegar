@@ -61,7 +61,6 @@ How Mandegar is described to search engines, answer engines and LLM crawlers. Ev
 | Post                         | `${postUrl}#article`                                                       |
 | Author                       | `${authorUrl}#person`                                                      |
 | Service centre               | `${serviceCentersUrl}#center-${slug}`                                      |
-| Glossary                     | `${glossaryUrl}#glossary`                                                  |
 
 `site` is `NEXT_PUBLIC_SITE_URL`. References to nodes that are not in the page graph are written as small inline definitions (type, name, url), so every reference resolves inside the page.
 
@@ -86,7 +85,6 @@ How Mandegar is described to search engines, answer engines and LLM crawlers. Ev
 | About           | AboutPage, Organization                                                                                                                                                  |
 | Contact         | ContactPage, Organization contact points                                                                                                                                 |
 | FAQ             | FAQPage                                                                                                                                                                  |
-| Glossary        | WebPage, DefinedTermSet                                                                                                                                                  |
 
 ## Metadata
 
@@ -116,7 +114,7 @@ How Mandegar is described to search engines, answer engines and LLM crawlers. Ev
 ## Sitemaps
 
 - `/sitemap.xml` is an index of `/sitemaps/{pages,categories,products,brands,guides,posts,authors,service-centers}.xml`.
-- Each URL is listed once per locale with `xhtml:link` alternates for `fa-IR`, `en` and `x-default`. `lastmod` comes from `updatedAt`: listing pages use their newest item; warranty, support, FAQ, contact, about, request and service-centre pages use their FAQs, warranty policies, settings or centres; terms, privacy and the glossary use `src/config/content-dates.ts`. Every URL and every index row carries one.
+- Each URL is listed once per locale with `xhtml:link` alternates for `fa-IR`, `en` and `x-default`. `lastmod` comes from `updatedAt`: listing pages use their newest item; warranty, support, FAQ, contact, about, request and service-centre pages use their FAQs, warranty policies, settings or centres; terms and privacy use `src/config/content-dates.ts`. Every URL and every index row carries one.
 - Products, categories, brands, guides, posts and authors carry `image:image`. Guides with a video carry `video:video` (thumbnail, title, description, `content_loc` for uploads or `player_loc` for Aparat, duration, publication date).
 - Everything is cached for an hour, and admin edits expire it through the cache tags in `revalidateContent()`.
 

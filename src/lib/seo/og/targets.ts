@@ -25,7 +25,6 @@ export const ogPages = {
   faq: "faq",
   terms: "terms",
   privacy: "privacy",
-  glossary: "glossary",
 } as const satisfies Record<string, keyof Dictionary["nav"] | null>;
 
 export type OgPageKey = keyof typeof ogPages;

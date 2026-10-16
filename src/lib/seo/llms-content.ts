@@ -11,7 +11,6 @@ export type LlmsPageKey =
   | "about"
   | "contact"
   | "brands"
-  | "glossary"
   | "blog";
 
 interface LlmsContent {
@@ -97,7 +96,6 @@ export const llmsContent: Record<Locale, LlmsContent> = {
         label: "Brands",
         note: "Mandegar and the partner brands it distributes and services.",
       },
-      glossary: { label: "Glossary", note: "Plain definitions of appliance terms." },
       blog: { label: "Mandegar Journal", note: "News, buying advice and maintenance tips." },
     },
     full: {
@@ -171,7 +169,6 @@ export const llmsContent: Record<Locale, LlmsContent> = {
       about: { label: "درباره ماندگار", note: "تاریخچه، کارخانه و ارزش‌های ماندگار." },
       contact: { label: "تماس با ما", note: "شماره‌ها، ایمیل‌ها، نشانی و ساعت کاری." },
       brands: { label: "برندها", note: "ماندگار و برندهای همکاری که عرضه و پشتیبانی می‌کند." },
-      glossary: { label: "واژه‌نامه", note: "تعریف ساده اصطلاحات لوازم خانگی." },
       blog: { label: "مجله ماندگار", note: "خبرها، راهنمای خرید و نکته‌های نگهداری." },
     },
     full: {

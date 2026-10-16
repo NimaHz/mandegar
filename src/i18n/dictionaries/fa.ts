@@ -26,7 +26,6 @@ export const fa = {
     faq: "پرسش‌های متداول",
     terms: "قوانین و مقررات",
     privacy: "حریم خصوصی",
-    glossary: "واژه‌نامه",
   },
   common: {
     skipToContent: "رفتن به محتوای اصلی",

@@ -22,7 +22,6 @@ export const routes = {
   faq: "/faq",
   terms: "/terms",
   privacy: "/privacy",
-  glossary: "/glossary",
   offline: "/offline",
   warrantyShort: (code: string) => `/w/${code}` as const,
   upload: (key: string) => `/uploads/${key}` as const,

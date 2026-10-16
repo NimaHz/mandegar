@@ -16,7 +16,6 @@ import { pageGraph } from "./graph";
 import { articleNode } from "./jsonld/article";
 import { type BreadcrumbEntry, breadcrumbNode } from "./jsonld/breadcrumb";
 import { faqSectionNode, type QuestionEntry, questionNodes } from "./jsonld/faq";
-import { definedTermSetNode, type GlossaryEntry, glossaryId } from "./jsonld/glossary";
 import { howToNode } from "./jsonld/howto";
 import {
   blogId,
@@ -495,16 +494,6 @@ export const faqGraph = (locale: Locale, text: PageText, faqs: QuestionEntry[]) 
     type: "FAQPage",
     mainEntity: questionNodes(faqs),
   });
-
-export const glossaryGraph = (locale: Locale, text: PageText, entries: GlossaryEntry[]) => {
-  const url = localeUrl(locale, routes.glossary);
-  return webPageGraph(locale, {
-    ...text,
-    path: routes.glossary,
-    mainEntity: ref(glossaryId(url)),
-    nodes: [definedTermSetNode({ locale, url, ...text, entries })],
-  });
-};
 
 export const organizationPageGraph = (
   locale: Locale,

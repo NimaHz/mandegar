@@ -83,7 +83,6 @@ export const llmsText = (snapshot: SiteSnapshot) => {
     pageLine("about", routes.about),
     pageLine("contact", routes.contact),
     pageLine("brands", routes.brands),
-    pageLine("glossary", routes.glossary),
     ...(fa.settings.features.blog ? [pageLine("blog", routes.blog)] : []),
     "",
     "## Optional",

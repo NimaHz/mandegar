@@ -81,7 +81,6 @@ export const buildSitemaps = (snapshot: SiteSnapshot): Record<SitemapName, Sitem
       entry(routes.about, latest(settingsModified, brandsModified)),
       entry(routes.contact, settingsModified),
       entry(routes.faq, faqsModified()),
-      entry(routes.glossary, contentDates.glossary),
       entry(routes.terms, contentDates.terms),
       entry(routes.privacy, contentDates.privacy),
     ],

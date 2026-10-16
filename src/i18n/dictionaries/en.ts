@@ -26,7 +26,6 @@ export const en = {
     faq: "FAQ",
     terms: "Terms of use",
     privacy: "Privacy",
-    glossary: "Glossary",
   },
   common: {
     skipToContent: "Skip to main content",

@@ -73,7 +73,6 @@ export const footerGroups: NavGroup[] = [
       { href: routes.brands, label: "brands", icon: Building2 },
       { href: routes.blog, label: "blog", icon: Newspaper },
       { href: routes.contact, label: "contact", icon: PhoneCall },
-      { href: routes.glossary, label: "glossary", icon: BookOpenText },
       { href: routes.terms, label: "terms", icon: BookOpenText },
       { href: routes.privacy, label: "privacy", icon: BookOpenText },
     ],
