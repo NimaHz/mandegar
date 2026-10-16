@@ -4,7 +4,7 @@ import { isProvinceCode } from "@/lib/provinces";
 import { cacheTags } from "@/server/lib/cache-tags";
 import { clampPage } from "@/server/lib/pagination";
 
-import { cached, scheduled, whenListed } from "../cache";
+import { cached, perRequest, scheduled, whenListed } from "../cache";
 import type { ContentService } from "../contracts";
 import { contentSchedules, contentService } from "../db/content";
 
@@ -33,6 +33,14 @@ const authorPosts = scheduled(
   contentService.authorPosts,
   postSchedule,
 );
+
+const postListing: ContentService["posts"] = async (locale, query) => {
+  const page = clampPage(query.page);
+  return page <= MAX_CACHED_PAGE
+    ? postPage(locale, { ...query, page })
+    : contentService.posts(locale, query);
+};
+
 const centers = cached(
   "content.serviceCenters",
   [serviceCenters, catalog],
@@ -45,12 +53,7 @@ export const cachedContent: ContentService = {
   guides: cached("content.guides", [guides, catalog], contentService.guides),
   guide: whenListed(guideSlugs, guide, null),
   guideSlugs,
-  posts: async (locale, query) => {
-    const page = clampPage(query.page);
-    return page <= MAX_CACHED_PAGE
-      ? postPage(locale, { ...query, page })
-      : contentService.posts(locale, query);
-  },
+  posts: perRequest(postListing),
   latestPosts: scheduled("content.latestPosts", [posts], contentService.latestPosts, postSchedule),
   post: whenListed(postSlugs, post, null),
   postSlugs,

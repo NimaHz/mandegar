@@ -20,7 +20,7 @@ export const warrantyCodeStatus = pgEnum("warranty_code_status", warrantyCodeSta
 
 export const warrantyPolicies = pgTable("warranty_policies", {
   id: id(),
-  name: text().notNull(),
+  name: localized(),
   months: integer().notNull(),
   partsMonths: integer(),
   startRule: localized(),

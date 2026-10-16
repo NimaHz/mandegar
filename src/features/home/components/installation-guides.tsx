@@ -7,7 +7,8 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { localizePath } from "@/i18n/paths";
-import { formatNumber } from "@/lib/format";
+import { pluralize } from "@/i18n/plural";
+import { durationMinutes, formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
 import type { GuideListItem } from "@/types/content";
 
@@ -39,9 +40,7 @@ export function InstallationGuides({ guides, locale }: InstallationGuidesProps) 
         />
         <RevealGroup className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
           {items.map((guide, index) => {
-            const minutes = guide.durationSec
-              ? Math.max(1, Math.round(guide.durationSec / 60))
-              : null;
+            const minutes = guide.durationSec ? durationMinutes(guide.durationSec) : null;
             return (
               <RevealItem key={guide.slug} className={index === 2 ? "sm:max-lg:hidden" : undefined}>
                 <article className="group relative isolate flex h-full card-interactive flex-col overflow-hidden card bg-raised shadow-card">
@@ -89,7 +88,7 @@ export function InstallationGuides({ guides, locale }: InstallationGuidesProps) 
                     <p className="line-clamp-2 text-label leading-6 text-body">{guide.summary}</p>
                     <p className="mt-auto inline-flex items-center gap-1.5 border-t border-line pt-3.5 text-xs font-semibold text-muted">
                       <ListOrdered className="size-3.5" aria-hidden />
-                      {fill(content.steps, { count: formatNumber(locale, guide.stepCount) })}
+                      {pluralize(locale, guide.stepCount, content.steps)}
                     </p>
                   </div>
                 </article>

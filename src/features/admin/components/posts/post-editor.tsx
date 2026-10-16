@@ -10,6 +10,8 @@ import { FormProvider, useForm } from "react-hook-form";
 
 import { buttonVariants } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/ui/confirm-button";
+import { blogContent } from "@/features/blog/content";
+import { fill } from "@/i18n/fill";
 import { localizePath } from "@/i18n/paths";
 import { apiClient } from "@/lib/api-client";
 import { adminRoutes, routes } from "@/lib/routes";
@@ -148,7 +150,16 @@ export function PostEditor({ post, authors, products, canWrite }: PostEditorProp
                 />
               </FormSection>
               <FormSection step={2} title={copy.sections.body} localized>
-                <LocalizedField name="body" label={copy.fields.body} markdown rows={18} />
+                <LocalizedField
+                  name="body"
+                  label={copy.fields.body}
+                  hint={fill(copy.fields.bodyHint, {
+                    fa: blogContent.fa.takeawaysHeading,
+                    en: blogContent.en.takeawaysHeading,
+                  })}
+                  markdown
+                  rows={18}
+                />
               </FormSection>
               <FormSection step={3} title={copy.sections.related}>
                 <MultiSelect

@@ -12,11 +12,10 @@ import { GuideCard } from "@/features/guides/components/guide-card";
 import { GuideFilters } from "@/features/guides/components/guide-filters";
 import { guidesContent } from "@/features/guides/content";
 import { loadGuidesSearchParams } from "@/features/guides/search-params";
-import { fill } from "@/i18n/fill";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getLocale } from "@/i18n/get-locale";
 import { localizePath } from "@/i18n/paths";
-import { formatNumber } from "@/lib/format";
+import { pluralize } from "@/i18n/plural";
 import { routes } from "@/lib/routes";
 import { collectionGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -101,7 +100,7 @@ export default async function GuidesPage({ searchParams }: PageProps<"/[locale]/
           {content.hero.title}
         </h2>
         <p role="status" className="mb-4 text-sm font-semibold text-muted">
-          {fill(content.filter.results, { count: formatNumber(locale, visible.length) })}
+          {pluralize(locale, visible.length, content.filter.results)}
         </p>
         {visible.length === 0 ? (
           <EmptyState

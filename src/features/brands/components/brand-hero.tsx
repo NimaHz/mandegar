@@ -2,8 +2,8 @@ import { ExternalLink } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { pluralize } from "@/features/catalog/plural";
 import type { Locale } from "@/i18n/config";
+import { pluralize } from "@/i18n/plural";
 import { hostOf } from "@/lib/url";
 import type { BrandDetail } from "@/types/catalog";
 

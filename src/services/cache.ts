@@ -16,6 +16,21 @@ export const cached = <TArgs extends unknown[], TResult>(
   load: (...args: TArgs) => Promise<TResult>,
 ) => cache(unstable_cache(load, [key], { tags: [...tags], revalidate: REVALIDATE_SEC }));
 
+export const perRequest = <TArgs extends unknown[], TResult>(
+  load: (...args: TArgs) => Promise<TResult>,
+) => {
+  const results = cache(() => new Map<string, Promise<TResult>>());
+  return (...args: TArgs) => {
+    const key = JSON.stringify(args);
+    const store = results();
+    const hit = store.get(key);
+    if (hit) return hit;
+    const result = load(...args);
+    store.set(key, result);
+    return result;
+  };
+};
+
 const secondsUntil = (time: number, now: number) =>
   Math.min(REVALIDATE_SEC, Math.max(1, Math.ceil((time - now) / 1000)));
 

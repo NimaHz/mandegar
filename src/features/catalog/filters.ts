@@ -67,27 +67,6 @@ export const listingPath = (path: string, filters: CatalogFilters) =>
     ? path
     : `${path}${serializeCatalogSearchParams({ page: filters.page > 1 ? filters.page : null })}`;
 
-export const facetsFromProducts = (
-  products: { brand: { slug: string; name: string }; energyClass: string | null }[],
-): Pick<ProductFacets, "brands" | "energyClasses"> => {
-  const tally = (entries: { value: string; label: string }[]) => {
-    const totals = new Map<string, FacetCount>();
-    for (const entry of entries) {
-      const current = totals.get(entry.value);
-      totals.set(entry.value, { ...entry, count: (current?.count ?? 0) + 1 });
-    }
-    return [...totals.values()];
-  };
-  return {
-    brands: tally(products.map(({ brand }) => ({ value: brand.slug, label: brand.name }))),
-    energyClasses: tally(
-      products.flatMap(({ energyClass }) =>
-        energyClass ? [{ value: energyClass, label: energyClass }] : [],
-      ),
-    ),
-  };
-};
-
 export const isEnergyClass = (value: string | null): value is EnergyClass =>
   energyClasses.some((entry) => entry === value);
 

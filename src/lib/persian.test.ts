@@ -7,17 +7,12 @@ import {
   normalizeFa,
   normalizeMobile,
   toLatinDigits,
-  toPersianDigits,
   toSearchKey,
 } from "./persian";
 
 describe("digits", () => {
   it("converts Persian and Arabic digits to Latin", () => {
     assert.equal(toLatinDigits("۰۱۲۳۴۵۶۷۸۹ ٠١٢٣٤٥٦٧٨٩"), "0123456789 0123456789");
-  });
-
-  it("converts Latin digits to Persian", () => {
-    assert.equal(toPersianDigits("MC-4500"), "MC-۴۵۰۰");
   });
 });
 
@@ -52,6 +47,9 @@ describe("mobile numbers", () => {
       "989121234567",
       "9121234567",
       "۰۹۱۲ ۱۲۳ ۴۵۶۷",
+      "+98 0912 123 4567",
+      "0098 0912 123 4567",
+      "+۹۸ ۰۹۱۲ ۱۲۳ ۴۵۶۷",
     ]) {
       assert.equal(normalizeMobile(input), "09121234567", input);
     }
@@ -60,6 +58,7 @@ describe("mobile numbers", () => {
   it("rejects landlines and short numbers", () => {
     assert.equal(normalizeMobile("02188776655"), null);
     assert.equal(normalizeMobile("0912123"), null);
+    assert.equal(normalizeMobile("+98 00912 123 4567"), null);
   });
 
   it("masks the middle digits", () => {

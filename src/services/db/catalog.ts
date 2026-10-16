@@ -28,9 +28,10 @@ import type {
   BrandSummary,
   CategoryDetail,
   CategorySummary,
-  FacetCount,
+  FacetsQuery,
   ModelOption,
   ProductDetail,
+  ProductFacets,
   ProductInsight,
   ProductListItem,
   ProductSort,
@@ -38,6 +39,7 @@ import type {
   SearchHit,
   SpecGroup,
 } from "@/types/catalog";
+import { COMPARE_LIMIT } from "@/types/catalog";
 import type { LocalizedText } from "@/types/common";
 
 import type { CatalogService } from "../contracts";
@@ -51,13 +53,13 @@ import {
   normalizeSlug,
   orderByIds,
   pick,
+  pickExact,
   toDocument,
   toImage,
   toSeo,
 } from "./mappers";
 
 const PAGE_SIZE = 12;
-const COMPARE_LIMIT = 4;
 const CATEGORY_MEMBERS = 48;
 
 export const visibleProduct = and(
@@ -126,7 +128,7 @@ const primaryImage = (
   fallbackAlt: string,
 ) => {
   const [first] = images;
-  return first ? toImage(first.media, locale, pick(first.alt, locale) || fallbackAlt) : null;
+  return first ? toImage(first.media, locale, pickExact(first.alt, locale) || fallbackAlt) : null;
 };
 
 const toListItem = (row: ListRow, locale: Locale): ProductListItem => {
@@ -186,31 +188,44 @@ const inCategory = (slug: string) => {
   return or(eq(categories.slug, key), inArray(categories.parentId, root));
 };
 
-const productCounts = async () => {
-  const rows = await getDb()
+const productTallies = (q: string) => {
+  const match = matchesQuery(q);
+  return getDb()
     .select({
       categoryId: products.categoryId,
       brandId: products.brandId,
       energyClass: products.energyClass,
       total: count(),
+      matched: match ? sql<number>`count(*) filter (where ${match})`.mapWith(Number) : count(),
     })
     .from(products)
     .innerJoin(categories, eq(categories.id, products.categoryId))
     .innerJoin(brands, eq(brands.id, products.brandId))
     .where(visibleProduct)
     .groupBy(products.categoryId, products.brandId, products.energyClass);
-  const tally = (key: (row: (typeof rows)[number]) => string | null) => {
-    const totals = new Map<string, number>();
-    for (const row of rows) {
-      const value = key(row);
-      if (value) totals.set(value, (totals.get(value) ?? 0) + row.total);
-    }
-    return totals;
-  };
+};
+
+type TallyRow = Awaited<ReturnType<typeof productTallies>>[number];
+
+const tally = (
+  rows: TallyRow[],
+  key: (row: TallyRow) => string | null,
+  size: (row: TallyRow) => number = (row) => row.total,
+) => {
+  const totals = new Map<string, number>();
+  for (const row of rows) {
+    const value = key(row);
+    if (value) totals.set(value, (totals.get(value) ?? 0) + size(row));
+  }
+  return totals;
+};
+
+const productCounts = async () => {
+  const rows = await productTallies("");
   return {
-    byCategory: tally((row) => row.categoryId),
-    byBrand: tally((row) => row.brandId),
-    byEnergy: tally((row) => row.energyClass),
+    byCategory: tally(rows, (row) => row.categoryId),
+    byBrand: tally(rows, (row) => row.brandId),
+    byEnergy: tally(rows, (row) => row.energyClass),
   };
 };
 
@@ -243,6 +258,63 @@ const publishedBrands = () =>
   });
 
 type BrandRow = Awaited<ReturnType<typeof publishedBrands>>[number];
+
+const categoryScope = (rows: CategoryRow[], slug: string) => {
+  const root = rows.find((row) => row.slug === normalizeSlug(slug));
+  return new Set(
+    root
+      ? rows.filter((row) => row.id === root.id || row.parentId === root.id).map((row) => row.id)
+      : [],
+  );
+};
+
+const productFacets = async (locale: Locale, query: FacetsQuery): Promise<ProductFacets> => {
+  const [categoryRows, brandRows, rows] = await Promise.all([
+    publishedCategories(),
+    publishedBrands(),
+    productTallies(query.q),
+  ]);
+  const category = query.category ? normalizeSlug(query.category) : null;
+  const brand = query.brand ? normalizeSlug(query.brand) : null;
+  const scope = category ? categoryScope(categoryRows, category) : null;
+  const brandId = brandRows.find((row) => row.slug === brand)?.id;
+  const inScope = (row: TallyRow) => !scope || scope.has(row.categoryId);
+  const ofBrand = (row: TallyRow) => !brand || row.brandId === brandId;
+  const ofEnergy = (row: TallyRow) => !query.energy || row.energyClass === query.energy;
+  const matched = (row: TallyRow) => row.matched;
+  const scoped = rows.filter(inScope);
+  const categoryTotals = tally(rows, (row) => row.categoryId);
+  const categoryMatches = tally(
+    rows.filter((row) => ofBrand(row) && ofEnergy(row)),
+    (row) => row.categoryId,
+    matched,
+  );
+  const brandTotals = tally(scoped, (row) => row.brandId);
+  const brandMatches = tally(scoped.filter(ofEnergy), (row) => row.brandId, matched);
+  const energyTotals = tally(scoped, (row) => row.energyClass);
+  const energyMatches = tally(scoped.filter(ofBrand), (row) => row.energyClass, matched);
+  return {
+    categories: categoryRows
+      .filter(
+        (row) => row.slug === category || rolledUpCount(categoryRows, categoryTotals, row) > 0,
+      )
+      .map((row) => ({
+        value: row.slug,
+        label: pick(row.name, locale),
+        count: rolledUpCount(categoryRows, categoryMatches, row),
+      })),
+    brands: brandRows
+      .filter((row) => row.slug === brand || (brandTotals.get(row.id) ?? 0) > 0)
+      .map((row) => ({
+        value: row.slug,
+        label: pick(row.name, locale),
+        count: brandMatches.get(row.id) ?? 0,
+      })),
+    energyClasses: [...new Set([...energyTotals.keys(), ...(query.energy ? [query.energy] : [])])]
+      .map((value) => ({ value, label: value, count: energyMatches.get(value) ?? 0 }))
+      .toSorted((left, right) => left.value.localeCompare(right.value)),
+  };
+};
 
 const toBrandSummary = (
   row: BrandRow,
@@ -301,7 +373,7 @@ const toProductDetail = async (row: ProductRow, locale: Locale): Promise<Product
   const documents = await mediaIndex(row.downloads.map((download) => download.mediaId));
   const name = pick(row.name, locale);
   const gallery = row.images.flatMap((image) => {
-    const asset = toImage(image.media, locale, pick(image.alt, locale) || name);
+    const asset = toImage(image.media, locale, pickExact(image.alt, locale) || name);
     return asset ? [asset] : [];
   });
   return {
@@ -567,31 +639,7 @@ export const catalogService: CatalogService = {
     if (page <= pageCount) return toPaginated(items, total, page, PAGE_SIZE);
     return toPaginated(await pageOf(pageCount), total, pageCount, PAGE_SIZE);
   },
-  facets: async (locale) => {
-    const [categoryRows, brandRows, counts] = await Promise.all([
-      publishedCategories(),
-      publishedBrands(),
-      productCounts(),
-    ]);
-    const categoryFacets: FacetCount[] = categoryRows
-      .map((row) => ({
-        value: row.slug,
-        label: pick(row.name, locale),
-        count: rolledUpCount(categoryRows, counts.byCategory, row),
-      }))
-      .filter((facet) => facet.count > 0);
-    const brandFacets: FacetCount[] = brandRows
-      .map((row) => ({
-        value: row.slug,
-        label: pick(row.name, locale),
-        count: counts.byBrand.get(row.id) ?? 0,
-      }))
-      .filter((facet) => facet.count > 0);
-    const energyFacets: FacetCount[] = [...counts.byEnergy]
-      .map(([value, total]) => ({ value, label: value, count: total }))
-      .toSorted((left, right) => left.value.localeCompare(right.value));
-    return { categories: categoryFacets, brands: brandFacets, energyClasses: energyFacets };
-  },
+  facets: productFacets,
   featured: async (locale, limit) =>
     listProducts(locale, eq(products.featured, true), "featured", clampLimit(limit, 8)),
   latest: async (locale, limit) => listProducts(locale, undefined, "newest", clampLimit(limit, 8)),

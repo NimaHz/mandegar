@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, PackageSearch, Search, X } from "lucide-react";
-import { type KeyboardEvent, useId, useRef, useState } from "react";
+import { type KeyboardEvent, type Ref, useId, useImperativeHandle, useRef, useState } from "react";
 
 import { cn } from "@/lib/cn";
 import { toSearchKey } from "@/lib/persian";
@@ -17,6 +17,7 @@ interface ModelPickerLabels {
 }
 
 interface ModelPickerProps {
+  ref?: Ref<{ focus: () => void }>;
   models: ModelOption[];
   value: string;
   onChange: (slug: string) => void;
@@ -36,7 +37,7 @@ const matches = (query: string, model: ModelOption) => {
   );
 };
 
-export function ModelPicker({ models, value, onChange, labels, error }: ModelPickerProps) {
+export function ModelPicker({ ref, models, value, onChange, labels, error }: ModelPickerProps) {
   const baseId = useId();
   const inputId = `${baseId}-input`;
   const listId = `${baseId}-list`;
@@ -45,6 +46,8 @@ export function ModelPicker({ models, value, onChange, labels, error }: ModelPic
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
+
+  useImperativeHandle(ref, () => ({ focus: () => inputRef.current?.focus() }), []);
 
   const selected = models.find((model) => model.slug === value) ?? null;
   const results = models.filter((model) => matches(query, model)).slice(0, MAX_RESULTS);

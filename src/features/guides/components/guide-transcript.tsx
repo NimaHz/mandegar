@@ -1,11 +1,10 @@
 import { ChevronDown, FileText } from "lucide-react";
 
 import type { Locale } from "@/i18n/config";
-import { formatNumber } from "@/lib/format";
+import { formatClock, formatNumber } from "@/lib/format";
 import type { GuideDetail } from "@/types/content";
 
 import type { GuidesContent } from "../content";
-import { chapterClock } from "../format";
 
 interface GuideTranscriptProps {
   locale: Locale;
@@ -43,7 +42,7 @@ export function GuideTranscript({ locale, guide, copy }: GuideTranscriptProps) {
                 {guide.chapters.map((chapter) => (
                   <li key={`${chapter.startSec}-${chapter.title}`}>
                     <bdi dir="ltr" className="font-code text-xs font-bold text-primary">
-                      {chapterClock(locale, chapter.startSec)}
+                      {formatClock(locale, chapter.startSec)}
                     </bdi>{" "}
                     {chapter.title}
                   </li>

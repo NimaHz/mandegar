@@ -20,7 +20,7 @@ export function AboutStats({ locale, stats }: AboutStatsProps) {
 
   return (
     <section aria-labelledby="about-stats" className="container-page">
-      <div className="bg-dots relative isolate overflow-hidden rounded-panel bg-brand-deep px-6 py-12 text-white shadow-lift ring-1 ring-white/10 [--dots-color:rgb(255_255_255/0.08)] ring-inset sm:px-10 sm:py-16 lg:px-14">
+      <div className="bg-dots relative isolate overflow-hidden rounded-panel bg-brand-deep px-6 py-12 text-white shadow-lift ring-1 ring-white/10 [--dots-color:color-mix(in_oklab,var(--color-white)_8%,transparent)] ring-inset sm:px-10 sm:py-16 lg:px-14">
         <LogoMark
           tone="mono"
           className="pointer-events-none absolute -end-24 -bottom-28 -z-10 size-[26rem] text-white/[0.05]"

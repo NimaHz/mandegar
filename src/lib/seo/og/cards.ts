@@ -7,6 +7,7 @@ import sharp from "sharp";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { getDictionary } from "@/i18n/get-dictionary";
+import { pluralize } from "@/i18n/plural";
 import { formatNumber } from "@/lib/format";
 import { getStorage, isSafeStorageKey } from "@/server/storage";
 import { api } from "@/services";
@@ -82,7 +83,7 @@ const cardBody = async (locale: Locale, target: OgTarget): Promise<CardBody | nu
           kicker: nav.products,
           title: category.name,
           subtitle: category.summary,
-          meta: [count(copy.models, category.productCount)],
+          meta: [pluralize(locale, category.productCount, copy.models)],
           image: category.image,
         }
       );
@@ -94,7 +95,7 @@ const cardBody = async (locale: Locale, target: OgTarget): Promise<CardBody | nu
           kicker: nav.brands,
           title: brand.name,
           subtitle: plainText(brand.description),
-          meta: [count(copy.models, brand.productCount)],
+          meta: [pluralize(locale, brand.productCount, copy.models)],
           image: brand.logo,
           fit: "contain",
         }
@@ -108,7 +109,7 @@ const cardBody = async (locale: Locale, target: OgTarget): Promise<CardBody | nu
           title: guide.title,
           subtitle: guide.summary,
           meta: [
-            count(copy.steps, guide.stepCount),
+            pluralize(locale, guide.stepCount, copy.steps),
             ...(guide.durationSec ? [count(copy.minutes, Math.ceil(guide.durationSec / 60))] : []),
           ],
           image: guide.poster,

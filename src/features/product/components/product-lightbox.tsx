@@ -27,6 +27,7 @@ interface ProductLightboxProps {
 
 const ZOOM_SCALE = 2.4;
 const TAP_DISTANCE = 8;
+const PAN_STEP = 10;
 
 interface ZoomState {
   active: boolean;
@@ -34,7 +35,24 @@ interface ZoomState {
   y: number;
 }
 
+interface PointerState {
+  x: number;
+  y: number;
+  down: boolean;
+  originX: number;
+  originY: number;
+}
+
 const resting: ZoomState = { active: false, x: 50, y: 50 };
+
+const panKeys: Partial<Record<string, [number, number]>> = {
+  ArrowLeft: [-1, 0],
+  ArrowRight: [1, 0],
+  ArrowUp: [0, -1],
+  ArrowDown: [0, 1],
+};
+
+const clampPercent = (value: number) => Math.min(100, Math.max(0, value));
 
 export function ProductLightbox({
   images,
@@ -46,7 +64,7 @@ export function ProductLightbox({
   const locale = useLocale();
   const { gallery } = productContent[locale];
   const dialogRef = useRef<HTMLDivElement>(null);
-  const pointer = useRef<{ x: number; y: number; down: boolean }>({ x: 0, y: 0, down: false });
+  const pointer = useRef<PointerState>({ x: 0, y: 0, down: false, originX: 50, originY: 50 });
   const [zoom, setZoom] = useState<ZoomState>(resting);
   const count = images.length;
   const active = images[index];
@@ -62,18 +80,35 @@ export function ProductLightbox({
   const originFrom = (event: PointerEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     return {
-      x: Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100)),
-      y: Math.min(100, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100)),
+      x: clampPercent(((event.clientX - rect.left) / rect.width) * 100),
+      y: clampPercent(((event.clientY - rect.top) / rect.height) * 100),
+    };
+  };
+
+  const pannedFrom = (event: PointerEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const start = pointer.current;
+    const travel = (delta: number, size: number) => ((delta / size) * 100) / (ZOOM_SCALE - 1);
+    return {
+      x: clampPercent(start.originX - travel(event.clientX - start.x, rect.width)),
+      y: clampPercent(start.originY - travel(event.clientY - start.y, rect.height)),
     };
   };
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    pointer.current = { x: event.clientX, y: event.clientY, down: true };
+    pointer.current = {
+      x: event.clientX,
+      y: event.clientY,
+      down: true,
+      originX: zoom.x,
+      originY: zoom.y,
+    };
   };
 
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    if (!zoom.active || (event.pointerType !== "mouse" && !pointer.current.down)) return;
-    setZoom({ active: true, ...originFrom(event) });
+    if (!zoom.active) return;
+    if (event.pointerType === "mouse") setZoom({ active: true, ...originFrom(event) });
+    else if (pointer.current.down) setZoom({ active: true, ...pannedFrom(event) });
   };
 
   const onPointerUp = (event: PointerEvent<HTMLDivElement>) => {
@@ -92,7 +127,16 @@ export function ProductLightbox({
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+    const pan = panKeys[event.key];
+    if (zoom.active && pan) {
+      event.preventDefault();
+      const [dx, dy] = pan;
+      setZoom((current) => ({
+        active: true,
+        x: clampPercent(current.x + dx * PAN_STEP),
+        y: clampPercent(current.y + dy * PAN_STEP),
+      }));
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
       event.preventDefault();
       const forward = event.key === (isRtl(event.currentTarget) ? "ArrowLeft" : "ArrowRight");
       goTo(index + (forward ? 1 : -1));

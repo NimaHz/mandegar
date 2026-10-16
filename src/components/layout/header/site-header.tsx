@@ -24,7 +24,7 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
     <>
       <TopBar locale={locale} phone={settings.phones[0]?.value ?? null} hours={settings.hours} />
       <HeaderShell>
-        <div className="container-page flex h-16 items-center gap-3 lg:h-18 lg:gap-6">
+        <div className="relative container-page flex h-16 items-center gap-3 lg:h-18 lg:gap-6">
           <MenuTrigger />
           <Logo locale={locale} size="sm" homeLabel={homeLabel} className="sm:hidden" />
           <Logo locale={locale} size="md" homeLabel={homeLabel} className="max-sm:hidden" />

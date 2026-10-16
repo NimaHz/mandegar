@@ -42,7 +42,7 @@ export function AdminNavList({ permissions, counts, onNavigate }: AdminNavListPr
     <div className="flex flex-col gap-5">
       {groups.map((group) => (
         <div key={group.key} className="flex flex-col gap-0.5">
-          <p className="px-3 pb-1.5 text-caption font-extrabold tracking-wide text-subtle">
+          <p className="px-3 pb-1.5 text-caption font-extrabold tracking-wide text-muted">
             {shell.groups[group.key]}
           </p>
           <ul className="flex flex-col gap-0.5">

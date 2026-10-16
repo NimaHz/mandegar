@@ -11,10 +11,15 @@ export const formatList = (locale: Locale, items: string[]) =>
   new Intl.ListFormat(localeMeta[locale].intl, { style: "narrow" }).format(items);
 
 export const formatBytes = (locale: Locale, bytes: number) => {
-  const index = Math.min(
-    BYTE_UNITS.length - 1,
+  const last = BYTE_UNITS.length - 1;
+  const scale = (unit: number) => (unit === 0 ? 1 : 10);
+  const estimate = Math.min(
+    last,
     Math.max(0, Math.floor(Math.log(Math.max(bytes, 1)) / Math.log(1024))),
   );
+  const roundsUp =
+    Math.round((bytes / 1024 ** estimate) * scale(estimate)) >= 1024 * scale(estimate);
+  const index = estimate < last && roundsUp ? estimate + 1 : estimate;
   return formatNumber(locale, bytes / 1024 ** index, {
     style: "unit",
     unit: BYTE_UNITS[index],
@@ -22,6 +27,8 @@ export const formatBytes = (locale: Locale, bytes: number) => {
     maximumFractionDigits: index === 0 ? 0 : 1,
   });
 };
+
+export const durationMinutes = (seconds: number) => Math.max(1, Math.round(seconds / 60));
 
 export const formatClock = (locale: Locale, totalSeconds: number) => {
   const safe = Math.max(0, Math.floor(totalSeconds));

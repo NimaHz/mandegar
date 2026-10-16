@@ -48,10 +48,14 @@ export const screenAttachments = (current: File[], incoming: File[]) => {
 };
 
 const GAS_SMELL =
-  /بو(ی)?\s*گاز|نشت(ی)?\s*گاز|گاز\s*(نشت|بو(?![\u0600-\u06ff]))|gas\s*(smell|leak)|(smell(s|ing)?|leak(s|ing)?)\s+(like\s+|of\s+)?gas/i;
+  /بو(ی)?(\s+\S+)?\s*گاز|نشت(ی)?(\s+\S+)?\s*گاز|گاز(\s+\S+)?\s*(نشت|بو(?![\u0600-\u06ff]))|gas\s*((is|was)\s+)?(smell|leak|odou?r)|(smell(s|ing)?|leak(s|ing)?|odou?rs?)\s+(like\s+|of\s+)?gas/i;
 
 export const mentionsGasSmell = (text: string) =>
   GAS_SMELL.test(normalizeFa(text).replace(/‌/g, " "));
+
+const CLOSED_STATUSES: readonly TicketStatus[] = ["closed", "rejected"];
+
+export const isTicketOpen = (status: TicketStatus) => !CLOSED_STATUSES.includes(status);
 
 const STATUS_EVENT_PREFIX = "status:";
 

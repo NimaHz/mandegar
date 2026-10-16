@@ -11,7 +11,7 @@ interface WarrantyResultProps {
   content: WarrantyContent;
 }
 
-const HEADING_ID = "warranty-result-heading";
+export const HEADING_ID = "warranty-result-heading";
 
 export function WarrantyResult({ lookup, locale, content }: WarrantyResultProps) {
   switch (lookup.status) {

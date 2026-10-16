@@ -20,6 +20,12 @@ interface PostTocProps {
   hideLabel: string;
 }
 
+const LINE_SLACK = 8;
+
+const hasPassed = (element: HTMLElement) =>
+  element.getBoundingClientRect().top <=
+  (Number.parseFloat(getComputedStyle(element).scrollMarginTop) || 0) + LINE_SLACK;
+
 export function PostToc({ headings, label, showLabel, hideLabel }: PostTocProps) {
   const listId = useId();
   const markerId = useId();
@@ -27,23 +33,28 @@ export function PostToc({ headings, label, showLabel, hideLabel }: PostTocProps)
   const [activeId, setActiveId] = useState(headings[0]?.id ?? "");
 
   useEffect(() => {
-    const visible = new Map<string, number>();
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) visible.set(entry.target.id, entry.boundingClientRect.top);
-          else visible.delete(entry.target.id);
-        }
-        const topmost = [...visible.entries()].toSorted((a, b) => a[1] - b[1])[0];
-        if (topmost) setActiveId(topmost[0]);
-      },
-      { rootMargin: "-96px 0px -65% 0px" },
-    );
-    for (const heading of headings) {
+    const elements = headings.flatMap((heading) => {
       const element = document.getElementById(heading.id);
-      if (element) observer.observe(element);
-    }
-    return () => observer.disconnect();
+      return element ? [element] : [];
+    });
+    const [first] = elements;
+    if (!first) return;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      setActiveId((elements.findLast(hasPassed) ?? first).id);
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    schedule();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+    };
   }, [headings]);
 
   return (

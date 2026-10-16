@@ -5,10 +5,9 @@ import { type ReactNode, useId } from "react";
 
 import { springSnappy } from "@/components/motion/easing";
 import { useLocale } from "@/i18n/locale-provider";
+import { pluralForm, type PluralForms } from "@/i18n/plural";
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
-
-import { pluralForm, type PluralForms } from "../plural";
 
 export interface Choice {
   value: string;

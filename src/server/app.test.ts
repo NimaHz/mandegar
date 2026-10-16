@@ -3,7 +3,7 @@ import { after, before, describe, it } from "node:test";
 
 import { solveChallenge } from "altcha-lib";
 import { deriveKey } from "altcha-lib/algorithms/pbkdf2";
-import { eq, inArray, sql } from "drizzle-orm";
+import { count, eq, inArray, sql } from "drizzle-orm";
 
 import { mentionsGasSmell } from "@/lib/tickets";
 import { createTrackingCode } from "@/lib/tracking-code";
@@ -14,6 +14,7 @@ import {
   categories,
   contactMessages,
   media,
+  notificationOutbox,
   products,
   ticketMessages,
   tickets,
@@ -26,6 +27,7 @@ import { isUniqueViolation } from "@/server/lib/db-errors";
 import { issueFormToken } from "@/server/lib/form-guard";
 import { getStorage } from "@/server/storage";
 import { field, loadTestEnv, postJson, request, testIp } from "@/server/testing/http";
+import { warrantyService } from "@/services/db/warranty";
 
 process.env.ALTCHA_COST = "1";
 loadTestEnv();
@@ -80,7 +82,12 @@ const createFixtures = async () => {
     .returning();
   const [policy] = await db
     .insert(warrantyPolicies)
-    .values({ name: `Test ${suffix}`, months: 18, startRule: text, effectiveFrom: "2024-01-01" })
+    .values({
+      name: { fa: `آزمون ${suffix}`, en: `Test ${suffix}` },
+      months: 18,
+      startRule: text,
+      effectiveFrom: "2024-01-01",
+    })
     .returning();
   assert.ok(product && policy);
   const code = createWarrantyCode(1405);
@@ -161,6 +168,24 @@ describe("health and search", () => {
     assert.equal(field(list[0], "href"), `/en/products/test-product-${suffix}`);
     const empty = await request("/search?q=", { ip: testIp() });
     assert.deepEqual(empty.json, { hits: [] });
+  });
+
+  it("drops NUL bytes from query strings instead of failing in the database", async () => {
+    const hits = await request(`/search?q=TST%00-${suffix}&locale=en`, { ip: testIp() });
+    assert.equal(hits.status, 200, JSON.stringify(hits.json));
+    const list = field(hits.json, "hits");
+    assert.ok(Array.isArray(list));
+    assert.equal(field(list[0], "href"), `/en/products/test-product-${suffix}`);
+    const lookup = await request(`/products?slugs=test-product-${suffix}%00&locale=en`, {
+      ip: testIp(),
+    });
+    assert.equal(lookup.status, 200, JSON.stringify(lookup.json));
+    const items = field(lookup.json, "items");
+    assert.ok(Array.isArray(items));
+    assert.deepEqual(
+      items.map((item) => field(item, "slug")),
+      [`test-product-${suffix}`],
+    );
   });
 
   it("folds stored text exactly like the query key", async () => {
@@ -326,6 +351,44 @@ describe("warranty lookup", () => {
       }),
     );
     assert.equal(response.status, 403);
+  });
+
+  it("lists only the current version of each plan, named in the reader's language", async () => {
+    const db = getDb();
+    const text = { fa: "آزمون", en: "Test" };
+    const months = 97;
+    const plan = (label: string, effectiveFrom: string) => ({
+      name: { fa: `${label} ${suffix}`, en: `${label} ${suffix} en` },
+      months,
+      startRule: text,
+      effectiveFrom,
+    });
+    const versions = await db
+      .insert(warrantyPolicies)
+      .values([
+        plan("old", "2024-01-01"),
+        plan("current", "2025-01-01"),
+        plan("next", "2999-01-01"),
+      ])
+      .returning({ id: warrantyPolicies.id });
+    const ids = versions.map((row) => row.id);
+    try {
+      const [fa, en] = await Promise.all([
+        warrantyService.policies("fa"),
+        warrantyService.policies("en"),
+      ]);
+      const listed = fa.filter((policy) => policy.months === months);
+      assert.deepEqual(
+        listed.map((policy) => [policy.id, policy.name]),
+        [[ids[1], `current ${suffix}`]],
+      );
+      assert.deepEqual(
+        en.filter((policy) => policy.months === months).map((policy) => policy.name),
+        [`current ${suffix} en`],
+      );
+    } finally {
+      await db.delete(warrantyPolicies).where(inArray(warrantyPolicies.id, ids));
+    }
   });
 });
 
@@ -513,6 +576,48 @@ describe("tickets", () => {
     assert.deepEqual(left, []);
   });
 
+  it("keeps the open-request limit per phone under concurrent submissions", async () => {
+    const burstPhone = `0913${String(Date.now()).slice(-7)}`;
+    const prepare = async () => {
+      const ip = testIp();
+      const form = new FormData();
+      const fields = {
+        type: "repair",
+        name: "Test Customer",
+        phone: burstPhone,
+        province: "23",
+        city: "Tehran",
+        address: "Test street, number 1",
+        subject: "Noisy fan",
+        description: "The fan is louder than before.",
+        website: "",
+        formToken: issueFormToken(Date.now() - 5_000),
+        altcha: await solveAltcha(ip),
+        locale: "fa",
+      };
+      for (const [key, value] of Object.entries(fields)) form.set(key, value);
+      return { form, ip };
+    };
+    try {
+      const submissions = await Promise.all(Array.from({ length: 5 }, prepare));
+      const responses = await Promise.all(
+        submissions.map(({ form, ip }) => request("/tickets", { method: "POST", body: form, ip })),
+      );
+      assert.deepEqual(
+        responses.map((response) => response.status).toSorted((left, right) => left - right),
+        [200, 200, 200, 409, 409],
+      );
+      const [row] = await getDb()
+        .select({ total: count() })
+        .from(tickets)
+        .where(eq(tickets.phone, burstPhone));
+      assert.equal(row?.total, 3);
+    } finally {
+      await getDb().delete(tickets).where(eq(tickets.phone, burstPhone));
+      await getDb().delete(notificationOutbox).where(eq(notificationOutbox.recipient, burstPhone));
+    }
+  });
+
   it("recognises a tracking-code collision by its real constraint", async () => {
     const values = {
       trackingCode: createTrackingCode(),
@@ -546,13 +651,22 @@ describe("tickets", () => {
       "نشتی گاز از شیر",
       "گاز نشت می‌کند",
       "گاز بو می‌دهد",
+      "بوی شدید گاز در آشپزخانه",
+      "گاز داره نشت می‌کنه",
       "gas leak in the kitchen",
       "it smells like gas",
       "leaking gas near the heater",
+      "the gas is leaking",
+      "a strong gas odour",
     ]) {
       assert.equal(mentionsGasSmell(text), true, text);
     }
-    for (const text of ["گاز بوتان", "پیلوت خاموش می‌شود", "the gas bill is high"]) {
+    for (const text of [
+      "گاز بوتان",
+      "کپسول بوتان گاز",
+      "پیلوت خاموش می‌شود",
+      "the gas bill is high",
+    ]) {
       assert.equal(mentionsGasSmell(text), false, text);
     }
   });

@@ -67,6 +67,21 @@
   --radius-card: 1.25rem;
   --radius-panel: 1.75rem;
 
+  --color-energy-a3: oklch(44.8% 0.119 151.328);
+  --color-energy-a2: oklch(52.7% 0.154 150.069);
+  --color-energy-a1: oklch(72.3% 0.219 149.579);
+  --color-energy-a: oklch(84.1% 0.238 128.85);
+  --color-energy-b: oklch(90.5% 0.182 98.111);
+  --color-energy-c: oklch(82.8% 0.189 84.429);
+  --color-energy-d: oklch(70.5% 0.213 47.604);
+  --color-on-energy-a3: #ffffff;
+  --color-on-energy-a2: #ffffff;
+  --color-on-energy-a1: oklch(26.6% 0.065 152.934);
+  --color-on-energy-a: oklch(27.4% 0.072 132.109);
+  --color-on-energy-b: oklch(28.6% 0.066 53.813);
+  --color-on-energy-c: oklch(27.9% 0.077 45.635);
+  --color-on-energy-d: oklch(26.6% 0.079 36.259);
+
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 
@@ -442,6 +457,7 @@
   html {
     -webkit-tap-highlight-color: transparent;
     text-size-adjust: 100%;
+    scrollbar-gutter: stable;
   }
 
   body {

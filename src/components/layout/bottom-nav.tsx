@@ -19,6 +19,9 @@ export function BottomNav() {
   const content = layoutContent[locale];
   const pathname = stripLocalePrefix(usePathname());
   const indicatorId = useId();
+  const activeHref = bottomNav
+    .filter((item) => isNavActive(pathname, item))
+    .toSorted((a, b) => b.href.length - a.href.length)[0]?.href;
 
   return (
     <nav
@@ -27,7 +30,7 @@ export function BottomNav() {
     >
       <ul className="mx-auto grid max-w-md grid-cols-5 px-2 pt-1.5">
         {bottomNav.map((item) => {
-          const isActive = isNavActive(pathname, item);
+          const isActive = item.href === activeHref;
           const isWarranty = item.href === routes.warranty;
           const Icon = item.icon;
           return (

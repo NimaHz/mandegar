@@ -36,7 +36,7 @@ export function ProductWarranty({ months, policy, productSlug, locale }: Product
           </span>
           <span className="pb-2 text-lg font-bold">{warranty.months}</span>
         </div>
-        {policy?.partsMonths && (
+        {policy && policy.partsMonths !== null && policy.partsMonths > 0 && (
           <p className="text-sm font-semibold text-white/75">
             {fill(warranty.partsMonths, { count: formatNumber(locale, policy.partsMonths) })}
           </p>

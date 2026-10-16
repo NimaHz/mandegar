@@ -6,7 +6,7 @@ interface DiffViewerProps {
 }
 
 function Leaf({ value }: { value: JsonValue }) {
-  if (value === null) return <span className="text-subtle">null</span>;
+  if (value === null) return <span className="text-muted">null</span>;
   if (typeof value === "boolean")
     return <span className="font-bold text-primary">{String(value)}</span>;
   if (typeof value === "number")
@@ -26,7 +26,7 @@ function Node({ value }: { value: JsonValue }) {
     ? value.map((item, index) => [String(index), item] as const)
     : Object.entries(value);
   if (entries.length === 0)
-    return <span className="text-subtle">{Array.isArray(value) ? "[]" : "{}"}</span>;
+    return <span className="text-muted">{Array.isArray(value) ? "[]" : "{}"}</span>;
   return (
     <dl className="flex flex-col gap-1 border-s border-line ps-3">
       {entries.map(([key, item]) => (

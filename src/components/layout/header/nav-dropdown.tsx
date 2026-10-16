@@ -14,6 +14,7 @@ interface NavDropdownProps {
   label: string;
   indicatorId: string;
   active: boolean;
+  wide?: boolean;
   panelClassName?: string;
   children: (close: () => void) => ReactNode;
 }
@@ -22,6 +23,7 @@ export function NavDropdown({
   label,
   indicatorId,
   active,
+  wide = false,
   panelClassName,
   children,
 }: NavDropdownProps) {
@@ -29,7 +31,7 @@ export function NavDropdown({
   const panelId = useId();
 
   return (
-    <div ref={containerRef} className="relative flex" onBlur={onBlur}>
+    <div ref={containerRef} className={cn("flex", !wide && "relative")} onBlur={onBlur}>
       <button
         ref={triggerRef}
         type="button"
@@ -53,7 +55,11 @@ export function NavDropdown({
             initial="hidden"
             animate="visible"
             exit="hidden"
-            className={cn("absolute start-0 top-full z-50 mt-3 card shadow-lift", panelClassName)}
+            className={cn(
+              "absolute top-full z-50 card shadow-lift",
+              wide ? "inset-x-0 mx-auto -mt-1" : "start-0 mt-3",
+              panelClassName,
+            )}
           >
             {children(close)}
           </m.div>

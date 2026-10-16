@@ -44,8 +44,15 @@ export function SearchDialog() {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const { hits, loading, settled, searchable } = useSearchHits(query, locale);
+  const highlighted = settled ? active : -1;
 
-  useModal(dialogRef, isOpen, close);
+  const dismiss = () => {
+    close();
+    setQuery("");
+    setActive(0);
+  };
+
+  useModal(dialogRef, isOpen, dismiss);
 
   useEffect(() => {
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
@@ -59,25 +66,25 @@ export function SearchDialog() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
-  const dismiss = () => {
-    close();
-    setQuery("");
-    setActive(0);
-  };
-
   const onInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (!hits.length) return;
+    if (event.key === "Enter") {
+      const term = query.trim();
+      if (!term) return;
+      event.preventDefault();
+      const hit = hits[highlighted];
+      dismiss();
+      router.push(
+        hit
+          ? (hit.href as Route)
+          : (`${localizePath(locale, routes.products)}?q=${encodeURIComponent(term)}` as Route),
+      );
+      return;
+    }
+    if (!settled || !hits.length) return;
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       const step = event.key === "ArrowDown" ? 1 : -1;
       setActive((current) => (current + step + hits.length) % hits.length);
-    }
-    if (event.key === "Enter") {
-      const hit = hits[active];
-      if (!hit) return;
-      event.preventDefault();
-      dismiss();
-      router.push(hit.href as Route);
     }
   };
 
@@ -131,7 +138,7 @@ export function SearchDialog() {
                   placeholder={common.searchPlaceholder}
                   aria-label={header.searchTitle}
                   aria-controls={listId}
-                  aria-activedescendant={hits[active] ? `${listId}-${active}` : undefined}
+                  aria-activedescendant={hits[highlighted] ? `${listId}-${highlighted}` : undefined}
                   role="combobox"
                   aria-expanded={hits.length > 0}
                   aria-autocomplete="list"
@@ -178,14 +185,17 @@ export function SearchDialog() {
                     id={listId}
                     role="listbox"
                     aria-label={header.searchTitle}
-                    className="flex flex-col gap-0.5"
+                    className={cn(
+                      "flex flex-col gap-0.5 transition-opacity duration-300",
+                      !settled && "opacity-60",
+                    )}
                   >
                     {hits.map((hit, index) => (
                       <li
                         key={`${hit.kind}-${hit.href}`}
                         id={`${listId}-${index}`}
                         role="option"
-                        aria-selected={index === active}
+                        aria-selected={index === highlighted}
                       >
                         <Link
                           href={hit.href as Route}
@@ -193,7 +203,7 @@ export function SearchDialog() {
                           onMouseEnter={() => setActive(index)}
                           className={cn(
                             "flex items-center gap-3 rounded-field p-2 transition-colors",
-                            index === active ? "bg-primary-soft" : "hover:bg-sunken",
+                            index === highlighted ? "bg-primary-soft" : "hover:bg-sunken",
                           )}
                         >
                           <span className="relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-control bg-sunken">
@@ -216,7 +226,7 @@ export function SearchDialog() {
                           <span className="shrink-0 rounded-full bg-chip px-2 py-0.5 text-caption font-semibold text-ink-soft">
                             {header.searchKinds[hit.kind]}
                           </span>
-                          {index === active && (
+                          {index === highlighted && (
                             <CornerDownLeft
                               className="size-4 shrink-0 text-primary max-sm:hidden"
                               aria-hidden

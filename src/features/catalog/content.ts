@@ -1,7 +1,6 @@
 import type { Locale } from "@/i18n/config";
+import type { PluralForms } from "@/i18n/plural";
 import type { ProductSort } from "@/types/catalog";
-
-import type { PluralForms } from "./plural";
 
 export interface CatalogContent {
   card: {
@@ -24,14 +23,13 @@ export interface CatalogContent {
     searchSubmit: string;
     searchClear: string;
     resultsTitle: string;
-    count: string;
     countEmpty: string;
     sortLabel: string;
     sorts: Record<ProductSort, string>;
     filters: string;
     filtersTitle: string;
-    filtersActive: string;
-    showResults: string;
+    filtersActive: PluralForms;
+    showResults: PluralForms;
     clearAll: string;
     removeFilter: string;
     activeFilters: string;
@@ -51,7 +49,7 @@ export interface CatalogContent {
     productsDescription: string;
     guideEyebrow: string;
     guideCta: string;
-    guideSteps: string;
+    guideSteps: PluralForms;
     guideMinutes: string;
     guideFallbackTitle: string;
     guideFallbackBody: string;
@@ -88,14 +86,13 @@ export const catalogContent: Record<Locale, CatalogContent> = {
       searchSubmit: "جستجو",
       searchClear: "پاک کردن جستجو",
       resultsTitle: "فهرست محصولات",
-      count: "{count} مدل",
       countEmpty: "مدلی پیدا نشد",
       sortLabel: "مرتب‌سازی",
       sorts: { featured: "پیشنهاد ماندگار", newest: "جدیدترین", name: "نام مدل" },
       filters: "فیلترها",
       filtersTitle: "فیلتر محصولات",
-      filtersActive: "{count} فیلتر فعال",
-      showResults: "دیدن {count} مدل",
+      filtersActive: { one: "{count} فیلتر فعال", other: "{count} فیلتر فعال" },
+      showResults: { one: "دیدن {count} مدل", other: "دیدن {count} مدل" },
       clearAll: "حذف همه فیلترها",
       removeFilter: "حذف فیلتر {label}",
       activeFilters: "فیلترهای فعال",
@@ -116,7 +113,7 @@ export const catalogContent: Record<Locale, CatalogContent> = {
       productsDescription: "برند و رده انرژی را انتخاب کن تا مدل‌ها دقیق‌تر شوند.",
       guideEyebrow: "راهنمای نصب",
       guideCta: "دیدن راهنمای کامل",
-      guideSteps: "{count} مرحله",
+      guideSteps: { one: "{count} مرحله", other: "{count} مرحله" },
       guideMinutes: "{count} دقیقه",
       guideFallbackTitle: "نصب را به سرویس‌کار مجاز بسپار",
       guideFallbackBody:
@@ -152,14 +149,13 @@ export const catalogContent: Record<Locale, CatalogContent> = {
       searchSubmit: "Search",
       searchClear: "Clear search",
       resultsTitle: "Product list",
-      count: "{count} models",
       countEmpty: "No models found",
       sortLabel: "Sort by",
       sorts: { featured: "Recommended", newest: "Newest", name: "Model name" },
       filters: "Filters",
       filtersTitle: "Filter products",
-      filtersActive: "{count} active filters",
-      showResults: "Show {count} models",
+      filtersActive: { one: "{count} active filter", other: "{count} active filters" },
+      showResults: { one: "Show {count} model", other: "Show {count} models" },
       clearAll: "Clear all filters",
       removeFilter: "Remove filter {label}",
       activeFilters: "Active filters",
@@ -180,7 +176,7 @@ export const catalogContent: Record<Locale, CatalogContent> = {
       productsDescription: "Filter by brand and energy class to narrow the list.",
       guideEyebrow: "Installation guide",
       guideCta: "Open the full guide",
-      guideSteps: "{count} steps",
+      guideSteps: { one: "{count} step", other: "{count} steps" },
       guideMinutes: "{count} min",
       guideFallbackTitle: "Leave installation to an authorized technician",
       guideFallbackBody:

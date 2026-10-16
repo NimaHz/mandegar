@@ -15,10 +15,9 @@ import { compareHref } from "../href";
 interface CompareRemoveButtonProps {
   slug: string;
   name: string;
-  slugs: string[];
 }
 
-export function CompareRemoveButton({ slug, name, slugs }: CompareRemoveButtonProps) {
+export function CompareRemoveButton({ slug, name }: CompareRemoveButtonProps) {
   const locale = useLocale();
   const { page } = compareContent[locale];
   const router = useRouter();
@@ -27,14 +26,9 @@ export function CompareRemoveButton({ slug, name, slugs }: CompareRemoveButtonPr
 
   const onClick = () => {
     remove(slug);
+    const remaining = useCompareStore.getState().slugs;
     startTransition(() => {
-      router.replace(
-        compareHref(
-          locale,
-          slugs.filter((entry) => entry !== slug),
-        ),
-        { scroll: false },
-      );
+      router.replace(compareHref(locale, remaining), { scroll: false });
     });
   };
 

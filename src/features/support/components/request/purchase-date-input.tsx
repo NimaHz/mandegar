@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn";
 import { currentJalaliYear, todayIsoDate } from "@/lib/dates";
 import { formatNumber } from "@/lib/format";
 
-import { isoToJalali, jalaliMonthLength, jalaliToIso } from "../../jalali";
+import { jalaliMonthLength, type JalaliSelection, selectionOf, selectionValue } from "../../jalali";
 
 interface PurchaseDateLabels {
   label: string;
@@ -35,29 +35,21 @@ const YEARS_BACK = 20;
 const range = (from: number, to: number) =>
   Array.from({ length: Math.max(0, to - from + 1) }, (_, index) => from + index);
 
+const monthLength = (parts: JalaliSelection, fallbackYear: number) =>
+  jalaliMonthLength(Number(parts.year) || fallbackYear, Number(parts.month) || 1);
+
 function JalaliSelects({ locale, value, onChange, labels, error }: PurchaseDateInputProps) {
-  const initial = value ? isoToJalali(value) : null;
-  const [parts, setParts] = useState({
-    year: initial ? String(initial.year) : "",
-    month: initial ? String(initial.month) : "",
-    day: initial ? String(initial.day) : "",
-  });
+  const [parts, setParts] = useState(() => selectionOf(value));
   const thisYear = currentJalaliYear();
-  const days = jalaliMonthLength(Number(parts.year) || thisYear, Number(parts.month) || 1);
+  const days = monthLength(parts, thisYear);
   const plain = (number: number) => formatNumber(locale, number, { useGrouping: false });
 
-  const update = (key: keyof typeof parts, next: string) => {
+  const update = (key: keyof JalaliSelection, next: string) => {
     const merged = { ...parts, [key]: next };
-    setParts(merged);
-    if (!merged.year && !merged.month && !merged.day) return onChange("");
-    if (!merged.year || !merged.month || !merged.day) return onChange("incomplete");
-    onChange(
-      jalaliToIso({
-        year: Number(merged.year),
-        month: Number(merged.month),
-        day: Number(merged.day),
-      }) ?? "invalid",
-    );
+    const limit = monthLength(merged, thisYear);
+    const selection = Number(merged.day) > limit ? { ...merged, day: String(limit) } : merged;
+    setParts(selection);
+    onChange(selectionValue(selection));
   };
 
   const selectClass = cn(error && "border-danger");

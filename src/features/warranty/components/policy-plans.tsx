@@ -30,7 +30,7 @@ export function PolicyPlans({ locale, policies, content }: PolicyPlansProps) {
         />
         <RevealGroup className="grid gap-5 lg:grid-cols-2">
           {policies.map((policy) => (
-            <RevealItem key={policy.name} className="min-w-0">
+            <RevealItem key={policy.id} className="min-w-0">
               <article className="flex h-full flex-col gap-6 card bg-raised p-5 shadow-card sm:p-7">
                 <header className="flex flex-wrap items-end justify-between gap-4">
                   <div className="flex flex-col gap-2">

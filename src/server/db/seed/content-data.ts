@@ -70,7 +70,7 @@ interface ServiceCenterSeed {
 
 interface PolicySeed {
   key: "care" | "care-plus";
-  name: string;
+  name: LocalizedText;
   months: number;
   partsMonths: number;
   startRule: LocalizedText;
@@ -929,7 +929,7 @@ export const serviceCenterSeeds: ServiceCenterSeed[] = [
 export const policySeeds: PolicySeed[] = [
   {
     key: "care",
-    name: "Mandegar Care 18",
+    name: t("مراقبت ماندگار ۱۸", "Mandegar Care 18"),
     months: 18,
     partsMonths: 84,
     startRule: t(
@@ -950,7 +950,7 @@ export const policySeeds: PolicySeed[] = [
   },
   {
     key: "care-plus",
-    name: "Mandegar Care Plus 30",
+    name: t("مراقبت ماندگار پلاس ۳۰", "Mandegar Care Plus 30"),
     months: 30,
     partsMonths: 84,
     startRule: t(

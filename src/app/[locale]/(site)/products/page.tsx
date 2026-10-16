@@ -99,7 +99,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/[locale
   const { listing } = catalogContent[locale];
   const [{ result, view }, facets] = await Promise.all([
     loadListing(locale, filters),
-    api.catalog.facets(locale),
+    api.catalog.facets(locale, toProductsQuery(filters)),
   ]);
 
   const graph = await productListGraph(locale, {

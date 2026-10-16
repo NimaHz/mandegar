@@ -1,4 +1,5 @@
 import type { Locale } from "@/i18n/config";
+import type { PluralForms } from "@/i18n/plural";
 
 import type { GlossarySlug } from "./config";
 
@@ -15,7 +16,7 @@ export interface GlossaryContent {
   description: string;
   alphabet: string[];
   jumpLabel: string;
-  termCount: string;
+  termCount: PluralForms;
   related: string;
   copyLink: string;
   pages: Record<"warranty" | "compare", string>;
@@ -33,7 +34,7 @@ export const glossaryContent: Record<Locale, GlossaryContent> = {
       "اصطلاح‌هایی که در کاتالوگ، برچسب دستگاه و راهنمای نصب می‌بینی، کوتاه و بی‌پیچ‌وتاب توضیح داده شده‌اند.",
     alphabet: [..."ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی"],
     jumpLabel: "رفتن به حرف",
-    termCount: "{count} اصطلاح",
+    termCount: { one: "{count} اصطلاح", other: "{count} اصطلاح" },
     related: "بیشتر بدانید",
     copyLink: "پیوند مستقیم به {term}",
     pages: {
@@ -173,7 +174,7 @@ export const glossaryContent: Record<Locale, GlossaryContent> = {
       "The terms you meet in catalogues, on rating labels and in installation guides, explained briefly and plainly.",
     alphabet: [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"],
     jumpLabel: "Jump to letter",
-    termCount: "{count} terms",
+    termCount: { one: "{count} term", other: "{count} terms" },
     related: "Learn more",
     copyLink: "Direct link to {term}",
     pages: {

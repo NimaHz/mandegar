@@ -15,7 +15,7 @@ export const warrantyLookupSchema = z.object({
 });
 
 export const warrantyPolicyInputSchema = z.object({
-  name: z.string().trim().min(2).max(80),
+  name: localizedText(80),
   months: z.number().int().min(0).max(240),
   partsMonths: z.number().int().min(0).max(240).nullable(),
   startRule: localizedText(400),

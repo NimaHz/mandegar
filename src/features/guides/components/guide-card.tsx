@@ -5,12 +5,12 @@ import Link from "next/link";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { localizePath } from "@/i18n/paths";
-import { formatNumber } from "@/lib/format";
+import { pluralize } from "@/i18n/plural";
+import { durationMinutes, formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
 import type { GuideListItem } from "@/types/content";
 
 import type { GuidesContent } from "../content";
-import { durationMinutes } from "../format";
 
 interface GuideCardProps {
   guide: GuideListItem;
@@ -75,7 +75,7 @@ export function GuideCard({ guide, locale, copy, priority = false }: GuideCardPr
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-3 text-xs font-semibold text-muted">
           <span className="inline-flex items-center gap-1.5">
             <ListOrdered className="size-4" aria-hidden />
-            {fill(copy.steps, { count: formatNumber(locale, guide.stepCount) })}
+            {pluralize(locale, guide.stepCount, copy.steps)}
           </span>
           <span className="font-bold text-primary">{copy.view}</span>
         </div>

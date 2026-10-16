@@ -67,10 +67,10 @@ const WORDS_PER_MINUTE: Record<Locale, number> = { fa: 180, en: 220 };
 
 const defaultSettings: SettingsValues = {
   contact: {
-    phones: [{ label: { fa: "دفتر مرکزی", en: "Head office" }, value: siteConfig.contact.phone }],
-    emails: [{ label: { fa: "پشتیبانی", en: "Support" }, value: siteConfig.contact.email }],
+    phones: [{ label: siteConfig.contact.phoneLabel, value: siteConfig.contact.phone }],
+    emails: [{ label: siteConfig.contact.emailLabel, value: siteConfig.contact.email }],
     address: siteConfig.contact.address,
-    hours: { fa: "شنبه تا چهارشنبه، ۸ تا ۱۷", en: "Saturday to Wednesday, 8:00 to 17:00" },
+    hours: siteConfig.contact.hours,
     socials: {
       aparat: null,
       instagram: null,
@@ -376,8 +376,7 @@ export const contentSchedules = {
   },
 };
 
-const matchesKind = (kind: ServiceCenterKind) =>
-  kind === "both" ? eq(serviceCenters.kind, "both") : inArray(serviceCenters.kind, [kind, "both"]);
+const matchesKind = (kind: ServiceCenterKind) => inArray(serviceCenters.kind, [kind, "both"]);
 
 export const contentService: ContentService = {
   heroSlides: async (locale) => {
@@ -584,11 +583,11 @@ export const contentService: ContentService = {
       updatedAt: iso(row.updatedAt),
     }));
   },
-  provinces: async (locale) => {
+  provinces: async (locale, kind) => {
     const rows = await getDb()
       .select({ code: serviceCenters.province, total: count() })
       .from(serviceCenters)
-      .where(eq(serviceCenters.active, true))
+      .where(and(eq(serviceCenters.active, true), kind ? matchesKind(kind) : undefined))
       .groupBy(serviceCenters.province);
     return rows
       .map((row) => ({ code: row.code, name: provinceName(locale, row.code), count: row.total }))

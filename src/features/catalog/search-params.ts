@@ -1,18 +1,23 @@
 import {
   createLoader,
+  createParser,
   createSerializer,
   type inferParserType,
   parseAsInteger,
-  parseAsString,
   parseAsStringLiteral,
 } from "nuqs/server";
 
 import { energyClasses, productSorts } from "@/types/catalog";
 
+const parseAsText = createParser({
+  parse: (value) => value.replaceAll("\u0000", ""),
+  serialize: (value: string) => value,
+});
+
 export const catalogSearchParams = {
-  q: parseAsString.withDefault(""),
-  category: parseAsString,
-  brand: parseAsString,
+  q: parseAsText.withDefault(""),
+  category: parseAsText,
+  brand: parseAsText,
   energy: parseAsStringLiteral(energyClasses),
   sort: parseAsStringLiteral(productSorts).withDefault("featured"),
   page: parseAsInteger.withDefault(1),

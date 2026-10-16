@@ -35,6 +35,10 @@ interface VideoPlayerProps {
 
 const SEEK_STEP = 5;
 
+interface WebkitVideoElement extends HTMLVideoElement {
+  webkitEnterFullscreen?: () => void;
+}
+
 const parseStartTime = (search: string) => {
   const raw = new URLSearchParams(search).get(START_TIME_PARAM);
   if (!raw || !/^[0-9hms:.]+$/i.test(raw)) return null;
@@ -167,7 +171,7 @@ function AparatPlayer({
           src={aparatEmbedUrl(video.hash)}
           title={title}
           loading={eager ? "eager" : "lazy"}
-          allow="autoplay; fullscreen; picture-in-picture"
+          allow="autoplay; picture-in-picture"
           allowFullScreen
           className="absolute inset-0 size-full border-0"
         />
@@ -238,8 +242,16 @@ function NativePlayer({
   const toggleFullscreen = () => {
     const shell = shellRef.current;
     if (!shell) return;
-    if (document.fullscreenElement) void document.exitFullscreen();
-    else void shell.requestFullscreen?.().catch(() => undefined);
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+      return;
+    }
+    if (document.fullscreenEnabled && typeof shell.requestFullscreen === "function") {
+      void shell.requestFullscreen().catch(() => undefined);
+      return;
+    }
+    const element: WebkitVideoElement | null = videoRef.current;
+    element?.webkitEnterFullscreen?.();
   };
 
   const selectChapter = (chapter: GuideChapter) => {

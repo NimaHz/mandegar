@@ -4,6 +4,7 @@ import { getEnv } from "@/config/env";
 import { MB } from "@/lib/format";
 import { sign } from "@/server/lib/crypto";
 import { forbidden, HttpError, payloadTooLarge } from "@/server/lib/http-error";
+import { stripNulBytes } from "@/server/lib/validation";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
@@ -62,6 +63,11 @@ export const security = new Elysia({ name: "security" })
     if (SAFE_METHODS.has(request.method)) return;
     assertSameOrigin(request);
     assertBodySize(request, new URL(request.url).pathname);
+  })
+  .onTransform((context) => {
+    stripNulBytes(context.query);
+    stripNulBytes(context.params);
+    context.body = stripNulBytes(context.body);
   })
   .derive({ as: "global" }, ({ request }) => {
     const clientIp = clientIpOf(request);

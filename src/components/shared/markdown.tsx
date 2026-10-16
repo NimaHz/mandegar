@@ -10,17 +10,35 @@ const escapeHtml = (value: string) =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
 
-const SAFE_URL = /^(https?:|mailto:|tel:|\/|#)/i;
+const SAFE_URL = /^(https?:|mailto:|tel:|\/(?![/\\])|#)/i;
+
+const URL_NOISE = /[\p{Cc}\s]/u;
+
+const isSafeUrl = (href: string) => SAFE_URL.test(href) && !URL_NOISE.test(href);
 
 const MODEL_CODE = /\b([A-Z]+-\d[\dA-Z]*)\b/g;
 
-export const headingId = (text: string) =>
+const headingSlug = (text: string) =>
   text
     .trim()
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\s-]/gu, "")
-    .replace(/[\s‌]+/g, "-")
-    .slice(0, 80);
+    .replace(/\s+/g, "-")
+    .slice(0, 80)
+    .replace(/^-+|-+$/g, "");
+
+const createSlugger = () => {
+  const used = new Set<string>();
+  return (text: string) => {
+    const base = headingSlug(text) || "section";
+    let slug = base;
+    for (let count = 2; used.has(slug); count += 1) slug = `${base}-${count}`;
+    used.add(slug);
+    return slug;
+  };
+};
+
+let slugHeading = createSlugger();
 
 const parser = new Marked({
   gfm: true,
@@ -34,18 +52,18 @@ const parser = new Marked({
     },
     heading({ tokens, depth, text }: Tokens.Heading) {
       const level = Math.min(Math.max(depth, 2), 4);
-      return `<h${level} id="${escapeHtml(headingId(text))}">${this.parser.parseInline(tokens)}</h${level}>`;
+      return `<h${level} id="${escapeHtml(slugHeading(text))}">${this.parser.parseInline(tokens)}</h${level}>`;
     },
     link({ href, title, tokens }: Tokens.Link) {
       const body = this.parser.parseInline(tokens);
-      if (!SAFE_URL.test(href)) return body;
+      if (!isSafeUrl(href)) return body;
       const external = /^https?:/i.test(href);
       const titleAttr = title ? ` title="${escapeHtml(title)}"` : "";
       const relAttr = external ? ' target="_blank" rel="noopener noreferrer"' : "";
       return `<a href="${escapeHtml(href)}"${titleAttr}${relAttr}>${body}</a>`;
     },
     image({ href, title, text }: Tokens.Image) {
-      if (!SAFE_URL.test(href)) return escapeHtml(text);
+      if (!isSafeUrl(href)) return escapeHtml(text);
       const titleAttr = title ? ` title="${escapeHtml(title)}"` : "";
       return `<img src="${escapeHtml(href)}" alt="${escapeHtml(text)}"${titleAttr} loading="lazy" decoding="async">`;
     },
@@ -64,13 +82,25 @@ const parser = new Marked({
   },
 });
 
-export const renderMarkdown = (source: string) => parser.parse(source, { async: false });
+export const renderMarkdown = (source: string) => {
+  slugHeading = createSlugger();
+  return parser.parse(source, { async: false });
+};
 
-export const extractHeadings = (source: string) =>
-  parser
-    .lexer(source)
-    .filter((token): token is Tokens.Heading => token.type === "heading" && token.depth <= 3)
-    .map((token) => ({ id: headingId(token.text), text: token.text, depth: token.depth }));
+export const extractHeadings = (source: string) => {
+  const slug = createSlugger();
+  const headings: { id: string; text: string; depth: number }[] = [];
+  for (const block of parser.lexer(source)) {
+    parser.walkTokens([block], (token) => {
+      if (token.type !== "heading") return;
+      const id = slug(token.text);
+      if (token === block && token.depth <= 3) {
+        headings.push({ id, text: token.text, depth: token.depth });
+      }
+    });
+  }
+  return headings;
+};
 
 interface MarkdownProps {
   source: string;

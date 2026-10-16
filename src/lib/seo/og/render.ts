@@ -18,11 +18,17 @@ const loadFonts = () => {
     readFile(join(FONT_DIR, "vazirmatn/static/vazirmatn-medium.ttf")),
     readFile(join(FONT_DIR, "vazirmatn/static/vazirmatn-extrabold.ttf")),
     readFile(join(FONT_DIR, "kufam/static/kufam-extrabold.ttf")),
-  ]).then(([medium, extraBold, logo]): Font[] => [
-    { name: "Vazirmatn", data: medium, weight: 500, style: "normal" },
-    { name: "Vazirmatn", data: extraBold, weight: 800, style: "normal" },
-    { name: "Kufam", data: logo, weight: 800, style: "normal" },
-  ]);
+  ]).then(
+    ([medium, extraBold, logo]): Font[] => [
+      { name: "Vazirmatn", data: medium, weight: 500, style: "normal" },
+      { name: "Vazirmatn", data: extraBold, weight: 800, style: "normal" },
+      { name: "Kufam", data: logo, weight: 800, style: "normal" },
+    ],
+    (error: unknown) => {
+      fonts = undefined;
+      throw error;
+    },
+  );
   return fonts;
 };
 

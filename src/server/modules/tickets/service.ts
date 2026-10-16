@@ -1,12 +1,13 @@
 import "server-only";
 
-import { and, count, eq, inArray, notInArray } from "drizzle-orm";
+import { and, count, eq, inArray, notInArray, sql } from "drizzle-orm";
 import type { z } from "zod";
 
 import { ticketStatusCopy } from "@/features/support/content";
 import type { Locale } from "@/i18n/config";
 import { MB } from "@/lib/format";
 import {
+  isTicketOpen,
   mentionsGasSmell,
   statusEventBody,
   TICKET_ATTACHMENT_LIMIT,
@@ -37,12 +38,7 @@ import { notify } from "@/server/notify";
 import type { AdminActor } from "@/server/plugins/auth";
 import { getStorage } from "@/server/storage";
 import { ticketsAdmin } from "@/services/admin/tickets";
-import {
-  findTicketByToken,
-  isTicketOpen,
-  loadPublicTicket,
-  supportService,
-} from "@/services/db/support";
+import { findTicketByToken, loadPublicTicket, supportService } from "@/services/db/support";
 import type { PublicTicket, TicketReceipt, TicketStatus, TrackTicketInput } from "@/types/support";
 
 import type { staffMessageSchema, ticketFieldsSchema, ticketUpdateSchema } from "./schema";
@@ -128,8 +124,8 @@ const resolveProductId = async (slug: string | undefined) => {
   return row?.id ?? null;
 };
 
-const assertPhoneCapacity = async (phone: string) => {
-  const [row] = await getDb()
+const assertPhoneCapacity = async (executor: Executor, phone: string) => {
+  const [row] = await executor
     .select({ total: count() })
     .from(tickets)
     .where(and(eq(tickets.phone, phone), notInArray(tickets.status, RESOLVED_STATUSES)));
@@ -146,6 +142,10 @@ const insertTicket = async (
     const trackingCode = createTrackingCode();
     try {
       return await getDb().transaction(async (tx) => {
+        await tx.execute(
+          sql`select pg_advisory_xact_lock(hashtextextended(${`ticket-phone:${values.phone}`}, 0))`,
+        );
+        await assertPhoneCapacity(tx, values.phone);
         const [row] = await tx
           .insert(tickets)
           .values({ ...values, trackingCode })
@@ -170,7 +170,7 @@ export const createTicket = async (
   assertAttachments(files);
   await assertHuman(proof);
   await enforceRateLimit(`ticket:${clientKey}`, 5, 3600);
-  await assertPhoneCapacity(fields.phone);
+  await assertPhoneCapacity(getDb(), fields.phone);
   const warranty = await resolveWarrantyCode(fields.warrantyCode);
   const productId = warranty.productId ?? (await resolveProductId(fields.productSlug));
   const urgent = mentionsGasSmell(`${fields.subject} ${fields.description}`);

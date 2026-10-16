@@ -4,21 +4,17 @@ import { and, asc, eq, type SQL } from "drizzle-orm";
 
 import type { Locale } from "@/i18n/config";
 import { maskMobile, normalizeMobile } from "@/lib/persian";
-import { parseStatusEvent } from "@/lib/tickets";
+import { isTicketOpen, parseStatusEvent } from "@/lib/tickets";
 import { parseTrackingCode } from "@/lib/tracking-code";
 import { formatWarrantyCode } from "@/lib/warranty-code";
 import { getDb } from "@/server/db/client";
 import { ticketMessages, tickets } from "@/server/db/schema";
 import { safeEqual, sha256 } from "@/server/lib/crypto";
 import { customerAttachmentHref } from "@/server/modules/tickets/attachments";
-import type { PublicTicket, PublicTicketMessage, TicketStatus } from "@/types/support";
+import type { PublicTicket, PublicTicketMessage } from "@/types/support";
 
 import type { SupportService } from "../contracts";
 import { iso, mediaIndex, pick } from "./mappers";
-
-const CLOSED_STATUSES: readonly TicketStatus[] = ["closed", "rejected"];
-
-export const isTicketOpen = (status: TicketStatus) => !CLOSED_STATUSES.includes(status);
 
 const findTicket = (where: SQL) =>
   getDb().query.tickets.findFirst({

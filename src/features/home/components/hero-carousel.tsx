@@ -192,7 +192,7 @@ export function HeroCarousel({ slides, secondaryHref }: HeroCarouselProps) {
       }}
       onPointerEnter={(event) => event.pointerType === "mouse" && setHovered(true)}
       onPointerLeave={(event) => event.pointerType === "mouse" && setHovered(false)}
-      onFocus={() => setFocused(true)}
+      onFocus={(event) => setFocused(event.target.matches(":focus-visible"))}
       onBlur={onBlur}
       className={cn(
         "relative isolate aspect-4/5 touch-pan-y overflow-hidden bg-night outline-none select-none focus-visible:ring-3 focus-visible:ring-primary focus-visible:ring-inset sm:aspect-16/10 lg:aspect-auto lg:h-[min(78svh,44rem)] lg:min-h-[34rem]",

@@ -51,6 +51,7 @@ export function FoundResult({ match, locale, content, headingId }: FoundResultPr
   const status = content.status[match.status];
   const meta = statusMeta[match.status];
   const StatusIcon = meta.icon;
+  const covered = match.status !== "revoked";
   const { product } = match;
   const productHref = product.listed ? localizePath(locale, routes.product(product.slug)) : null;
   const frameClass =
@@ -170,44 +171,54 @@ export function FoundResult({ match, locale, content, headingId }: FoundResultPr
           </dl>
         </div>
 
-        <div className="flex flex-col gap-6">
-          <div className="relative overflow-hidden rounded-card bg-brand-deep p-5 text-white sm:p-6">
-            <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
-              <p className="flex items-baseline gap-2">
-                <span className="font-display text-6xl leading-none font-black text-accent">
-                  {formatNumber(locale, match.months)}
-                </span>
-                <span className="flex flex-col text-sm leading-6 font-bold text-white/90">
-                  <span>{result.monthsUnit}</span>
-                  <span className="text-white/65">{result.monthsLabel}</span>
-                </span>
-              </p>
-              {match.partsMonths !== null && (
-                <span className="mb-1 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 ring-1 ring-white/15">
-                  {fill(result.parts, { count: formatNumber(locale, match.partsMonths) })}
-                </span>
-              )}
+        {covered ? (
+          <div className="flex flex-col gap-6">
+            <div className="relative overflow-hidden rounded-card bg-brand-deep p-5 text-white sm:p-6">
+              <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+                <p className="flex items-baseline gap-2">
+                  <span className="font-display text-6xl leading-none font-black text-accent">
+                    {formatNumber(locale, match.months)}
+                  </span>
+                  <span className="flex flex-col text-sm leading-6 font-bold text-white/90">
+                    <span>{result.monthsUnit}</span>
+                    <span className="text-white/65">{result.monthsLabel}</span>
+                  </span>
+                </p>
+                {match.partsMonths !== null && (
+                  <span className="mb-1 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/85 ring-1 ring-white/15">
+                    {fill(result.parts, { count: formatNumber(locale, match.partsMonths) })}
+                  </span>
+                )}
+              </div>
+              <div className="mt-5 border-t border-white/15 pt-4">
+                <p className="text-caption font-bold text-white/60">{result.startRule}</p>
+                <p className="mt-1 text-sm leading-7 text-white/90">{match.startRule}</p>
+              </div>
             </div>
-            <div className="mt-5 border-t border-white/15 pt-4">
-              <p className="text-caption font-bold text-white/60">{result.startRule}</p>
-              <p className="mt-1 text-sm leading-7 text-white/90">{match.startRule}</p>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <CoverageList
+                title={result.coverage}
+                items={match.coverage}
+                variant="covered"
+                compact
+              />
+              <CoverageList
+                title={result.exclusions}
+                items={match.exclusions}
+                variant="excluded"
+                compact
+              />
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <CoverageList
-              title={result.coverage}
-              items={match.coverage}
-              variant="covered"
-              compact
-            />
-            <CoverageList
-              title={result.exclusions}
-              items={match.exclusions}
-              variant="excluded"
-              compact
-            />
+        ) : (
+          <div className="flex items-start gap-3 self-start rounded-card border border-danger/30 bg-danger-soft/60 p-5">
+            <ShieldX className="mt-0.5 size-5 shrink-0 text-danger" aria-hidden />
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-bold text-ink">{result.noCoverTitle}</p>
+              <p className="text-sm leading-7 text-body">{result.noCoverBody}</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <footer className="flex flex-col gap-5 border-t border-line bg-surface px-5 py-5 sm:px-7">

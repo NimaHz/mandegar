@@ -8,11 +8,10 @@ import { useId } from "react";
 
 import { CategoryIcon } from "@/components/icons/category-icon";
 import { isNavActive, primaryNav, supportNav } from "@/config/navigation";
-import { fill } from "@/i18n/fill";
 import { useDictionary, useLocale } from "@/i18n/locale-provider";
 import { localizePath, stripLocalePrefix } from "@/i18n/paths";
+import { pluralize } from "@/i18n/plural";
 import { cn } from "@/lib/cn";
-import { formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
 import type { CategorySummary } from "@/types/catalog";
 
@@ -44,7 +43,8 @@ export function MainNav({ categories }: { categories: NavCategory[] }) {
         label={header.productsMenu}
         indicatorId={indicatorId}
         active={productsActive}
-        panelClassName="w-[min(54rem,calc(100vw-4rem))] p-2"
+        wide
+        panelClassName="max-w-[54rem] p-2"
       >
         {(close) => (
           <div className="grid grid-cols-[minmax(0,1fr)_16rem] gap-2">
@@ -63,9 +63,7 @@ export function MainNav({ categories }: { categories: NavCategory[] }) {
                       <span className="flex items-center gap-2 text-sm font-bold text-ink">
                         {category.name}
                         <span className="text-caption font-semibold text-muted">
-                          {fill(header.modelsCount, {
-                            count: formatNumber(locale, category.productCount),
-                          })}
+                          {pluralize(locale, category.productCount, header.modelsCount)}
                         </span>
                       </span>
                       <span className="line-clamp-1 text-xs leading-5 text-muted">

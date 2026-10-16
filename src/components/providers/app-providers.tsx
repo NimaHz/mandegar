@@ -10,6 +10,7 @@ import type { Dictionary } from "@/i18n/dictionaries/fa";
 import { LocaleProvider } from "@/i18n/locale-provider";
 
 import { StoreHydrator } from "./store-hydrator";
+import { ThemeColor } from "./theme-color";
 
 interface AppProvidersProps {
   locale: Locale;
@@ -25,6 +26,7 @@ export function AppProviders({ locale, dictionary, toastPlacement, children }: A
         <MotionProvider>
           <SmoothScroll />
           <StoreHydrator />
+          <ThemeColor />
           <ServiceWorkerRegistrar />
           {children}
           <Toaster placement={toastPlacement} />

@@ -1,10 +1,14 @@
-import { SearchX } from "lucide-react";
+import { PackageOpen, SearchX } from "lucide-react";
+import Link from "next/link";
 
 import { PendingRegion } from "@/components/providers/transition-provider";
+import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/ui/pagination";
 import type { Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
+import { localizePath } from "@/i18n/paths";
+import { routes } from "@/lib/routes";
 import type { ProductListItem } from "@/types/catalog";
 import type { Paginated } from "@/types/common";
 
@@ -19,6 +23,7 @@ interface CatalogResultsProps {
   filters: CatalogFilters;
   pathname: string;
   priorityCount?: number;
+  emptyCategory?: boolean;
 }
 
 export async function CatalogResults({
@@ -27,26 +32,42 @@ export async function CatalogResults({
   filters,
   pathname,
   priorityCount = 0,
+  emptyCategory = false,
 }: CatalogResultsProps) {
-  const { ui } = await getDictionary(locale);
-  const { listing } = catalogContent[locale];
+  const { ui, nav } = await getDictionary(locale);
+  const { listing, category } = catalogContent[locale];
+  const empty = emptyCategory ? (
+    <EmptyState
+      icon={PackageOpen}
+      title={category.emptyTitle}
+      description={category.emptyDescription}
+      action={
+        <Link
+          href={localizePath(locale, routes.products)}
+          className={buttonVariants({ variant: "outline", size: "sm", className: "mt-1" })}
+        >
+          {nav.allProducts}
+        </Link>
+      }
+    />
+  ) : (
+    <EmptyState
+      icon={SearchX}
+      title={listing.emptyTitle}
+      description={listing.emptyDescription}
+      action={<ClearFiltersButton />}
+    />
+  );
 
   return (
-    <div className="flex flex-col gap-8">
-      <PendingRegion>
-        {result.items.length === 0 ? (
-          <EmptyState
-            icon={SearchX}
-            title={listing.emptyTitle}
-            description={listing.emptyDescription}
-            action={<ClearFiltersButton />}
-          />
-        ) : (
-          <div key={serializeCatalogSearchParams(filters)}>
-            <ProductGrid products={result.items} locale={locale} priorityCount={priorityCount} />
-          </div>
-        )}
-      </PendingRegion>
+    <PendingRegion className="flex flex-col gap-8">
+      {result.items.length === 0 ? (
+        empty
+      ) : (
+        <div key={serializeCatalogSearchParams(filters)}>
+          <ProductGrid products={result.items} locale={locale} priorityCount={priorityCount} />
+        </div>
+      )}
       <Pagination
         page={result.page}
         pageCount={result.pageCount}
@@ -57,6 +78,6 @@ export async function CatalogResults({
           search: serializeCatalogSearchParams({ ...filters, page: page === 1 ? null : page }),
         })}
       />
-    </div>
+    </PendingRegion>
   );
 }

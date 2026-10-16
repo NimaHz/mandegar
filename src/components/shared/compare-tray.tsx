@@ -9,16 +9,16 @@ import { useEffect } from "react";
 import { EASE_OUT_EXPO, springSnappy } from "@/components/motion/easing";
 import { buttonVariants } from "@/components/ui/button";
 import { Portal } from "@/components/ui/portal";
-import { pluralize } from "@/features/catalog/plural";
 import { compareContent } from "@/features/compare/content";
 import { compareHref } from "@/features/compare/href";
 import { fill } from "@/i18n/fill";
 import { useLocale } from "@/i18n/locale-provider";
+import { pluralize } from "@/i18n/plural";
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
-import { COMPARE_LIMIT, useCompareStore } from "@/stores/compare";
+import { useCompareStore } from "@/stores/compare";
 import { useStoresHydrated } from "@/stores/hydration";
-import type { ProductListItem } from "@/types/catalog";
+import { COMPARE_LIMIT, type ProductListItem } from "@/types/catalog";
 
 export type CompareTrayItem = Pick<ProductListItem, "slug" | "name" | "modelCode" | "image">;
 

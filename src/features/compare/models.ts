@@ -1,4 +1,4 @@
-import { COMPARE_LIMIT } from "@/stores/compare";
+import { COMPARE_LIMIT } from "@/types/catalog";
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 

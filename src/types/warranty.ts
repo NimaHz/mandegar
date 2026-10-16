@@ -32,6 +32,7 @@ export type WarrantyLookup =
   | { status: "rate-limited" };
 
 export interface WarrantyPolicySummary extends WarrantyCoverage {
+  id: string;
   name: string;
   updatedAt: string;
 }

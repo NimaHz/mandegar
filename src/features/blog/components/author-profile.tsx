@@ -3,7 +3,7 @@ import { ExternalLink, PenLine } from "lucide-react";
 import { LogoMark } from "@/components/brand/logo-mark";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
-import { formatNumber } from "@/lib/format";
+import { pluralize } from "@/i18n/plural";
 import { hostOf } from "@/lib/url";
 import type { AuthorDetail } from "@/types/content";
 
@@ -36,7 +36,7 @@ export function AuthorProfile({ author, locale, postCount }: AuthorProfileProps)
           <p className="text-lead font-bold text-ink-soft">{author.role}</p>
           <p className="inline-flex items-center gap-2 text-sm font-semibold text-muted">
             <PenLine className="size-4 text-primary" aria-hidden />
-            {fill(content.authorPostCount, { count: formatNumber(locale, postCount) })}
+            {pluralize(locale, postCount, content.authorPostCount)}
           </p>
         </div>
       </div>

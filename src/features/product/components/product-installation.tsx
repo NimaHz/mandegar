@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { localizePath } from "@/i18n/paths";
-import { formatNumber } from "@/lib/format";
+import { durationMinutes, formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
 import type { GuideDetail } from "@/types/content";
 
@@ -50,7 +50,7 @@ export function ProductInstallation({ guide, productSlug, locale }: ProductInsta
     );
   }
 
-  const minutes = guide.durationSec ? Math.max(1, Math.round(guide.durationSec / 60)) : null;
+  const minutes = guide.durationSec ? durationMinutes(guide.durationSec) : null;
 
   return (
     <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-12">

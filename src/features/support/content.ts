@@ -56,6 +56,9 @@ export interface RequestFlowContent {
     lookingUp: string;
     matchedYear: string;
     lookupMiss: string;
+    lookupFailed: string;
+    lookupRetry: string;
+    lookupRateLimited: string;
     or: string;
     model: string;
     modelPlaceholder: string;
@@ -537,7 +540,7 @@ export const requestFlowContent: Record<Locale, RequestFlowContent> = {
       edit: "ویرایش",
       startOver: "شروع از نو",
     },
-    draftNote: "پاسخ‌هایت تا ارسال، روی همین دستگاه ذخیره می‌ماند.",
+    draftNote: "پاسخ‌هایت تا ارسال درخواست یا بستن این زبانه، در همین مرورگر نگه داشته می‌شود.",
     product: {
       code: { ...warrantyCodeMessages.fa, label: "کد گارانتی" },
       optional: "اختیاری",
@@ -545,6 +548,11 @@ export const requestFlowContent: Record<Locale, RequestFlowContent> = {
       lookingUp: "در حال پیدا کردن مدل…",
       matchedYear: "تولید {year}",
       lookupMiss: "این کد را پیدا نکردیم؛ اشکالی ندارد، مدل را از فهرست پایین انتخاب کن.",
+      lookupFailed:
+        "بررسی کد انجام نشد؛ اتصال را بررسی کن و دوباره امتحان کن، یا مدل را از فهرست پایین انتخاب کن.",
+      lookupRetry: "تلاش دوباره",
+      lookupRateLimited:
+        "استعلام‌های زیادی از این اتصال ثبت شده است؛ چند دقیقه دیگر امتحان کن یا مدل را از فهرست پایین انتخاب کن.",
       or: "یا",
       model: "مدل دستگاه",
       modelPlaceholder: "نام یا کد مدل، مثلاً MC-4500",
@@ -734,7 +742,7 @@ export const requestFlowContent: Record<Locale, RequestFlowContent> = {
       edit: "Edit",
       startOver: "Start over",
     },
-    draftNote: "Your answers are saved on this device until you send them.",
+    draftNote: "Your answers are kept in this browser tab until you send them or close the tab.",
     product: {
       code: { ...warrantyCodeMessages.en, label: "Warranty code" },
       optional: "Optional",
@@ -743,6 +751,11 @@ export const requestFlowContent: Record<Locale, RequestFlowContent> = {
       matchedYear: "Made in {year}",
       lookupMiss:
         "We couldn't match this code. That's fine: choose your model from the list below.",
+      lookupFailed:
+        "We couldn't check this code. Check your connection and try again, or choose your model from the list below.",
+      lookupRetry: "Try again",
+      lookupRateLimited:
+        "There have been a lot of checks from this connection. Try again in a few minutes, or choose your model from the list below.",
       or: "or",
       model: "Appliance model",
       modelPlaceholder: "Name or model code, e.g. MC-4500",

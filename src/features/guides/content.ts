@@ -1,11 +1,12 @@
 import type { VideoPlayerLabels } from "@/components/shared/video-player";
 import type { Locale } from "@/i18n/config";
+import type { PluralForms } from "@/i18n/plural";
 
 export interface GuidesContent {
   meta: { title: string; description: string };
   hero: { eyebrow: string; title: string; description: string };
-  filter: { label: string; all: string; results: string };
-  card: { minutes: string; steps: string; view: string; textOnly: string };
+  filter: { label: string; all: string; results: PluralForms };
+  card: { minutes: string; steps: PluralForms; view: string; textOnly: string };
   empty: { title: string; description: string; action: string };
   detail: {
     eyebrow: string;
@@ -47,10 +48,14 @@ export const guidesContent: Record<Locale, GuidesContent> = {
       description:
         "ویدیو و مراحل گام‌به‌گام نصب هر مدل ماندگار، با ابزار لازم و نکته‌های ایمنی. صفحه هر محصول هم راهنمای خودش را دارد.",
     },
-    filter: { label: "دسته‌بندی راهنماها", all: "همه", results: "{count} راهنما" },
+    filter: {
+      label: "دسته‌بندی راهنماها",
+      all: "همه",
+      results: { one: "{count} راهنما", other: "{count} راهنما" },
+    },
     card: {
       minutes: "{count} دقیقه",
-      steps: "{count} مرحله",
+      steps: { one: "{count} مرحله", other: "{count} مرحله" },
       view: "مشاهده راهنما",
       textOnly: "راهنمای متنی",
     },
@@ -112,10 +117,14 @@ export const guidesContent: Record<Locale, GuidesContent> = {
       description:
         "Video and step-by-step instructions for every Mandegar model, with the tools you'll need and the safety notes that matter. Every product page links its own guide too.",
     },
-    filter: { label: "Guide categories", all: "All", results: "{count} guides" },
+    filter: {
+      label: "Guide categories",
+      all: "All",
+      results: { one: "{count} guide", other: "{count} guides" },
+    },
     card: {
       minutes: "{count} min",
-      steps: "{count} steps",
+      steps: { one: "{count} step", other: "{count} steps" },
       view: "View guide",
       textOnly: "Text guide",
     },

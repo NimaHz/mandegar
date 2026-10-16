@@ -3,9 +3,9 @@ import Link from "next/link";
 
 import { LogoMark } from "@/components/brand/logo-mark";
 import { buttonVariants } from "@/components/ui/button";
-import { pluralize } from "@/features/catalog/plural";
 import type { Locale } from "@/i18n/config";
 import { localizePath } from "@/i18n/paths";
+import { pluralize } from "@/i18n/plural";
 import { routes } from "@/lib/routes";
 import type { BrandDetail } from "@/types/catalog";
 

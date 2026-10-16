@@ -33,7 +33,14 @@ export function Switch({ checked, onCheckedChange, label, description, disabled 
           checked ? "justify-end bg-primary" : "justify-start bg-line-strong",
         )}
       >
-        <m.span layout transition={springSnappy} className="size-5 rounded-full bg-white shadow" />
+        <m.span
+          layout
+          transition={springSnappy}
+          className={cn(
+            "size-5 rounded-full shadow",
+            checked ? "bg-on-primary" : "bg-raised dark:bg-ink",
+          )}
+        />
       </span>
     </button>
   );

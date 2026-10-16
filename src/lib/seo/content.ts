@@ -1,12 +1,13 @@
 import type { Locale } from "@/i18n/config";
+import type { PluralForms } from "@/i18n/plural";
 
 interface SeoContent {
   homeKicker: string;
   warrantyName: string;
   monthUnit: string;
   warrantyMonths: string;
-  models: string;
-  steps: string;
+  models: PluralForms;
+  steps: PluralForms;
   minutes: string;
   readingMinutes: string;
   productAnswer: string;
@@ -30,8 +31,8 @@ export const seoContent: Record<Locale, SeoContent> = {
     warrantyName: "گارانتی",
     monthUnit: "ماه",
     warrantyMonths: "گارانتی {count} ماهه",
-    models: "{count} مدل",
-    steps: "{count} مرحله",
+    models: { one: "{count} مدل", other: "{count} مدل" },
+    steps: { one: "{count} مرحله", other: "{count} مرحله" },
     minutes: "{count} دقیقه",
     readingMinutes: "{count} دقیقه مطالعه",
     productAnswer:
@@ -60,8 +61,8 @@ export const seoContent: Record<Locale, SeoContent> = {
     warrantyName: "Warranty",
     monthUnit: "months",
     warrantyMonths: "{count}-month warranty",
-    models: "{count} models",
-    steps: "{count} steps",
+    models: { one: "{count} model", other: "{count} models" },
+    steps: { one: "{count} step", other: "{count} steps" },
     minutes: "{count} min",
     readingMinutes: "{count} min read",
     productAnswer:

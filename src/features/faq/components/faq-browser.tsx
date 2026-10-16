@@ -4,8 +4,8 @@ import { Plus, Search, SearchX, X } from "lucide-react";
 import { useDeferredValue, useId, useState } from "react";
 
 import { EmptyState } from "@/components/ui/empty-state";
-import { fill } from "@/i18n/fill";
 import { useLocale } from "@/i18n/locale-provider";
+import { pluralize } from "@/i18n/plural";
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
 import { includesQuery } from "@/lib/persian";
@@ -103,7 +103,7 @@ export function FaqBrowser({ sections, content }: FaqBrowserProps) {
             )}
           </div>
           <p role="status" className="min-h-5 text-label font-semibold text-muted">
-            {searching ? fill(content.resultCount, { count: formatNumber(locale, total) }) : ""}
+            {searching ? pluralize(locale, total, content.resultCount) : ""}
           </p>
         </div>
 

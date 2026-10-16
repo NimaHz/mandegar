@@ -17,6 +17,9 @@ export const pick = (text: LocalizedText | null | undefined, locale: Locale) =>
 export const pickOrNull = (text: LocalizedText | null | undefined, locale: Locale) =>
   pick(text, locale) || null;
 
+export const pickExact = (text: LocalizedText | null | undefined, locale: Locale) =>
+  text?.[locale] ?? "";
+
 export const toImage = (
   row: MediaRow | null | undefined,
   locale: Locale,
@@ -25,7 +28,7 @@ export const toImage = (
   row?.kind === "image"
     ? {
         src: routes.upload(row.storageKey),
-        alt: pick(row.alt, locale) || fallbackAlt,
+        alt: pickExact(row.alt, locale) || fallbackAlt,
         width: row.width ?? 0,
         height: row.height ?? 0,
       }

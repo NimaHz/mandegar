@@ -32,6 +32,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
   const goTo = (target: number) => setIndex((target + count) % count);
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!(event.target instanceof Node) || !event.currentTarget.contains(event.target)) return;
     if (count < 2 || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) return;
     event.preventDefault();
     const forward = event.key === (isRtl(event.currentTarget) ? "ArrowLeft" : "ArrowRight");
@@ -83,7 +84,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
           aria-hidden
           fill
           sizes="96px"
-          loading="eager"
+          loading="lazy"
           className="-z-10 scale-125 object-cover opacity-40 blur-2xl"
         />
         <Image
@@ -98,8 +99,10 @@ export function ProductGallery({ images }: ProductGalleryProps) {
         />
         <button
           type="button"
-          onClick={() => {
-            if (!swiped.current) setOpen(true);
+          onClick={(event) => {
+            const blocked = swiped.current && event.detail !== 0;
+            swiped.current = false;
+            if (!blocked) setOpen(true);
           }}
           aria-label={gallery.open}
           aria-haspopup="dialog"
@@ -153,7 +156,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
                     alt=""
                     fill
                     sizes="80px"
-                    loading="eager"
+                    loading="lazy"
                     className="object-cover"
                   />
                 </button>

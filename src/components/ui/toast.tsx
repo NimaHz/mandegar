@@ -65,6 +65,15 @@ const useToastStore = create<ToastState>()((set) => ({
   dismiss: (id) => set(({ items }) => ({ items: items.filter((item) => item.id !== id) })),
 }));
 
+const capVisible = (items: ToastItem[]) => {
+  let excess = items.length - MAX_VISIBLE;
+  return items.filter((item, index) => {
+    if (excess <= 0 || item.duration <= 0 || index === items.length - 1) return true;
+    excess -= 1;
+    return false;
+  });
+};
+
 export const toast = ({
   title,
   description,
@@ -87,7 +96,7 @@ export const toast = ({
     returnFocus: active instanceof HTMLElement && active !== document.body ? active : null,
   };
   useToastStore.setState(({ items }) => ({
-    items: [...items.filter((entry) => entry.id !== key), item].slice(-MAX_VISIBLE),
+    items: capVisible([...items.filter((entry) => entry.id !== key), item]),
   }));
   return key;
 };

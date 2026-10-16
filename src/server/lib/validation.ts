@@ -4,7 +4,30 @@ import { defaultLocale, locales } from "@/i18n/config";
 import { normalizeMobile, toLatinDigits } from "@/lib/persian";
 import { isProvinceCode } from "@/lib/provinces";
 
+import { MAX_PAGE } from "./pagination";
+
 const requiredText = (max: number) => z.string().trim().min(1).max(max);
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+  if (typeof value !== "object" || value === null) return false;
+  const prototype: unknown = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+};
+
+const withoutNulBytes = (value: string) => value.replaceAll("\u0000", "");
+
+export const stripNulBytes = (value: unknown): unknown => {
+  if (typeof value === "string") return withoutNulBytes(value);
+  if (Array.isArray(value)) {
+    const entries: unknown[] = value;
+    entries.forEach((entry, index) => {
+      entries[index] = stripNulBytes(entry);
+    });
+  } else if (isPlainObject(value)) {
+    for (const [key, entry] of Object.entries(value)) value[key] = stripNulBytes(entry);
+  }
+  return value;
+};
 
 export const localizedText = (max = 200) =>
   z.object({ fa: requiredText(max), en: requiredText(max) });
@@ -56,8 +79,8 @@ export const iconSchema = z
   .regex(/^[a-z0-9-]+$/);
 
 export const listQuerySchema = z.object({
-  q: z.string().trim().max(100).catch(""),
-  page: z.coerce.number().int().min(1).max(100_000).catch(1),
+  q: z.string().overwrite(withoutNulBytes).trim().max(100).catch(""),
+  page: z.coerce.number().int().min(1).max(MAX_PAGE).catch(1),
 });
 
 export const optionalFilter = <TSchema extends z.ZodType>(schema: TSchema) =>

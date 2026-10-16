@@ -1,4 +1,5 @@
 import type { Locale } from "@/i18n/config";
+import type { PluralForms } from "@/i18n/plural";
 
 export interface LayoutContent {
   homeLabel: string;
@@ -8,7 +9,7 @@ export interface LayoutContent {
     productsMenu: string;
     productsTitle: string;
     productsDescription: string;
-    modelsCount: string;
+    modelsCount: PluralForms;
     allProducts: string;
     compareProducts: string;
     findCenter: string;
@@ -60,7 +61,7 @@ export const layoutContent: Record<Locale, LayoutContent> = {
       productsMenu: "محصولات",
       productsTitle: "دسته‌بندی محصولات",
       productsDescription: "هر مدل با مشخصات کامل، راهنمای نصب و کد گارانتی.",
-      modelsCount: "{count} مدل",
+      modelsCount: { one: "{count} مدل", other: "{count} مدل" },
       allProducts: "همه محصولات",
       compareProducts: "مقایسه مدل‌ها",
       findCenter: "نزدیک‌ترین نمایندگی",
@@ -125,7 +126,7 @@ export const layoutContent: Record<Locale, LayoutContent> = {
       productsTitle: "Product categories",
       productsDescription:
         "Every model comes with full specs, an installation guide and a warranty code.",
-      modelsCount: "{count} models",
+      modelsCount: { one: "{count} model", other: "{count} models" },
       allProducts: "All products",
       compareProducts: "Compare models",
       findCenter: "Find a service centre",

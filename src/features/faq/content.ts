@@ -1,4 +1,5 @@
 import type { Locale } from "@/i18n/config";
+import type { PluralForms } from "@/i18n/plural";
 import type { FaqGroup } from "@/types/content";
 
 export interface FaqContent {
@@ -12,7 +13,7 @@ export interface FaqContent {
   searchLabel: string;
   searchPlaceholder: string;
   clearSearch: string;
-  resultCount: string;
+  resultCount: PluralForms;
   emptyTitle: string;
   emptyDescription: string;
   ctaTitle: string;
@@ -40,7 +41,7 @@ export const faqContent: Record<Locale, FaqContent> = {
     searchLabel: "جستجو در پرسش‌ها",
     searchPlaceholder: "مثلاً کد گارانتی یا نصب بخاری",
     clearSearch: "پاک کردن جستجو",
-    resultCount: "{count} پاسخ پیدا شد",
+    resultCount: { one: "{count} پاسخ پیدا شد", other: "{count} پاسخ پیدا شد" },
     emptyTitle: "پاسخی با این عبارت پیدا نشد",
     emptyDescription: "واژه دیگری را امتحان کن یا پرسشت را مستقیم برای ما بفرست.",
     ctaTitle: "پاسخت را پیدا نکردی؟",
@@ -68,7 +69,7 @@ export const faqContent: Record<Locale, FaqContent> = {
     searchLabel: "Search the questions",
     searchPlaceholder: "e.g. warranty code or heater installation",
     clearSearch: "Clear search",
-    resultCount: "{count} answers found",
+    resultCount: { one: "{count} answer found", other: "{count} answers found" },
     emptyTitle: "No answers match that search",
     emptyDescription: "Try another word, or send us your question directly.",
     ctaTitle: "Didn't find your answer?",

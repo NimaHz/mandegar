@@ -34,6 +34,7 @@ const arrowClass =
 
 export function Pagination({ page, pageCount, createHref, locale, labels }: PaginationProps) {
   if (pageCount <= 1) return null;
+  const pages = visiblePages(page, pageCount);
 
   return (
     <nav aria-label={labels.paginationLabel} className="flex items-center justify-center gap-2">
@@ -47,7 +48,7 @@ export function Pagination({ page, pageCount, createHref, locale, labels }: Pagi
         </Link>
       )}
       <div className="flex overflow-hidden rounded-control border border-ink bg-surface">
-        {visiblePages(page, pageCount).map((value) => {
+        {pages.map((value) => {
           const number = formatNumber(locale, value);
           return (
             <Link
@@ -65,7 +66,7 @@ export function Pagination({ page, pageCount, createHref, locale, labels }: Pagi
             </Link>
           );
         })}
-        {page < pageCount - 1 && (
+        {!pages.includes(pageCount) && (
           <Link href={createHref(pageCount)} className={cn(cell, "border-s border-ink px-4")}>
             {labels.paginationLast}
           </Link>

@@ -79,6 +79,13 @@ corepack pnpm db:migrate
 corepack pnpm build
 corepack pnpm standalone:assemble
 
+worker=.next/standalone/public/sw.js
+sed -i "s/^const VERSION = \".*\";$/const VERSION = \"mandegar-$release\";/" "$worker"
+if ! grep -qx "const VERSION = \"mandegar-$release\";" "$worker"; then
+  printf 'Could not stamp release %s into %s.\n' "$release" "$worker" >&2
+  exit 1
+fi
+
 sudo mkdir -p "$target"
 sudo rsync -a --delete .next/standalone/ "$target/"
 sudo chown -R "$APP_USER:$APP_USER" "$target"

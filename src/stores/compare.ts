@@ -1,6 +1,6 @@
-import { createPersistedStore } from "./create-persisted-store";
+import { COMPARE_LIMIT } from "@/types/catalog";
 
-export const COMPARE_LIMIT = 3;
+import { createPersistedStore } from "./create-persisted-store";
 
 interface CompareState {
   slugs: string[];

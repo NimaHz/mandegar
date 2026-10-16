@@ -1,6 +1,7 @@
 import { Clock, MapPin, Navigation, Phone } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { mapLinks } from "@/features/info/map-links";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { formatList } from "@/lib/format";
@@ -20,7 +21,10 @@ const kindTone = { dealer: "accent", service: "primary", both: "solid" } as cons
 
 export function CenterCard({ locale, center, copy, headingLevel = "h3" }: CenterCardProps) {
   const Heading = headingLevel;
-  const hasMap = center.lat !== null && center.lng !== null;
+  const maps =
+    center.lat !== null && center.lng !== null
+      ? mapLinks({ lat: center.lat, lng: center.lng })
+      : null;
   const mapLinkClass =
     "inline-flex h-9 items-center gap-1.5 rounded-control border border-line-strong bg-surface px-3 text-xs font-bold text-ink transition-colors hover:border-primary hover:text-primary";
 
@@ -91,23 +95,13 @@ export function CenterCard({ locale, center, copy, headingLevel = "h3" }: Center
         )}
       </dl>
 
-      {hasMap && (
+      {maps && (
         <div className="mt-auto flex flex-wrap gap-2 border-t border-line pt-4">
-          <a
-            href={`https://neshan.org/maps/@${center.lat},${center.lng},16z`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={mapLinkClass}
-          >
+          <a href={maps.neshan} target="_blank" rel="noopener noreferrer" className={mapLinkClass}>
             <Navigation className="size-3.5" aria-hidden />
             {copy.card.neshan}
           </a>
-          <a
-            href={`https://balad.ir/location?latitude=${center.lat}&longitude=${center.lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={mapLinkClass}
-          >
+          <a href={maps.balad} target="_blank" rel="noopener noreferrer" className={mapLinkClass}>
             <Navigation className="size-3.5" aria-hidden />
             {copy.card.balad}
           </a>

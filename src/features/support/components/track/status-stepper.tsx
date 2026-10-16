@@ -1,37 +1,35 @@
 import { Check } from "lucide-react";
 
 import { cn } from "@/lib/cn";
-import type { TicketStatus } from "@/types/support";
+import type { PublicTicketMessage, TicketStatus } from "@/types/support";
 
-import { statusMeta, statusPath, statusStage, toneClasses } from "../../ticket-status";
+import { progressSteps, statusMeta, toneClasses } from "../../ticket-status";
 
 interface StatusStepperProps {
   status: TicketStatus;
+  messages: PublicTicketMessage[];
   label: string;
   copy: Record<TicketStatus, { label: string; description: string }>;
 }
 
-export function StatusStepper({ status, label, copy }: StatusStepperProps) {
-  const stage = statusStage(status);
-  const rejected = status === "rejected";
+export function StatusStepper({ status, messages, label, copy }: StatusStepperProps) {
+  const steps = progressSteps(status, messages);
 
   return (
     <ol aria-label={label} className="flex flex-col">
-      {statusPath.map((entry, position) => {
-        const current = position === stage;
-        const shown: TicketStatus = current ? status : entry;
-        const meta = statusMeta[shown];
+      {steps.map((step, position) => {
+        const current = step.state === "current";
+        const done = step.state === "done";
+        const meta = statusMeta[step.status];
         const Icon = meta.icon;
-        const done = position < stage;
         const tone = toneClasses[current ? meta.tone : "primary"];
-        if (rejected && position === statusPath.length - 1 && !current) return null;
         return (
           <li
-            key={entry}
+            key={step.status}
             aria-current={current ? "step" : undefined}
             className="relative flex gap-3.5 pb-5 last:pb-0"
           >
-            {position < statusPath.length - 1 && (
+            {position < steps.length - 1 && (
               <span
                 aria-hidden
                 className={cn(
@@ -65,10 +63,10 @@ export function StatusStepper({ status, label, copy }: StatusStepperProps) {
                       : "font-semibold text-muted",
                 )}
               >
-                {copy[shown].label}
+                {copy[step.status].label}
               </span>
               {current && (
-                <span className="text-xs leading-6 text-body">{copy[shown].description}</span>
+                <span className="text-xs leading-6 text-body">{copy[step.status].description}</span>
               )}
             </div>
           </li>

@@ -9,12 +9,12 @@ import { Select } from "@/components/ui/select";
 import { Sheet } from "@/components/ui/sheet";
 import { fill } from "@/i18n/fill";
 import { useLocale } from "@/i18n/locale-provider";
+import { pluralForm, pluralize } from "@/i18n/plural";
 import { formatNumber } from "@/lib/format";
 import { type ProductFacets, productSorts } from "@/types/catalog";
 
 import { catalogContent } from "../content";
 import { activeFilters, clearedCatalogFilters } from "../filters";
-import { pluralForm } from "../plural";
 import { useCatalogFilters } from "../use-catalog-filters";
 import { FilterChip } from "./filter-chip";
 import { FiltersPanel } from "./filters-panel";
@@ -96,7 +96,7 @@ export function CatalogToolbar({ total, facets, hideCategory = false }: CatalogT
                 {formatNumber(locale, panelCount)}
                 <span className="sr-only">
                   {" "}
-                  {fill(listing.filtersActive, { count: formatNumber(locale, panelCount) })}
+                  {pluralize(locale, panelCount, listing.filtersActive)}
                 </span>
               </span>
             )}
@@ -151,7 +151,7 @@ export function CatalogToolbar({ total, facets, hideCategory = false }: CatalogT
             {isPending ? (
               <LoaderCircle className="size-4 animate-spin" aria-hidden />
             ) : (
-              fill(listing.showResults, { count })
+              pluralize(locale, total, listing.showResults)
             )}
           </Button>
         }

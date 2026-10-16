@@ -140,6 +140,7 @@ function RequestFlow({ models, copy, types }: ServiceRequestFlowProps) {
   const [furthest, setFurthest] = useState(initial.furthest);
   const [direction, setDirection] = useState(1);
   const [interacted, setInteracted] = useState(false);
+  const [focusField, setFocusField] = useState<RequestField | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [filesError, setFilesError] = useState<string | undefined>(undefined);
   const [submitError, setSubmitError] = useState<{ message: string; track?: boolean } | null>(null);
@@ -202,13 +203,17 @@ function RequestFlow({ models, copy, types }: ServiceRequestFlowProps) {
     }),
   );
 
-  const focusFirstError = (target: RequestStep) => {
-    const field = stepFields[target].find((name) => form.getFieldState(name).error);
+  const firstError = (target: RequestStep) =>
+    stepFields[target].find((name) => form.getFieldState(name).error) ?? null;
+
+  const focusSoon = (field: RequestField | null) => {
     if (field) requestAnimationFrame(() => form.setFocus(field));
   };
 
-  const goTo = (target: RequestStep) => {
+  const goTo = (target: RequestStep, field: RequestField | null = null) => {
     const to = requestSteps.indexOf(target);
+    if (target === step) focusSoon(field);
+    else setFocusField(field);
     setDirection(to >= index ? 1 : -1);
     setInteracted(true);
     setStep(target);
@@ -222,7 +227,7 @@ function RequestFlow({ models, copy, types }: ServiceRequestFlowProps) {
 
   const next = () => {
     if (!validate(step)) {
-      focusFirstError(step);
+      focusSoon(firstError(step));
       return;
     }
     const target = requestSteps[index + 1];
@@ -252,7 +257,7 @@ function RequestFlow({ models, copy, types }: ServiceRequestFlowProps) {
             first = target;
           }
         }
-        if (first) goTo(first);
+        if (first) goTo(first, firstError(first));
         setSubmitError({ message: errors.validation });
         return;
       }
@@ -283,8 +288,7 @@ function RequestFlow({ models, copy, types }: ServiceRequestFlowProps) {
     setSubmitError(null);
     for (const target of requestSteps) {
       if (validate(target)) continue;
-      goTo(target);
-      focusFirstError(target);
+      goTo(target, firstError(target));
       return;
     }
     if (!isTicketPayloadValid(form.getValues())) {
@@ -392,12 +396,15 @@ function RequestFlow({ models, copy, types }: ServiceRequestFlowProps) {
                 initial="enter"
                 animate="center"
                 exit="exit"
+                onAnimationStart={(definition) => {
+                  if (definition === "center" && focusField) form.setFocus(focusField);
+                }}
                 className="flex flex-col gap-6"
               >
                 <StepHeading
                   title={copy.steps[step].title}
                   description={copy.steps[step].description}
-                  focusOnMount={interacted}
+                  focusOnMount={interacted && focusField === null}
                 />
                 {step === "type" && <TypeStep legend={copy.steps.type.title} types={types} />}
                 {step === "product" && (

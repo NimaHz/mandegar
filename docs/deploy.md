@@ -275,8 +275,10 @@ sudo systemctl restart mandegar
 Migrations are forward only, so a rollback across a migration keeps the newer schema. Take a backup
 before releasing a migration that drops or rewrites data.
 
-`public/sw.js` is versioned by its `VERSION` constant. Bump it whenever the service worker logic or
-the offline pages change; open tabs then show a "new version available" toast with a reload action.
+`public/sw.js` is versioned by its `VERSION` constant. `deploy/release.sh` stamps the release id into
+it, so every release installs a new worker that precaches that release's offline pages and their
+assets and drops the previous release's caches; open tabs then show a "new version available" toast
+with a reload action. Bump the constant in the source when the service worker logic changes.
 
 ## 10. Backups
 

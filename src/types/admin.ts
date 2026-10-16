@@ -365,7 +365,7 @@ export interface AdminGuide {
 
 export interface AdminWarrantyPolicy {
   id: string;
-  name: string;
+  name: LocalizedText;
   months: number;
   partsMonths: number | null;
   startRule: LocalizedText;
@@ -387,7 +387,7 @@ export interface AdminWarrantyCode {
   note: string | null;
   issuedAt: string;
   product: AdminCatalogRef & { modelCode: string };
-  policy: AdminRef;
+  policy: { id: string; name: LocalizedText };
   createdAt: string;
   updatedAt: string;
 }

@@ -14,6 +14,7 @@ import { apiClient, apiResult } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/dates";
 import { routes } from "@/lib/routes";
+import { isTicketOpen } from "@/lib/tickets";
 import { formatTrackingCode } from "@/lib/tracking-code";
 import type { PublicTicket, TicketStatus, TicketType, TrackTicketInput } from "@/types/support";
 
@@ -37,8 +38,6 @@ interface TicketViewProps {
   onUpdate: (ticket: PublicTicket) => void;
   onReset?: () => void;
 }
-
-const OPEN = (status: TicketStatus) => status !== "closed" && status !== "rejected";
 
 export function TicketView({
   locale,
@@ -165,7 +164,12 @@ export function TicketView({
             <h3 id="ticket-progress-title" className="text-sm font-extrabold text-ink">
               {copy.view.progressLabel}
             </h3>
-            <StatusStepper status={ticket.status} label={copy.view.progressLabel} copy={statuses} />
+            <StatusStepper
+              status={ticket.status}
+              messages={ticket.messages}
+              label={copy.view.progressLabel}
+              copy={statuses}
+            />
           </section>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-3.5 border-t border-line pt-5">
             {facts.map((fact) => (
@@ -213,7 +217,7 @@ export function TicketView({
                 attachmentLabels={attachmentLabels}
                 onReplied={onUpdate}
               />
-            ) : OPEN(ticket.status) ? (
+            ) : isTicketOpen(ticket.status) ? (
               <p className="flex items-start gap-2.5 rounded-field bg-sunken p-4 text-sm leading-7 text-body">
                 <Lock className="mt-1 size-4 shrink-0 text-muted" aria-hidden />
                 {copy.reply.cannotReply}

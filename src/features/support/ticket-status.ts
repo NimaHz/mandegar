@@ -11,7 +11,8 @@ import {
   Wrench,
 } from "lucide-react";
 
-import type { TicketStatus } from "@/types/support";
+import { isTicketOpen } from "@/lib/tickets";
+import type { PublicTicketMessage, TicketStatus } from "@/types/support";
 
 export type StatusTone = "primary" | "warning" | "success" | "danger" | "chip";
 
@@ -54,7 +55,40 @@ const stageOf: Record<TicketStatus, number> = {
   rejected: 5,
 };
 
-export const statusStage = (status: TicketStatus) => stageOf[status];
+export interface ProgressStep {
+  status: TicketStatus;
+  state: "done" | "current" | "upcoming";
+}
+
+const reachedStage = (messages: PublicTicketMessage[]) =>
+  Math.max(
+    stageOf.new,
+    ...messages.map((message) => {
+      if (message.author === "staff") return stageOf["in-review"];
+      if (message.author === "system" && isTicketOpen(message.status)) {
+        return stageOf[message.status];
+      }
+      return stageOf.new;
+    }),
+  );
+
+export const progressSteps = (
+  status: TicketStatus,
+  messages: PublicTicketMessage[],
+): ProgressStep[] => {
+  if (!isTicketOpen(status)) {
+    const passed = statusPath.slice(0, reachedStage(messages) + 1);
+    return [
+      ...passed.map((entry): ProgressStep => ({ status: entry, state: "done" })),
+      { status, state: "current" },
+    ];
+  }
+  const stage = stageOf[status];
+  return statusPath.map((entry, position): ProgressStep => ({
+    status: position === stage ? status : entry,
+    state: position < stage ? "done" : position === stage ? "current" : "upcoming",
+  }));
+};
 
 export const toneClasses: Record<StatusTone, { solid: string; soft: string; text: string }> = {
   primary: {

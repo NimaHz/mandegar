@@ -1,5 +1,5 @@
-import type { PluralForms } from "@/features/catalog/plural";
 import type { Locale } from "@/i18n/config";
+import type { PluralForms } from "@/i18n/plural";
 
 export interface BrandsContent {
   listing: {

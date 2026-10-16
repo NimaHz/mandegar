@@ -720,7 +720,7 @@ describe("catalog administration", () => {
     const policy = await postJson(
       "/admin/warranty-policies",
       {
-        name: `Test lock ${suffix}`,
+        name: { fa: `قفل آزمون ${suffix}`, en: `Test lock ${suffix}` },
         months: 7,
         partsMonths: null,
         startRule: text,
@@ -750,7 +750,11 @@ describe("catalog administration", () => {
       ]);
       const renamed = await postJson(
         `/admin/warranty-policies/${policyId}`,
-        { name: `Test renamed ${suffix}`, months: 7, coverage: [{ en: "Test", fa: "آزمون" }] },
+        {
+          name: { fa: `تغییر نام ${suffix}`, en: `Test renamed ${suffix}` },
+          months: 7,
+          coverage: [{ en: "Test", fa: "آزمون" }],
+        },
         { cookie, method: "PATCH" },
       );
       assert.equal(renamed.status, 200, JSON.stringify(renamed.json));

@@ -9,9 +9,6 @@ export const toLatinDigits = (value: string) =>
     return String(persian >= 0 ? persian : ARABIC_DIGITS.indexOf(digit));
   });
 
-export const toPersianDigits = (value: string) =>
-  value.replace(/\d/g, (digit) => PERSIAN_DIGITS[Number(digit)] ?? digit);
-
 export const normalizeFa = (value: string) =>
   toLatinDigits(value)
     .replace(/[يى]/g, "ی")
@@ -31,13 +28,12 @@ export const includesQuery = (query: string, ...fields: (string | null | undefin
 
 export const normalizeMobile = (value: string) => {
   const digits = toLatinDigits(value).replace(/\D/g, "");
-  const local = digits.startsWith("0098")
+  const national = digits.startsWith("0098")
     ? digits.slice(4)
     : digits.startsWith("98")
       ? digits.slice(2)
-      : digits.startsWith("0")
-        ? digits.slice(1)
-        : digits;
+      : digits;
+  const local = national.startsWith("0") ? national.slice(1) : national;
   return /^9\d{9}$/.test(local) ? `0${local}` : null;
 };
 

@@ -4,6 +4,7 @@ import type {
   BrandSummary,
   CategoryDetail,
   CategorySummary,
+  FacetsQuery,
   ModelOption,
   ProductDetail,
   ProductFacets,
@@ -25,6 +26,7 @@ import type {
   PostsQuery,
   ProvinceCount,
   ServiceCenter,
+  ServiceCenterKind,
   ServiceCentersQuery,
   SiteSettings,
 } from "@/types/content";
@@ -36,7 +38,7 @@ export interface CatalogService {
   category: (locale: Locale, slug: string) => Promise<CategoryDetail | null>;
   categorySlugs: () => Promise<string[]>;
   products: (locale: Locale, query: ProductsQuery) => Promise<Paginated<ProductListItem>>;
-  facets: (locale: Locale) => Promise<ProductFacets>;
+  facets: (locale: Locale, query: FacetsQuery) => Promise<ProductFacets>;
   featured: (locale: Locale, limit: number) => Promise<ProductListItem[]>;
   latest: (locale: Locale, limit: number) => Promise<ProductListItem[]>;
   byCategory: (locale: Locale, categorySlug: string, limit?: number) => Promise<ProductListItem[]>;
@@ -68,7 +70,7 @@ export interface ContentService {
   authorPosts: (locale: Locale, slug: string) => Promise<PostListItem[]>;
   authorSlugs: () => Promise<string[]>;
   serviceCenters: (locale: Locale, query: ServiceCentersQuery) => Promise<ServiceCenter[]>;
-  provinces: (locale: Locale) => Promise<ProvinceCount[]>;
+  provinces: (locale: Locale, kind?: ServiceCenterKind | null) => Promise<ProvinceCount[]>;
   settings: (locale: Locale) => Promise<SiteSettings>;
 }
 

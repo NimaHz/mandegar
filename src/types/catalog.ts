@@ -9,6 +9,8 @@ export type ProductSort = (typeof productSorts)[number];
 export const downloadKinds = ["manual", "catalog", "warranty-card", "datasheet"] as const;
 export type DownloadKind = (typeof downloadKinds)[number];
 
+export const COMPARE_LIMIT = 3;
+
 export interface BrandSummary {
   slug: string;
   name: string;
@@ -127,6 +129,8 @@ export interface ProductsQuery {
   sort: ProductSort;
   page: number;
 }
+
+export type FacetsQuery = Pick<ProductsQuery, "q" | "category" | "brand" | "energy">;
 
 export interface FacetCount {
   value: string;

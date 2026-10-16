@@ -6,7 +6,8 @@ import { buttonVariants } from "@/components/ui/button";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { localizePath } from "@/i18n/paths";
-import { formatNumber } from "@/lib/format";
+import { pluralize } from "@/i18n/plural";
+import { durationMinutes, formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
 import type { GuideListItem } from "@/types/content";
 
@@ -40,7 +41,7 @@ export function GuideHighlight({ guide, locale }: GuideHighlightProps) {
     );
   }
 
-  const minutes = guide.durationSec ? Math.max(1, Math.round(guide.durationSec / 60)) : null;
+  const minutes = guide.durationSec ? durationMinutes(guide.durationSec) : null;
 
   return (
     <article className="group relative isolate grid overflow-hidden rounded-panel bg-brand-deep text-white shadow-lift md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
@@ -74,7 +75,7 @@ export function GuideHighlight({ guide, locale }: GuideHighlightProps) {
         <ul className="flex flex-wrap gap-2 text-xs font-bold">
           <li className="inline-flex h-8 items-center gap-1.5 rounded-full bg-white/10 px-3 ring-1 ring-white/15">
             <ListOrdered className="size-3.5" aria-hidden />
-            {fill(content.guideSteps, { count: formatNumber(locale, guide.stepCount) })}
+            {pluralize(locale, guide.stepCount, content.guideSteps)}
           </li>
           {minutes && (
             <li className="inline-flex h-8 items-center gap-1.5 rounded-full bg-white/10 px-3 ring-1 ring-white/15">

@@ -1,7 +1,7 @@
-import { Clock, MessageCircle, SearchX, Wrench } from "lucide-react";
+import { Clock, CloudOff, MessageCircle, RotateCw, SearchX, Wrench } from "lucide-react";
 import Link from "next/link";
 
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import type { Locale } from "@/i18n/config";
 import { localizePath } from "@/i18n/paths";
 import { formatNumber } from "@/lib/format";
@@ -94,6 +94,37 @@ export function RateLimitedResult({ locale, content, headingId }: MissResultProp
         >
           {rateLimited.support}
         </Link>
+      </div>
+    </article>
+  );
+}
+
+interface FailedResultProps {
+  content: WarrantyContent;
+  headingId: string;
+  onRetry: () => void;
+}
+
+export function FailedResult({ content, headingId, onRetry }: FailedResultProps) {
+  const { failed } = content;
+
+  return (
+    <article
+      aria-labelledby={headingId}
+      className="flex flex-col gap-4 panel bg-raised p-5 shadow-card sm:flex-row sm:items-start sm:p-7"
+    >
+      <span className="icon-tile size-12 rounded-field bg-chip text-ink-soft">
+        <CloudOff className="size-6" aria-hidden />
+      </span>
+      <div className="flex flex-1 flex-col gap-1.5">
+        <FocusHeading id={headingId} className="font-display text-xl font-black text-ink">
+          {failed.title}
+        </FocusHeading>
+        <p className="text-sm leading-7 text-body">{failed.body}</p>
+        <Button variant="line" size="sm" onClick={onRetry} className="mt-2 self-start">
+          <RotateCw className="size-4" aria-hidden />
+          {failed.retry}
+        </Button>
       </div>
     </article>
   );

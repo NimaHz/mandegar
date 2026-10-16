@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, Info, LoaderCircle } from "lucide-react";
+import { BadgeCheck, Info, LoaderCircle, RotateCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 
@@ -22,7 +22,7 @@ type LookupState =
   | { status: "idle" }
   | { status: "loading"; code: string }
   | { status: "found"; code: string; match: WarrantyMatch }
-  | { status: "miss"; code: string };
+  | { status: "miss" | "failed" | "rate-limited"; code: string };
 
 interface ProductStepProps {
   locale: Locale;
@@ -33,11 +33,19 @@ interface ProductStepProps {
 const lookupCode = async (
   locale: Locale,
   code: string,
-): Promise<Extract<LookupState, { status: "found" | "miss" }>> => {
+): Promise<Exclude<LookupState, { status: "idle" | "loading" }>> => {
   const result = await apiResult(apiClient.api.warranty.lookup.post({ code, locale }));
-  return result.ok && result.data.status === "found"
-    ? { status: "found", code, match: result.data.match }
-    : { status: "miss", code };
+  if (!result.ok) {
+    return { status: result.status === 429 ? "rate-limited" : "failed", code };
+  }
+  switch (result.data.status) {
+    case "found":
+      return { status: "found", code, match: result.data.match };
+    case "rate-limited":
+      return { status: "rate-limited", code };
+    default:
+      return { status: "miss", code };
+  }
 };
 
 export function ProductStep({ locale, models, copy }: ProductStepProps) {
@@ -59,13 +67,9 @@ export function ProductStep({ locale, models, copy }: ProductStepProps) {
     };
   }, [getValues, setValue, locale]);
 
-  const onCodeChange = (inspection: CodeInspection) => {
-    if (!inspection.valid) {
-      setLookup({ status: "idle" });
-      return;
-    }
-    setLookup({ status: "loading", code: inspection.code });
-    void lookupCode(locale, inspection.code).then((state) => {
+  const runLookup = (value: string) => {
+    setLookup({ status: "loading", code: value });
+    void lookupCode(locale, value).then((state) => {
       if (state.status === "found" && getValues("warrantyCode") === state.code) {
         setValue("productSlug", "");
       }
@@ -73,6 +77,14 @@ export function ProductStep({ locale, models, copy }: ProductStepProps) {
         current.status === "loading" && current.code === state.code ? state : current,
       );
     });
+  };
+
+  const onCodeChange = (inspection: CodeInspection) => {
+    if (!inspection.valid) {
+      setLookup({ status: "idle" });
+      return;
+    }
+    runLookup(inspection.code);
   };
 
   const current = lookup.status !== "idle" && lookup.code === code ? lookup : null;
@@ -136,14 +148,33 @@ export function ProductStep({ locale, models, copy }: ProductStepProps) {
             </span>
           </div>
         )}
-        {current?.status === "miss" && (
+        {(current?.status === "miss" || current?.status === "rate-limited") && (
           <p
             role="status"
             className="flex items-start gap-2 rounded-field bg-warning-soft/70 p-3 text-xs leading-6 font-semibold text-warning"
           >
             <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-            {copy.lookupMiss}
+            {current.status === "miss" ? copy.lookupMiss : copy.lookupRateLimited}
           </p>
+        )}
+        {current?.status === "failed" && (
+          <div
+            role="status"
+            className="flex flex-wrap items-start gap-x-3 gap-y-2 rounded-field bg-warning-soft/70 p-3 text-xs leading-6 font-semibold text-warning"
+          >
+            <span className="flex flex-1 items-start gap-2">
+              <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+              {copy.lookupFailed}
+            </span>
+            <button
+              type="button"
+              onClick={() => runLookup(current.code)}
+              className="inline-flex items-center gap-1 rounded-control px-2 py-1 font-bold text-ink transition-colors hover:bg-warning-soft"
+            >
+              <RotateCw className="size-3.5" aria-hidden />
+              {copy.lookupRetry}
+            </button>
+          </div>
         )}
       </div>
 
@@ -159,6 +190,7 @@ export function ProductStep({ locale, models, copy }: ProductStepProps) {
             name="productSlug"
             render={({ field, fieldState }) => (
               <ModelPicker
+                ref={field.ref}
                 models={models}
                 value={field.value}
                 onChange={field.onChange}

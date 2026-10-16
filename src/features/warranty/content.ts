@@ -38,6 +38,8 @@ export interface WarrantyContent {
     installGuide: string;
     genuineTitle: string;
     genuineBody: string;
+    noCoverTitle: string;
+    noCoverBody: string;
   };
   notFound: {
     title: string;
@@ -48,6 +50,7 @@ export interface WarrantyContent {
     support: string;
   };
   rateLimited: { title: string; body: string; support: string };
+  failed: { title: string; body: string; retry: string };
   label: {
     eyebrow: string;
     title: string;
@@ -163,6 +166,9 @@ export const warrantyContent: Record<Locale, WarrantyContent> = {
       genuineTitle: "این کد به‌تنهایی اصالت دستگاه را نشان نمی‌دهد",
       genuineBody:
         "کد گارانتی برای هر مدل و سال تولید صادر می‌شود، نه برای تک‌تک دستگاه‌ها. فاکتور خرید و کارت گارانتی را نگه دار؛ برای استفاده از گارانتی همین دو ملاک‌اند.",
+      noCoverTitle: "این کد پوشش گارانتی ندارد",
+      noCoverBody:
+        "مدت، شرایط و موارد تحت پوشش گارانتی برای دستگاه‌هایی که با این کد ثبت شده‌اند اعتبار ندارد.",
     },
     notFound: {
       title: "این کد را پیدا نکردیم",
@@ -180,6 +186,11 @@ export const warrantyContent: Record<Locale, WarrantyContent> = {
       title: "چند دقیقه صبر کن",
       body: "از این اتصال استعلام‌های ناموفق زیادی ثبت شده است. برای امنیت کدها، چند دقیقه دیگر دوباره امتحان کن.",
       support: "راه‌های تماس با پشتیبانی",
+    },
+    failed: {
+      title: "استعلام انجام نشد",
+      body: "ارتباط با سرور برقرار نشد یا پاسخی نگرفتیم. اتصال اینترنت را بررسی کن و دوباره امتحان کن.",
+      retry: "تلاش دوباره",
     },
     label: {
       eyebrow: "راهنمای برچسب",
@@ -286,6 +297,9 @@ export const warrantyContent: Record<Locale, WarrantyContent> = {
       genuineTitle: "A code alone doesn't prove a unit is genuine",
       genuineBody:
         "Warranty codes are issued per model and production year, not per unit. Keep your purchase invoice and warranty card: together they are what your cover relies on.",
+      noCoverTitle: "No warranty cover under this code",
+      noCoverBody:
+        "The warranty length, terms and covered items don't apply to appliances registered under this code.",
     },
     notFound: {
       title: "We couldn't find this code",
@@ -303,6 +317,11 @@ export const warrantyContent: Record<Locale, WarrantyContent> = {
       title: "Please wait a few minutes",
       body: "There have been a lot of unsuccessful checks from this connection. To keep codes safe, please try again in a few minutes.",
       support: "Ways to reach support",
+    },
+    failed: {
+      title: "We couldn't check this code",
+      body: "We couldn't reach our server or didn't get an answer. Check your connection and try again.",
+      retry: "Try again",
     },
     label: {
       eyebrow: "Label guide",

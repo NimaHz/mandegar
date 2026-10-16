@@ -1,9 +1,9 @@
 import "server-only";
 
 import { cacheTags } from "@/server/lib/cache-tags";
-import type { ProductDetail, ProductsQuery } from "@/types/catalog";
+import type { FacetsQuery, ProductDetail, ProductsQuery } from "@/types/catalog";
 
-import { cached, isListed, whenListed } from "../cache";
+import { cached, isListed, perRequest, whenListed } from "../cache";
 import type { CatalogService } from "../contracts";
 import { catalogService, compareSlugs } from "../db/catalog";
 import { normalizeSlug } from "../db/mappers";
@@ -27,30 +27,45 @@ const byBrand = cached("catalog.byBrand", [catalog], catalogService.byBrand);
 const product = cached("catalog.product", [catalog, guides], catalogService.product);
 const related = cached("catalog.related", [catalog], catalogService.related);
 const brand = cached("catalog.brand", [catalog], catalogService.brand);
+const facets = cached("catalog.facets", [catalog], catalogService.facets);
 
-const isCacheable = async (query: ProductsQuery) =>
+const isListedFilter = async (query: FacetsQuery) =>
   !query.q &&
-  query.page <= MAX_CACHED_PAGE &&
   (!query.category || (await isListed(categorySlugs, query.category))) &&
   (!query.brand || (await isListed(brandSlugs, query.brand)));
 
+const isCacheable = async (query: ProductsQuery) =>
+  query.page <= MAX_CACHED_PAGE && (await isListedFilter(query));
+
 const listedProduct = whenListed(productSlugs, product, null);
+
+const productListing: CatalogService["products"] = async (locale, query) => {
+  const listed = {
+    ...query,
+    category: query.category && normalizeSlug(query.category),
+    brand: query.brand && normalizeSlug(query.brand),
+  };
+  return (await isCacheable(listed))
+    ? products(locale, listed)
+    : catalogService.products(locale, query);
+};
 
 export const cachedCatalog: CatalogService = {
   categories: cached("catalog.categories", [catalog], catalogService.categories),
   category: whenListed(categorySlugs, category, null),
   categorySlugs,
-  products: async (locale, query) => {
-    const listed = {
-      ...query,
+  products: perRequest(productListing),
+  facets: async (locale, query) => {
+    const scoped = {
+      q: query.q,
       category: query.category && normalizeSlug(query.category),
       brand: query.brand && normalizeSlug(query.brand),
+      energy: query.energy,
     };
-    return (await isCacheable(listed))
-      ? products(locale, listed)
-      : catalogService.products(locale, query);
+    return (await isListedFilter(scoped))
+      ? facets(locale, scoped)
+      : catalogService.facets(locale, scoped);
   },
-  facets: cached("catalog.facets", [catalog], catalogService.facets),
   featured: cached("catalog.featured", [catalog], catalogService.featured),
   latest: cached("catalog.latest", [catalog], catalogService.latest),
   byCategory: whenListed(categorySlugs, byCategory, []),

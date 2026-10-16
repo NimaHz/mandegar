@@ -1,4 +1,5 @@
 import type { Locale } from "@/i18n/config";
+import type { PluralForms } from "@/i18n/plural";
 import type { PostKind } from "@/types/content";
 
 interface KindCopy {
@@ -15,7 +16,7 @@ export interface BlogContent {
   filterLabel: string;
   allKinds: string;
   kinds: Record<PostKind, KindCopy>;
-  count: string;
+  count: PluralForms;
   resultsTitle: string;
   featuredTitle: string;
   featuredBadge: string;
@@ -27,6 +28,7 @@ export interface BlogContent {
   emptyAction: string;
   pageTitle: string;
   by: string;
+  takeawaysHeading: string;
   toc: string;
   tocShow: string;
   tocHide: string;
@@ -44,10 +46,9 @@ export interface BlogContent {
   allPosts: string;
   authorEyebrow: string;
   authorPosts: string;
-  authorPostCount: string;
+  authorPostCount: PluralForms;
   authorLinks: string;
   authorMetaDescription: string;
-  loadingList: string;
   loadingPost: string;
 }
 
@@ -67,7 +68,7 @@ export const blogContent: Record<Locale, BlogContent> = {
       news: { label: "خبر", plural: "اخبار" },
       tips: { label: "نکته", plural: "نکته‌ها" },
     },
-    count: "{count} مطلب",
+    count: { one: "{count} مطلب", other: "{count} مطلب" },
     resultsTitle: "فهرست مطالب مجله",
     featuredTitle: "مطلب برگزیده",
     featuredBadge: "تازه‌ترین",
@@ -79,6 +80,7 @@ export const blogContent: Record<Locale, BlogContent> = {
     emptyAction: "همه مطالب مجله",
     pageTitle: "صفحه {page}",
     by: "نوشته",
+    takeawaysHeading: "نکات کلیدی",
     toc: "در این مطلب",
     tocShow: "نمایش فهرست",
     tocHide: "بستن فهرست",
@@ -96,10 +98,9 @@ export const blogContent: Record<Locale, BlogContent> = {
     allPosts: "همه مطالب",
     authorEyebrow: "نویسنده مجله ماندگار",
     authorPosts: "مطالب {name}",
-    authorPostCount: "{count} مطلب منتشرشده",
+    authorPostCount: { one: "{count} مطلب منتشرشده", other: "{count} مطلب منتشرشده" },
     authorLinks: "{name} در وب",
     authorMetaDescription: "{name}، {role}. مطالب و راهنماهای {name} را در مجله ماندگار بخوانید.",
-    loadingList: "در حال بارگذاری مطالب",
     loadingPost: "در حال بارگذاری مطلب",
   },
   en: {
@@ -117,7 +118,7 @@ export const blogContent: Record<Locale, BlogContent> = {
       news: { label: "News", plural: "News" },
       tips: { label: "Tips", plural: "Tips" },
     },
-    count: "{count} articles",
+    count: { one: "{count} article", other: "{count} articles" },
     resultsTitle: "Journal articles",
     featuredTitle: "Featured article",
     featuredBadge: "Latest",
@@ -130,6 +131,7 @@ export const blogContent: Record<Locale, BlogContent> = {
     emptyAction: "All journal articles",
     pageTitle: "Page {page}",
     by: "By",
+    takeawaysHeading: "Key takeaways",
     toc: "In this article",
     tocShow: "Show contents",
     tocHide: "Hide contents",
@@ -147,11 +149,10 @@ export const blogContent: Record<Locale, BlogContent> = {
     allPosts: "All articles",
     authorEyebrow: "Mandegar Journal author",
     authorPosts: "Articles by {name}",
-    authorPostCount: "{count} published articles",
+    authorPostCount: { one: "{count} published article", other: "{count} published articles" },
     authorLinks: "{name} on the web",
     authorMetaDescription:
       "{name}, {role}. Read guides and articles by {name} in the Mandegar Journal.",
-    loadingList: "Loading articles",
     loadingPost: "Loading article",
   },
 };

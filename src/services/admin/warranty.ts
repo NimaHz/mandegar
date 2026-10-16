@@ -18,7 +18,7 @@ import {
 
 import { orderByIds } from "../db/mappers";
 import { iso } from "../db/mappers";
-import { paginate, searchColumns, sortedBy } from "./shared";
+import { collatedName, paginate, searchColumns, sortedBy } from "./shared";
 
 const codeOrders: Record<AdminSort<"warrantyCodes">, SQL[]> = {
   "year-desc": [
@@ -122,7 +122,7 @@ const toPolicies = async (
 
 export const warrantyPoliciesAdmin = {
   list: async (query: Partial<AdminListQuery> = {}) => {
-    const where = searchColumns(query.q, { text: [warrantyPolicies.name] });
+    const where = searchColumns(query.q, { localized: [warrantyPolicies.name] });
     return paginate(
       query.page,
       () => getDb().select({ total: count() }).from(warrantyPolicies).where(where),
@@ -133,7 +133,7 @@ export const warrantyPoliciesAdmin = {
           .where(where)
           .orderBy(
             desc(warrantyPolicies.effectiveFrom),
-            asc(warrantyPolicies.name),
+            asc(collatedName(warrantyPolicies.name)),
             asc(warrantyPolicies.id),
           )
           .limit(limit)
@@ -151,11 +151,11 @@ export const warrantyPoliciesAdmin = {
     const rows = await getDb()
       .select()
       .from(warrantyPolicies)
-      .orderBy(desc(warrantyPolicies.effectiveFrom), asc(warrantyPolicies.name));
+      .orderBy(desc(warrantyPolicies.effectiveFrom), asc(collatedName(warrantyPolicies.name)));
     return rows.map((row) => ({
       id: row.id,
       slug: null,
-      label: { fa: row.name, en: row.name },
+      label: row.name,
       hint: `${row.months}`,
     }));
   },

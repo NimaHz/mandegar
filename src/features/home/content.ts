@@ -1,5 +1,5 @@
-import type { PluralForms } from "@/features/catalog/plural";
 import type { Locale } from "@/i18n/config";
+import type { PluralForms } from "@/i18n/plural";
 
 export interface HomeContent {
   metaTitle: string;
@@ -70,7 +70,7 @@ export interface HomeContent {
     title: string;
     description: string;
     note: string;
-    steps: string;
+    steps: PluralForms;
     minutes: string;
     watch: string;
     all: string;
@@ -194,7 +194,7 @@ export const homeContent: Record<Locale, HomeContent> = {
       description:
         "ویدیو و مراحل تصویری نصب، ابزار لازم و نکات ایمنی؛ قبل از تماس با نصاب نگاهی بینداز.",
       note: "راهنمای نصب هر مدل، در صفحه همان مدل هم آمده است.",
-      steps: "{count} مرحله",
+      steps: { one: "{count} مرحله", other: "{count} مرحله" },
       minutes: "{count} دقیقه",
       watch: "دیدن راهنما",
       all: "همه راهنماها",
@@ -331,7 +331,7 @@ export const homeContent: Record<Locale, HomeContent> = {
       description:
         "Video, illustrated steps, the tools you need and safety notes. Take a look before you call an installer.",
       note: "Every model page includes its own installation guide.",
-      steps: "{count} steps",
+      steps: { one: "{count} step", other: "{count} steps" },
       minutes: "{count} min",
       watch: "Open guide",
       all: "All guides",

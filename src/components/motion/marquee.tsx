@@ -6,10 +6,19 @@ interface MarqueeProps {
   children: ReactNode;
   className?: string;
   durationSeconds?: number;
+  copies?: number;
   label: string;
 }
 
-export function Marquee({ children, className, durationSeconds = 48, label }: MarqueeProps) {
+const track = "flex shrink-0 items-center gap-12 ps-12";
+
+export function Marquee({
+  children,
+  className,
+  durationSeconds = 48,
+  copies = 1,
+  label,
+}: MarqueeProps) {
   return (
     <div
       role="region"
@@ -18,10 +27,12 @@ export function Marquee({ children, className, durationSeconds = 48, label }: Ma
       style={{ "--marquee-duration": `${durationSeconds}s` } as CSSProperties}
     >
       <div className="flex w-max animate-marquee group-focus-within:[animation-play-state:paused] group-hover:[animation-play-state:paused]">
-        <div className="flex shrink-0 items-center gap-12 ps-12">{children}</div>
-        <div aria-hidden inert className="flex shrink-0 items-center gap-12 ps-12">
-          {children}
-        </div>
+        <div className={track}>{children}</div>
+        {Array.from({ length: copies * 2 - 1 }, (_, index) => (
+          <div key={index} aria-hidden inert className={track}>
+            {children}
+          </div>
+        ))}
       </div>
     </div>
   );

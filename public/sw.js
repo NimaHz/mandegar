@@ -1,10 +1,11 @@
-const VERSION = "mandegar-v2";
+const VERSION = "mandegar-v3";
 const PRECACHE = `${VERSION}-precache`;
 const PAGES = `${VERSION}-pages`;
 const STATIC = `${VERSION}-static`;
 const MEDIA = `${VERSION}-media`;
 
 const OFFLINE_PAGES = { fa: "/offline", en: "/en/offline" };
+const OFFLINE_FROM = "from";
 const PRECACHE_URLS = [
   OFFLINE_PAGES.fa,
   OFFLINE_PAGES.en,
@@ -18,6 +19,7 @@ const LIMITS = { [PAGES]: 40, [STATIC]: 300, [MEDIA]: 200 };
 const BYPASS = /^\/(?:api|admin)(?:\/|$)/;
 const UNSTORABLE = /(?:^|,)\s*(?:no-store|private)\b/i;
 const STATIC_REFERENCE = /\/_next\/static\/[^"'\\\s)]+/g;
+const TRACKING_PARAM = /^(?:source|utm_[a-z]+)$/i;
 
 const trim = async (name) => {
   const cache = await caches.open(name);
@@ -34,8 +36,16 @@ const store = async (name, request, response) => {
 
 const cacheable = (response) => response.ok && response.type === "basic";
 
-const storablePage = (url, response) =>
-  !url.search &&
+const pageKey = (url) => {
+  const key = new URL(url);
+  [...key.searchParams.keys()]
+    .filter((name) => TRACKING_PARAM.test(name))
+    .forEach((name) => key.searchParams.delete(name));
+  return key;
+};
+
+const storablePage = (key, response) =>
+  !key.search &&
   cacheable(response) &&
   !UNSTORABLE.test(response.headers.get("cache-control") ?? "");
 
@@ -44,8 +54,7 @@ const precacheOfflineAssets = async (cache) => {
     Object.values(OFFLINE_PAGES).map((url) => cache.match(url).then((hit) => hit?.text() ?? "")),
   );
   const assets = new Set(pages.flatMap((html) => html.match(STATIC_REFERENCE) ?? []));
-  const staticCache = await caches.open(STATIC);
-  await Promise.all([...assets].map((url) => staticCache.add(url).catch(() => undefined)));
+  await Promise.all([...assets].map((url) => cache.add(url).catch(() => undefined)));
 };
 
 self.addEventListener("install", (event) => {
@@ -77,15 +86,25 @@ self.addEventListener("message", (event) => {
 const offlinePageFor = (url) =>
   url.pathname === "/en" || url.pathname.startsWith("/en/") ? OFFLINE_PAGES.en : OFFLINE_PAGES.fa;
 
-const cachedPage = (request) => caches.match(request, { ignoreVary: true });
+const cachedPage = (key) => caches.match(key.href, { ignoreVary: true });
+
+const offlineFallback = async (url) => {
+  const page = new URL(offlinePageFor(url), self.location.origin);
+  if (url.pathname !== page.pathname) {
+    page.hash = new URLSearchParams({ [OFFLINE_FROM]: `${url.pathname}${url.search}` }).toString();
+    return Response.redirect(page.href, 302);
+  }
+  return (await caches.match(page.pathname)) ?? Response.error();
+};
 
 const navigate = async (event, url) => {
   const { request } = event;
+  const key = pageKey(url);
   const network = fetch(request);
   event.waitUntil(
     network
       .then((response) =>
-        storablePage(url, response) ? store(PAGES, request, response.clone()) : undefined,
+        storablePage(key, response) ? store(PAGES, key.href, response.clone()) : undefined,
       )
       .catch(() => undefined),
   );
@@ -94,11 +113,9 @@ const navigate = async (event, url) => {
   try {
     const first = await Promise.race([network, timeout]);
     if (first) return first;
-    return (await cachedPage(request)) ?? (await network);
+    return (await cachedPage(key)) ?? (await network);
   } catch {
-    return (
-      (await cachedPage(request)) ?? (await caches.match(offlinePageFor(url))) ?? Response.error()
-    );
+    return (await cachedPage(key)) ?? offlineFallback(url);
   }
 };
 

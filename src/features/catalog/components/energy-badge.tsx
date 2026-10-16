@@ -2,13 +2,13 @@ import { cn } from "@/lib/cn";
 import type { EnergyClass } from "@/types/catalog";
 
 const energyTones: Record<EnergyClass, string> = {
-  "A+++": "bg-green-800 text-white",
-  "A++": "bg-green-700 text-white",
-  "A+": "bg-green-500 text-green-950",
-  A: "bg-lime-400 text-lime-950",
-  B: "bg-yellow-300 text-yellow-950",
-  C: "bg-amber-400 text-amber-950",
-  D: "bg-orange-500 text-orange-950",
+  "A+++": "bg-energy-a3 text-on-energy-a3",
+  "A++": "bg-energy-a2 text-on-energy-a2",
+  "A+": "bg-energy-a1 text-on-energy-a1",
+  A: "bg-energy-a text-on-energy-a",
+  B: "bg-energy-b text-on-energy-b",
+  C: "bg-energy-c text-on-energy-c",
+  D: "bg-energy-d text-on-energy-d",
 };
 
 interface EnergyBadgeProps {

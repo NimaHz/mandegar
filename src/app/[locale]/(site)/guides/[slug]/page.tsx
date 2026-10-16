@@ -9,13 +9,13 @@ import { GuideAside } from "@/features/guides/components/guide-aside";
 import { GuideSteps } from "@/features/guides/components/guide-steps";
 import { GuideTranscript } from "@/features/guides/components/guide-transcript";
 import { guidesContent } from "@/features/guides/content";
-import { durationMinutes } from "@/features/guides/format";
 import { fill } from "@/i18n/fill";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getLocale } from "@/i18n/get-locale";
 import { localizePath } from "@/i18n/paths";
+import { pluralize } from "@/i18n/plural";
 import { formatDate } from "@/lib/dates";
-import { formatNumber } from "@/lib/format";
+import { durationMinutes, formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
 import { guideGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -82,7 +82,7 @@ export default async function GuidePage({ params }: PageProps<"/[locale]/guides/
       : []),
     {
       icon: ListOrdered,
-      label: fill(content.card.steps, { count: formatNumber(locale, guide.steps.length) }),
+      label: pluralize(locale, guide.steps.length, content.card.steps),
     },
   ];
   const breadcrumbs = [

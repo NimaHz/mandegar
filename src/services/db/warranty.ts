@@ -9,7 +9,7 @@ import { type RateLimitRule, reserveAttempts } from "@/server/lib/rate-limit";
 import type { WarrantyLookup, WarrantyMatch } from "@/types/warranty";
 
 import type { WarrantyService } from "../contracts";
-import { iso, pick, toImage } from "./mappers";
+import { iso, pick, pickExact, toImage } from "./mappers";
 
 const NOT_FOUND: WarrantyLookup = { status: "not-found" };
 const RATE_LIMITED: WarrantyLookup = { status: "rate-limited" };
@@ -63,7 +63,7 @@ const toMatch = (row: CodeRow, locale: Locale): WarrantyMatch => {
       name,
       modelCode: product.modelCode,
       listed: isListed(row),
-      image: image ? toImage(image.media, locale, pick(image.alt, locale) || name) : null,
+      image: image ? toImage(image.media, locale, pickExact(image.alt, locale) || name) : null,
       category: {
         slug: product.category.slug,
         name: pick(product.category.name, locale),
@@ -92,12 +92,18 @@ export const warrantyService: WarrantyService = {
   },
   policies: async (locale) => {
     const rows = await getDb()
-      .select()
+      .selectDistinctOn([warrantyPolicies.months])
       .from(warrantyPolicies)
       .where(lte(warrantyPolicies.effectiveFrom, todayIsoDate()))
-      .orderBy(desc(warrantyPolicies.months), asc(warrantyPolicies.name));
+      .orderBy(
+        desc(warrantyPolicies.months),
+        desc(warrantyPolicies.effectiveFrom),
+        desc(warrantyPolicies.createdAt),
+        desc(warrantyPolicies.id),
+      );
     return rows.map((row) => ({
-      name: row.name,
+      id: row.id,
+      name: pick(row.name, locale),
       months: row.months,
       partsMonths: row.partsMonths,
       startRule: pick(row.startRule, locale),

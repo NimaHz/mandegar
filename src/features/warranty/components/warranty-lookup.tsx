@@ -11,7 +11,8 @@ import { parseWarrantyCode } from "@/lib/warranty-code";
 import type { WarrantyContent } from "../content";
 import { lookupKey, useWarrantyLookupStore } from "../lookup-store";
 import { warrantySearchParams } from "../search-params";
-import { WarrantyResult } from "./warranty-result";
+import { FailedResult } from "./miss-result";
+import { HEADING_ID, WarrantyResult } from "./warranty-result";
 
 interface WarrantyLookupProps {
   locale: Locale;
@@ -58,7 +59,15 @@ function QueryLookup({ locale, content }: WarrantyLookupProps) {
     <div className="container-page pb-6 sm:pb-10">
       <div className="mx-auto max-w-5xl">
         {current && lookup ? (
-          <WarrantyResult lookup={lookup} locale={locale} content={content} />
+          lookup.status === "failed" ? (
+            <FailedResult
+              content={content}
+              headingId={HEADING_ID}
+              onRetry={() => void check(locale, valid, true)}
+            />
+          ) : (
+            <WarrantyResult lookup={lookup} locale={locale} content={content} />
+          )
         ) : (
           <LookupSkeleton />
         )}

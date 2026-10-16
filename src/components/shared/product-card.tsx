@@ -3,7 +3,6 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { EnergyBadge } from "@/features/catalog/components/energy-badge";
 import { catalogContent } from "@/features/catalog/content";
 import type { Locale } from "@/i18n/config";
@@ -123,26 +122,5 @@ export function ProductCard({
         </div>
       </div>
     </article>
-  );
-}
-
-export function ProductCardSkeleton({ className }: { className?: string }) {
-  return (
-    <div aria-hidden className={cn("flex h-full flex-col overflow-hidden card", className)}>
-      <Skeleton className="aspect-4/3 rounded-none" />
-      <div className="flex flex-1 flex-col gap-2.5 p-4">
-        <Skeleton className="h-3 w-1/4" />
-        <Skeleton className="h-5 w-4/5" />
-        <Skeleton className="h-3.5 w-1/3" />
-        <Skeleton className="h-4 w-full" />
-        <div className="mt-2 flex items-center justify-between gap-3 border-t border-line pt-3.5">
-          <Skeleton className="h-4 w-28" />
-          <div className="flex gap-1.5">
-            <Skeleton className="h-7.5 w-20 rounded-full" />
-            <Skeleton className="size-7.5 rounded-full" />
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }

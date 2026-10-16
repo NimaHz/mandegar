@@ -1,4 +1,5 @@
 import type { Locale } from "@/i18n/config";
+import type { PluralForms } from "@/i18n/plural";
 import type { ServiceCenterKind } from "@/types/content";
 
 export interface ServiceCentersContent {
@@ -12,7 +13,7 @@ export interface ServiceCentersContent {
     kinds: Record<"all" | "dealer" | "service", string>;
   };
   kindBadge: Record<ServiceCenterKind, string>;
-  summary: { title: string; results: string };
+  summary: { title: string; results: PluralForms };
   card: {
     hours: string;
     phones: string;
@@ -46,7 +47,10 @@ export const serviceCentersContent: Record<Locale, ServiceCentersContent> = {
       kinds: { all: "همه", dealer: "فروش", service: "خدمات" },
     },
     kindBadge: { dealer: "نمایندگی فروش", service: "مرکز خدمات", both: "فروش و خدمات" },
-    summary: { title: "مراکز در هر استان", results: "{count} مرکز" },
+    summary: {
+      title: "مراکز در هر استان",
+      results: { one: "{count} مرکز", other: "{count} مرکز" },
+    },
     card: {
       hours: "ساعت کاری",
       phones: "تلفن",
@@ -93,7 +97,10 @@ export const serviceCentersContent: Record<Locale, ServiceCentersContent> = {
       kinds: { all: "All", dealer: "Sales", service: "Service" },
     },
     kindBadge: { dealer: "Dealer", service: "Service centre", both: "Sales and service" },
-    summary: { title: "Centres by province", results: "{count} centres" },
+    summary: {
+      title: "Centres by province",
+      results: { one: "{count} centre", other: "{count} centres" },
+    },
     card: {
       hours: "Opening hours",
       phones: "Phone",

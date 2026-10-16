@@ -3,9 +3,9 @@ import Link from "next/link";
 
 import { LogoMark } from "@/components/brand/logo-mark";
 import { Marquee } from "@/components/motion/marquee";
-import { pluralize } from "@/features/catalog/plural";
 import type { Locale } from "@/i18n/config";
 import { localizePath } from "@/i18n/paths";
+import { pluralize } from "@/i18n/plural";
 import { cn } from "@/lib/cn";
 import { routes } from "@/lib/routes";
 import type { BrandSummary } from "@/types/catalog";
@@ -22,7 +22,6 @@ export function PartnerBrands({ brands, locale }: PartnerBrandsProps) {
   const content = homeContent[locale].partners;
   if (brands.length === 0) return null;
   const ordered = brands.toSorted((left, right) => Number(right.isOwn) - Number(left.isOwn));
-  const repeated = ordered.length < 6 ? [...ordered, ...ordered] : ordered;
 
   return (
     <section aria-labelledby="home-partners" className="border-y border-line bg-surface">
@@ -37,10 +36,15 @@ export function PartnerBrands({ brands, locale }: PartnerBrandsProps) {
             <SectionLink href={localizePath(locale, routes.brands)}>{content.all}</SectionLink>
           </div>
         </div>
-        <Marquee label={content.marqueeLabel} durationSeconds={36} className="min-w-0 flex-1 py-2">
-          {repeated.map((brand, index) => (
+        <Marquee
+          label={content.marqueeLabel}
+          durationSeconds={36}
+          copies={ordered.length < 6 ? 2 : 1}
+          className="min-w-0 flex-1 py-2"
+        >
+          {ordered.map((brand) => (
             <Link
-              key={`${brand.slug}-${index}`}
+              key={brand.slug}
               href={localizePath(locale, routes.brand(brand.slug))}
               className={cn(
                 "group flex shrink-0 items-center gap-3 rounded-full border bg-raised py-2 ps-2 pe-5 transition-colors hover:border-primary",

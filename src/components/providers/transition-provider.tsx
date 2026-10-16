@@ -40,6 +40,12 @@ export function PendingRegion({ children, className }: PendingRegionProps) {
   return (
     <div
       aria-busy={isPending}
+      onClickCapture={(event) => {
+        const inside = event.target instanceof Node && event.currentTarget.contains(event.target);
+        if (!isPending || !inside) return;
+        event.preventDefault();
+        event.stopPropagation();
+      }}
       className={cn(
         "transition-[opacity,filter] duration-300",
         isPending && "pointer-events-none opacity-55 blur-[1px]",

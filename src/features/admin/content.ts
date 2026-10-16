@@ -507,8 +507,8 @@ export const adminContent = {
     sheetCreate: "طرح گارانتی تازه",
     sheetEdit: "ویرایش طرح گارانتی",
     fields: {
-      name: "نام داخلی",
-      namePlaceholder: "Mandegar Care 18",
+      name: "نام طرح",
+      namePlaceholder: { fa: "مراقبت ماندگار ۱۸", en: "Mandegar Care 18" },
       months: "مدت گارانتی (ماه)",
       partsMonths: "تأمین قطعه (ماه)",
       partsHint: "خالی یعنی با مدت گارانتی برابر است",
@@ -758,6 +758,8 @@ export const adminContent = {
       title: "عنوان",
       excerpt: "چکیده",
       body: "متن نوشته",
+      bodyHint:
+        "برای کادر نکات کلیدی بالای نوشته، متن را با تیتر «## {fa}» شروع کن؛ در نسخه انگلیسی «## {en}».",
       kind: "نوع",
       author: "نویسنده",
       cover: "تصویر شاخص",

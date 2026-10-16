@@ -14,12 +14,7 @@ import { FaqList } from "@/features/catalog/components/faq-list";
 import { FiltersSidebar } from "@/features/catalog/components/filters-sidebar";
 import { GuideHighlight } from "@/features/catalog/components/guide-highlight";
 import { catalogContent } from "@/features/catalog/content";
-import {
-  facetsFromProducts,
-  isRefined,
-  listingPath,
-  toProductsQuery,
-} from "@/features/catalog/filters";
+import { isRefined, listingPath, toProductsQuery } from "@/features/catalog/filters";
 import { loadCatalogSearchParams } from "@/features/catalog/search-params";
 import { toTrayItems } from "@/features/compare/tray-items";
 import { fill } from "@/i18n/fill";
@@ -86,8 +81,10 @@ export default async function CategoryPage({
   if (!category) notFound();
 
   const content = catalogContent[locale].category;
-  const [result, members, insights] = await Promise.all([
-    api.catalog.products(locale, toProductsQuery(filters, category.slug)),
+  const query = toProductsQuery(filters, category.slug);
+  const [result, facets, members, insights] = await Promise.all([
+    api.catalog.products(locale, query),
+    api.catalog.facets(locale, query),
     api.catalog.byCategory(locale, category.slug),
     api.catalog.categoryInsights(locale, category.slug),
   ]);
@@ -107,7 +104,6 @@ export default async function CategoryPage({
   const guide = guides.find((entry) =>
     entry.categories.some((item) => item.slug === category.slug),
   );
-  const facets = { categories: [], ...facetsFromProducts(members) };
   const path = localizePath(locale, routes.category(category.slug));
   const breadcrumbs = [
     { label: dictionary.nav.home, href: localizePath(locale, routes.home) },
@@ -143,7 +139,13 @@ export default async function CategoryPage({
           <FiltersSidebar facets={facets} hideCategory className="hidden lg:flex" />
           <div className="flex min-w-0 flex-col gap-5">
             <CatalogToolbar total={result.total} facets={facets} hideCategory />
-            <CatalogResults locale={locale} result={result} filters={filters} pathname={path} />
+            <CatalogResults
+              locale={locale}
+              result={result}
+              filters={filters}
+              pathname={path}
+              emptyCategory={members.length === 0}
+            />
           </div>
         </div>
       </section>

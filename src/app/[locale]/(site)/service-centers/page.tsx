@@ -19,12 +19,12 @@ import {
   loadServiceCentersSearchParams,
   serializeServiceCentersSearchParams,
 } from "@/features/service-centers/search-params";
-import { fill } from "@/i18n/fill";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getLocale } from "@/i18n/get-locale";
 import { localizePath } from "@/i18n/paths";
+import { pluralize } from "@/i18n/plural";
 import { formatNumber } from "@/lib/format";
-import { isProvinceCode, provinces as allProvinces } from "@/lib/provinces";
+import { isProvinceCode, provinceName, provinces as allProvinces } from "@/lib/provinces";
 import { routes } from "@/lib/routes";
 import { serviceCentersGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -66,7 +66,7 @@ export default async function ServiceCentersPage({
   const [{ nav, ui }, centers, provinceCounts] = await Promise.all([
     getDictionary(locale),
     api.content.serviceCenters(locale, filters),
-    api.content.provinces(locale),
+    api.content.provinces(locale, filters.kind),
   ]);
   const provinceOptions = allProvinces
     .map((province) => ({ value: province.code, label: province.name[locale] }))
@@ -113,12 +113,11 @@ export default async function ServiceCentersPage({
         <div className="flex items-center justify-between gap-3 border-t border-line pt-6">
           <h2 id="centers-results" className="font-display text-xl font-black text-ink">
             {filters.province
-              ? (provinceCounts.find((entry) => entry.code === filters.province)?.name ??
-                content.hero.title)
+              ? provinceName(locale, filters.province)
               : content.filters.allProvinces}
           </h2>
           <p role="status" className="text-sm font-semibold text-muted">
-            {fill(content.summary.results, { count: formatNumber(locale, centers.length) })}
+            {pluralize(locale, centers.length, content.summary.results)}
           </p>
         </div>
         <PendingRegion>

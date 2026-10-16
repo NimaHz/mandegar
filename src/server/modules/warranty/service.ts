@@ -154,7 +154,7 @@ export const exportWarrantyCodes = async (query: Partial<AdminWarrantyCodesQuery
       code.product.name.en,
       code.productionYear,
       code.status,
-      code.policy.name,
+      code.policy.name.fa,
       todayIsoDate(new Date(code.issuedAt)),
       `${origin}${routes.warrantyShort(code.code)}`,
     ]),

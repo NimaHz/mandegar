@@ -11,6 +11,7 @@ export function useCatalogFilters() {
   const [filters, setFilters] = useQueryStates(catalogSearchParams, {
     shallow: false,
     scroll: false,
+    history: "push",
     startTransition,
   });
   return { filters, setFilters, isPending };

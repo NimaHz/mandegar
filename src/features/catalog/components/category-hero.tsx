@@ -6,12 +6,12 @@ import { CategoryIcon } from "@/components/icons/category-icon";
 import { Markdown } from "@/components/shared/markdown";
 import type { Locale } from "@/i18n/config";
 import { localizePath } from "@/i18n/paths";
+import { pluralize } from "@/i18n/plural";
 import { formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
 import type { CategoryDetail } from "@/types/catalog";
 
 import { catalogContent } from "../content";
-import { pluralize } from "../plural";
 
 interface CategoryHeroProps {
   category: CategoryDetail;

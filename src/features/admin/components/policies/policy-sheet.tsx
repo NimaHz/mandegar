@@ -24,7 +24,7 @@ import { NumberInput, TextInput } from "../form/fields";
 import { FormSection } from "../form/form-section";
 import { FormSheet } from "../form/form-sheet";
 import { LangScope } from "../form/lang-scope";
-import { LocalizedTextarea } from "../form/localized-field";
+import { LocalizedField, LocalizedTextarea } from "../form/localized-field";
 import { ReadOnlyScope } from "../form/read-only";
 import { Repeater } from "../form/repeater";
 
@@ -42,7 +42,7 @@ export function PolicySheet({ policy, onClose }: PolicySheetProps) {
   const form = useForm<PolicyFormInput, unknown, PolicyFormValues>({
     resolver: zodResolver(policyFormSchema, zodOptions),
     defaultValues: {
-      name: policy?.name ?? "",
+      name: policy?.name ?? blankText(),
       months: policy?.months ?? 18,
       partsMonths: policy?.partsMonths ?? null,
       startRule: policy?.startRule ?? blankText(),
@@ -72,7 +72,7 @@ export function PolicySheet({ policy, onClose }: PolicySheetProps) {
       wide
       onClose={onClose}
       title={policy ? copy.sheetEdit : copy.sheetCreate}
-      description={policy?.name}
+      description={policy?.name.fa}
       form={form}
       onSubmit={onSubmit}
       pending={pending}
@@ -83,8 +83,15 @@ export function PolicySheet({ policy, onClose }: PolicySheetProps) {
           {fill(copy.locked, { count: faNumber(codeCount) })}
         </p>
       )}
+      <LangScope>
+        <LocalizedField
+          name="name"
+          label={copy.fields.name}
+          placeholder={copy.fields.namePlaceholder}
+          maxLength={80}
+        />
+      </LangScope>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <TextInput name="name" label={copy.fields.name} placeholder={copy.fields.namePlaceholder} />
         <TextInput name="effectiveFrom" type="date" dir="ltr" label={copy.fields.effectiveFrom} />
         <NumberInput name="months" label={copy.fields.months} readOnly={locked} />
         <NumberInput

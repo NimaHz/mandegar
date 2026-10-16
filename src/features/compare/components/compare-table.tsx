@@ -13,8 +13,7 @@ import { cn } from "@/lib/cn";
 import { gregorianToJalaliYear } from "@/lib/dates";
 import { formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
-import { COMPARE_LIMIT } from "@/stores/compare";
-import type { ProductDetail } from "@/types/catalog";
+import { COMPARE_LIMIT, type ProductDetail } from "@/types/catalog";
 
 import { compareContent } from "../content";
 import { type CompareGroup, differs, specGroups } from "../rows";
@@ -29,7 +28,6 @@ const stickyColumn = "sticky start-0 z-10 w-32 border-e border-line bg-surface s
 
 export function CompareTable({ products, locale }: CompareTableProps) {
   const { page } = compareContent[locale];
-  const slugs = products.map((product) => product.slug);
   const empty = <span className="text-muted">{page.empty}</span>;
   const slots = Math.max(0, COMPARE_LIMIT - products.length);
 
@@ -135,7 +133,7 @@ export function CompareTable({ products, locale }: CompareTableProps) {
                       <Package className="absolute inset-0 m-auto size-8 text-subtle" aria-hidden />
                     )}
                   </div>
-                  <CompareRemoveButton slug={product.slug} name={product.name} slugs={slugs} />
+                  <CompareRemoveButton slug={product.slug} name={product.name} />
                   <Link
                     href={localizePath(locale, routes.product(product.slug))}
                     className="line-clamp-2 text-sm leading-snug font-extrabold text-ink hover:text-primary sm:text-base"

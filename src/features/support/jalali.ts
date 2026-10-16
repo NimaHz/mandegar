@@ -53,3 +53,31 @@ export const jalaliMonthLength = (year: number, month: number) => {
   if (month <= 11) return 30;
   return jalaliToIso({ year, month: 12, day: 30 }) ? 30 : 29;
 };
+
+export interface JalaliSelection {
+  year: string;
+  month: string;
+  day: string;
+}
+
+const SELECTION_PREFIX = "jalali:";
+
+export const selectionOf = (value: string): JalaliSelection => {
+  if (value.startsWith(SELECTION_PREFIX)) {
+    const [year = "", month = "", day = ""] = value.slice(SELECTION_PREFIX.length).split("-");
+    return { year, month, day };
+  }
+  const date = value ? isoToJalali(value) : null;
+  return date
+    ? { year: String(date.year), month: String(date.month), day: String(date.day) }
+    : { year: "", month: "", day: "" };
+};
+
+export const selectionValue = ({ year, month, day }: JalaliSelection) => {
+  if (!year && !month && !day) return "";
+  const iso =
+    year && month && day
+      ? jalaliToIso({ year: Number(year), month: Number(month), day: Number(day) })
+      : null;
+  return iso ?? `${SELECTION_PREFIX}${year}-${month}-${day}`;
+};

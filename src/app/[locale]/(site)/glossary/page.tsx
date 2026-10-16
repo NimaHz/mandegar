@@ -15,10 +15,9 @@ import {
 } from "@/features/glossary/config";
 import { glossaryContent } from "@/features/glossary/content";
 import { glossaryLetters } from "@/features/glossary/terms";
-import { fill } from "@/i18n/fill";
 import { getLocale } from "@/i18n/get-locale";
 import { localizePath } from "@/i18n/paths";
-import { formatNumber } from "@/lib/format";
+import { pluralize } from "@/i18n/plural";
 import { routes } from "@/lib/routes";
 import { glossaryGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -85,7 +84,7 @@ export default async function GlossaryPage() {
       <JsonLd data={graph} />
       <PageHero eyebrow={content.eyebrow} title={content.title} description={content.description}>
         <p className="rounded-full bg-primary-soft px-4 py-1.5 text-label font-bold text-primary">
-          {fill(content.termCount, { count: formatNumber(locale, glossarySlugs.length) })}
+          {pluralize(locale, glossarySlugs.length, content.termCount)}
         </p>
       </PageHero>
       <GlossaryJumpNav letters={letters} label={content.jumpLabel} />

@@ -137,7 +137,7 @@ export function CodesList({
       key: "policy",
       header: copy.columns.policy,
       mobile: "hidden",
-      cell: (code) => code.policy.name,
+      cell: (code) => code.policy.name.fa,
     },
     {
       key: "issued",

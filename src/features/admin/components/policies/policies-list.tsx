@@ -48,7 +48,7 @@ export function PoliciesList({
           onClick={() => sheet.openEdit(policy)}
           className="flex flex-col gap-0.5 text-start"
         >
-          <bdi className="text-sm font-extrabold text-ink hover:text-primary">{policy.name}</bdi>
+          <bdi className="text-sm font-extrabold text-ink hover:text-primary">{policy.name.fa}</bdi>
           <span className="line-clamp-1 text-caption text-muted">{policy.startRule.fa}</span>
         </button>
       ),
@@ -97,12 +97,12 @@ export function PoliciesList({
             actions={(policy) => (
               <>
                 <IconAction
-                  label={`${common.edit} ${policy.name}`}
+                  label={`${common.edit} ${policy.name.fa}`}
                   icon={PenLine}
                   onClick={() => sheet.openEdit(policy)}
                 />
                 <DeleteAction
-                  label={policy.name}
+                  label={policy.name.fa}
                   onConfirm={() =>
                     void run(
                       () => apiClient.api.admin["warranty-policies"]({ id: policy.id }).delete(),

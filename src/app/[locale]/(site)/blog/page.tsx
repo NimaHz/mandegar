@@ -22,6 +22,7 @@ import { fill } from "@/i18n/fill";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getLocale } from "@/i18n/get-locale";
 import { localizePath } from "@/i18n/paths";
+import { pluralize } from "@/i18n/plural";
 import { formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
 import { blogGraph } from "@/lib/seo/graphs";
@@ -99,7 +100,7 @@ export default async function BlogPage({ searchParams }: PageProps<"/[locale]/bl
               { value: "all", label: content.allKinds },
               ...postKinds.map((kind) => ({ value: kind, label: content.kinds[kind].plural })),
             ]}
-            countLabel={fill(content.count, { count: formatNumber(locale, result.total) })}
+            countLabel={pluralize(locale, result.total, content.count)}
           />
           <PendingRegion>
             {result.items.length === 0 ? (
