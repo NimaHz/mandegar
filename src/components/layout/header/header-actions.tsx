@@ -1,16 +1,17 @@
 "use client";
 
-import { Columns3, Search, ShieldCheck } from "lucide-react";
+import { Columns3, LayoutDashboard, Search, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 import { LinkPending } from "@/components/providers/navigation-progress";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
+import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useLocale } from "@/i18n/locale-provider";
 import { localizePath } from "@/i18n/paths";
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
-import { routes } from "@/lib/routes";
+import { adminRoutes, routes } from "@/lib/routes";
 import { useCompareStore } from "@/stores/compare";
 import { useStoresHydrated } from "@/stores/hydration";
 
@@ -25,6 +26,10 @@ export function HeaderActions() {
   const hydrated = useStoresHydrated();
   const compareCount = useCompareStore((state) => state.slugs.length);
   const shownCount = hydrated ? compareCount : 0;
+  const isAdmin = useIsAdmin();
+  const Icon = isAdmin ? LayoutDashboard : ShieldCheck;
+  const href = isAdmin ? adminRoutes.dashboard : localizePath(locale, routes.warranty);
+  const label = isAdmin ? header.adminCta : header.warrantyCta;
 
   return (
     <div className="flex items-center gap-1.5">
@@ -51,22 +56,22 @@ export function HeaderActions() {
       </Link>
       <ThemeToggle className="max-lg:hidden" />
       <Link
-        href={localizePath(locale, routes.warranty)}
+        href={href}
         className={buttonVariants({ size: "sm", className: "group h-10 gap-2 px-4 max-md:hidden" })}
       >
-        <ShieldCheck
+        <Icon
           className="size-4.5 transition-transform duration-300 group-hover:scale-110"
           aria-hidden
         />
-        {header.warrantyCta}
+        {label}
         <LinkPending />
       </Link>
       <Link
-        href={localizePath(locale, routes.warranty)}
-        aria-label={header.warrantyCta}
+        href={href}
+        aria-label={label}
         className={cn(iconButtonClass, "text-primary md:hidden")}
       >
-        <ShieldCheck className="size-5" strokeWidth={1.8} aria-hidden />
+        <Icon className="size-5" strokeWidth={1.8} aria-hidden />
         <LinkPending />
       </Link>
     </div>

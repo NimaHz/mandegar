@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 import { defaultLocale, isLocale, type Locale, localeHeader, locales } from "@/i18n/config";
+import { ADMIN_HINT_COOKIE, SESSION_COOKIE_NAMES } from "@/lib/admin-hint";
 import { adminPathHeader } from "@/lib/routes";
 
 const SLUG_PATH = new RegExp(
@@ -37,7 +38,26 @@ const withLocale = (request: NextRequest, locale: Locale, rewrite?: URL) => {
     : NextResponse.next({ request: { headers } });
 };
 
+const ADMIN_HINT_MAX_AGE_SEC = 30 * 86_400;
+
+const syncAdminHint = (request: NextRequest, response: NextResponse) => {
+  const signedIn = SESSION_COOKIE_NAMES.some((name) => request.cookies.has(name));
+  const hinted = request.cookies.get(ADMIN_HINT_COOKIE)?.value === "1";
+  if (signedIn === hinted) return response;
+  response.cookies.set(ADMIN_HINT_COOKIE, signedIn ? "1" : "", {
+    path: "/",
+    sameSite: "lax",
+    secure: request.nextUrl.protocol === "https:",
+    maxAge: signedIn ? ADMIN_HINT_MAX_AGE_SEC : 0,
+  });
+  return response;
+};
+
 export function proxy(request: NextRequest) {
+  return syncAdminHint(request, route(request));
+}
+
+function route(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (ADMIN_PATH.test(pathname)) return withAdminPath(request);

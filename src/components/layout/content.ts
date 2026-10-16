@@ -16,6 +16,7 @@ export interface LayoutContent {
     supportMenu: string;
     supportHints: Record<string, string>;
     warrantyCta: string;
+    adminCta: string;
     search: string;
     searchTitle: string;
     closeSearch: string;
@@ -74,6 +75,7 @@ export const layoutContent: Record<Locale, LayoutContent> = {
         faq: "پاسخ سؤال‌های رایج",
       },
       warrantyCta: "استعلام گارانتی",
+      adminCta: "پنل مدیریت",
       search: "جستجو",
       searchTitle: "جستجو در ماندگار",
       closeSearch: "بستن جستجو",
@@ -138,6 +140,7 @@ export const layoutContent: Record<Locale, LayoutContent> = {
         faq: "Answers to common questions",
       },
       warrantyCta: "Warranty check",
+      adminCta: "Admin panel",
       search: "Search",
       searchTitle: "Search Mandegar",
       closeSearch: "Close search",
