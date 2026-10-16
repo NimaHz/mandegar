@@ -1,8 +1,9 @@
 import { type Locale, localeMeta } from "@/i18n/config";
+import type { ImageAsset } from "@/types/common";
 
 import { tehranIso } from "../text";
-import { absoluteUrl } from "../urls";
 import { breadcrumbId, ref, siteIds, webPageId, websiteId } from "./ids";
+import { imageObject } from "./image";
 import type { JsonLdNode, JsonLdRef } from "./types";
 
 export type WebPageType =
@@ -24,7 +25,7 @@ interface WebPageInput {
   breadcrumb?: boolean;
   mainEntity?: JsonLdRef | JsonLdNode | (JsonLdRef | JsonLdNode)[];
   about?: JsonLdRef | JsonLdRef[];
-  image?: string | null;
+  image?: ImageAsset | string | null;
   datePublished?: string | null;
   dateModified?: string | null;
 }
@@ -53,7 +54,7 @@ export const webPageNode = ({
   breadcrumb: breadcrumb ? ref(breadcrumbId(url)) : null,
   mainEntity,
   about,
-  primaryImageOfPage: image ? { "@type": "ImageObject", url: absoluteUrl(image) } : null,
+  primaryImageOfPage: image ? imageObject(image) : null,
   datePublished: datePublished ? tehranIso(datePublished) : null,
   dateModified: dateModified ? tehranIso(dateModified) : null,
 });

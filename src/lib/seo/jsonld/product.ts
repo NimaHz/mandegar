@@ -2,8 +2,9 @@ import type { Locale } from "@/i18n/config";
 import { routes } from "@/lib/routes";
 import type { ProductDetail, ProductListItem, SpecItem } from "@/types/catalog";
 
-import { absoluteUrl, localeUrl } from "../urls";
+import { localeUrl } from "../urls";
 import { brandId, guideArticleId, productId, ref, siteIds, webPageId } from "./ids";
+import { imageObject } from "./image";
 import type { JsonLdNode } from "./types";
 
 export interface ProductGuideRef {
@@ -82,7 +83,7 @@ export const productNode = ({
           url: localeUrl(locale, routes.brand(product.brand.slug)),
         },
     manufacturer: product.brand.isOwn ? ref(siteIds.organization) : null,
-    image: images.map((image) => absoluteUrl(image.src)),
+    image: images.map(imageObject),
     releaseDate: product.releaseYear ? String(product.releaseYear) : null,
     mainEntityOfPage: ref(webPageId(url)),
     additionalProperty: [

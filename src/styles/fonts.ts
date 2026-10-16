@@ -18,12 +18,16 @@ export const estedad = localFont({
   src: [{ path: "../assets/fonts/estedad/estedad-variable.woff2", weight: "100 900" }],
 });
 
+// Kufam only sets the wordmark, so it ships just those glyphs (7 KB instead of 44 KB).
+// Regenerate when siteConfig.name or latinName changes:
+// pyftsubset src/assets/fonts/kufam/kufam-extrabold.woff2 --text="ماندگار Mandegar MANDEGAR" \
+//   --layout-features='*' --flavor=woff2 --output-file=src/assets/fonts/kufam/kufam-logo.woff2
 export const kufam = localFont({
   variable: "--font-kufam",
   display: "swap",
   preload: true,
   fallback: ["Tahoma", "system-ui", "sans-serif"],
-  src: [{ path: "../assets/fonts/kufam/kufam-extrabold.woff2", weight: "800" }],
+  src: [{ path: "../assets/fonts/kufam/kufam-logo.woff2", weight: "800" }],
 });
 
 export const jetbrainsMono = localFont({

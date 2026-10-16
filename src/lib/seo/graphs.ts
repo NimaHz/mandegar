@@ -3,6 +3,7 @@ import "server-only";
 import type { Locale } from "@/i18n/config";
 import { routes } from "@/lib/routes";
 import type { BrandDetail, CategoryDetail, ProductDetail, ProductListItem } from "@/types/catalog";
+import type { ImageAsset } from "@/types/common";
 import type {
   AuthorDetail,
   GuideDetail,
@@ -66,7 +67,7 @@ interface WebPageGraphInput extends PageText {
   breadcrumbs?: BreadcrumbEntry[];
   mainEntity?: JsonLdNode | JsonLdRef | (JsonLdNode | JsonLdRef)[];
   about?: JsonLdRef;
-  image?: string | null;
+  image?: ImageAsset | string | null;
   dateModified?: string | null;
   nodes?: MaybeNode[];
 }
@@ -183,7 +184,7 @@ export const productGraph = (
     description: product.summary || product.tagline,
     breadcrumbs: input.breadcrumbs,
     mainEntity: ref(productId(locale, product.slug)),
-    image: product.image?.src,
+    image: product.image,
     dateModified: product.updatedAt,
     nodes: [
       productNode({
@@ -287,7 +288,7 @@ export const guideGraph = (
     description: guide.summary,
     breadcrumbs: input.breadcrumbs,
     mainEntity: ref(articleId),
-    image: guide.poster?.src,
+    image: guide.poster,
     dateModified: modified,
     nodes: [
       articleNode({
@@ -432,7 +433,7 @@ export const postGraph = (
     description: post.excerpt,
     breadcrumbs: input.breadcrumbs,
     mainEntity: ref(postId(locale, post.slug)),
-    image: post.cover?.src,
+    image: post.cover,
     dateModified: post.updatedAt,
     nodes: [
       articleNode({
