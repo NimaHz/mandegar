@@ -22,7 +22,10 @@ export function TopBar({ locale, phone, hours }: TopBarProps) {
   const { topBar } = layoutContent[locale];
 
   return (
-    <div className="hidden bg-brand-deep text-label text-white/80 lg:block">
+    <section
+      aria-label={topBar.label}
+      className="hidden bg-brand-deep text-label text-white/80 lg:block"
+    >
       <div className="container-page flex h-10 items-center justify-between gap-6 whitespace-nowrap">
         <div className="flex min-w-0 items-center gap-5">
           {phone && (
@@ -54,6 +57,6 @@ export function TopBar({ locale, phone, hours }: TopBarProps) {
           <LanguageSwitcher tone="inverse" />
         </div>
       </div>
-    </div>
+    </section>
   );
 }

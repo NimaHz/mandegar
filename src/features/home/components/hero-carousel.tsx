@@ -328,7 +328,7 @@ export function HeroCarousel({ slides, secondaryHref }: HeroCarouselProps) {
                     )}
                   >
                     <span className="flex min-w-0 items-baseline gap-2 text-xs font-bold">
-                      <span className="font-code tabular-nums">{pad(slideIndex + 1)}</span>
+                      <span className="font-code tabular-nums">{pad(slideIndex + 1)}</span>{" "}
                       <span className="truncate max-lg:hidden">{slide.title}</span>
                     </span>
                     <span

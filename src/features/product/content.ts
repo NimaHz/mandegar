@@ -84,7 +84,7 @@ export interface ProductContent {
     request: string;
   };
   faq: { eyebrow: string; title: string; all: string };
-  related: { eyebrow: string; title: string; all: string };
+  related: { eyebrow: string; title: string; all: string; carouselLabel: string };
   recent: { eyebrow: string; title: string; clear: string };
 }
 
@@ -192,7 +192,12 @@ export const productContent: Record<Locale, ProductContent> = {
       request: "درخواست خدمات برای این مدل",
     },
     faq: { eyebrow: "پرسش‌ها", title: "سؤال‌های رایج درباره این مدل", all: "همه پرسش‌ها" },
-    related: { eyebrow: "مدل‌های مرتبط", title: "شاید این‌ها را هم بپسندی", all: "همه محصولات" },
+    related: {
+      eyebrow: "مدل‌های مرتبط",
+      title: "شاید این‌ها را هم بپسندی",
+      all: "همه محصولات",
+      carouselLabel: "مدل‌های مرتبط",
+    },
     recent: { eyebrow: "بازدیدهای اخیر", title: "مدل‌هایی که دیده‌ای", clear: "پاک کردن" },
   },
   en: {
@@ -300,7 +305,12 @@ export const productContent: Record<Locale, ProductContent> = {
       request: "Request service for this model",
     },
     faq: { eyebrow: "FAQ", title: "Common questions about this model", all: "All questions" },
-    related: { eyebrow: "Related models", title: "You might also like", all: "All products" },
+    related: {
+      eyebrow: "Related models",
+      title: "You might also like",
+      all: "All products",
+      carouselLabel: "Related models",
+    },
     recent: { eyebrow: "Recently viewed", title: "Models you've looked at", clear: "Clear" },
   },
 };

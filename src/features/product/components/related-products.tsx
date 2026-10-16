@@ -30,7 +30,7 @@ export function RelatedProducts({ products, locale }: RelatedProductsProps) {
         className="mb-6"
       />
       <Carousel
-        label={related.title}
+        label={related.carouselLabel}
         slideClassName="basis-[82%] sm:basis-[calc(50%-0.5rem)] lg:basis-[calc(33.333%-0.667rem)] xl:basis-[calc(25%-0.75rem)]"
       >
         {products.map((product) => (

@@ -3,7 +3,7 @@ import type { PluralForms } from "@/i18n/plural";
 
 export interface LayoutContent {
   homeLabel: string;
-  topBar: { support: string; quickWarranty: string; quickTrack: string };
+  topBar: { label: string; support: string; quickWarranty: string; quickTrack: string };
   header: {
     navLabel: string;
     productsMenu: string;
@@ -50,6 +50,7 @@ export const layoutContent: Record<Locale, LayoutContent> = {
   fa: {
     homeLabel: "ماندگار Mandegar، صفحه اصلی",
     topBar: {
+      label: "تماس و دسترسی سریع",
       support: "پشتیبانی",
       quickWarranty: "استعلام گارانتی",
       quickTrack: "پیگیری درخواست",
@@ -112,6 +113,7 @@ export const layoutContent: Record<Locale, LayoutContent> = {
   en: {
     homeLabel: "Mandegar home",
     topBar: {
+      label: "Contact and quick links",
       support: "Support",
       quickWarranty: "Warranty check",
       quickTrack: "Track a request",
