@@ -9,7 +9,7 @@ import type { Locale } from "@/i18n/config";
 import { localizePath } from "@/i18n/paths";
 import { pluralize } from "@/i18n/plural";
 import { formatNumber } from "@/lib/format";
-import { blurProps } from "@/lib/image";
+import { blurProps, FULL_WIDTH_SIZES } from "@/lib/image";
 import { routes } from "@/lib/routes";
 import type { CategoryDetail } from "@/types/catalog";
 
@@ -82,7 +82,7 @@ export function CategoryHero({ category, locale, breadcrumbs }: CategoryHeroProp
                 {...blurProps(category.image)}
                 alt={category.image.alt}
                 fill
-                sizes="(min-width: 1280px) 620px, (min-width: 1024px) 50vw, 100vw"
+                sizes={`(min-width: 1280px) 620px, (min-width: 1024px) 50vw, ${FULL_WIDTH_SIZES}`}
                 loading="eager"
                 fetchPriority="high"
                 className="object-cover"

@@ -10,7 +10,7 @@ import type { Locale } from "@/i18n/config";
 import { localizePath } from "@/i18n/paths";
 import { pluralize } from "@/i18n/plural";
 import { cn } from "@/lib/cn";
-import { blurProps } from "@/lib/image";
+import { blurProps, FULL_WIDTH_SIZES, phoneWidth } from "@/lib/image";
 import { routes } from "@/lib/routes";
 import type { CategorySummary } from "@/types/catalog";
 
@@ -32,9 +32,9 @@ const tiles = [
 ] as const;
 
 const tileSizes = {
-  lg: "(min-width: 1024px) 420px, 100vw",
-  md: "(min-width: 1024px) 420px, 50vw",
-  sm: "(min-width: 1024px) 210px, 50vw",
+  lg: `(min-width: 1024px) 420px, ${FULL_WIDTH_SIZES}`,
+  md: `(min-width: 1024px) 420px, ${phoneWidth(50)}`,
+  sm: `(min-width: 1024px) 210px, ${phoneWidth(50)}`,
 } as const;
 
 export function CategoriesBento({ categories, locale }: CategoriesBentoProps) {

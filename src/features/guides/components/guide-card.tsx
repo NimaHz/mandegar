@@ -8,7 +8,7 @@ import { fill } from "@/i18n/fill";
 import { localizePath } from "@/i18n/paths";
 import { pluralize } from "@/i18n/plural";
 import { durationMinutes, formatNumber } from "@/lib/format";
-import { blurProps } from "@/lib/image";
+import { blurProps, phoneWidth } from "@/lib/image";
 import { routes } from "@/lib/routes";
 import type { GuideListItem } from "@/types/content";
 
@@ -34,7 +34,7 @@ export function GuideCard({ guide, locale, copy, priority = false }: GuideCardPr
             {...blurProps(guide.poster)}
             alt={guide.poster.alt}
             fill
-            sizes="(min-width: 1280px) 26rem, (min-width: 768px) 45vw, 92vw"
+            sizes={`(min-width: 1280px) 26rem, (min-width: 768px) 45vw, ${phoneWidth(92)}`}
             loading={priority ? "eager" : "lazy"}
             fetchPriority={priority ? "high" : "auto"}
             className="object-cover transition-transform duration-700 ease-(--ease-out-expo) group-hover:scale-[1.04]"

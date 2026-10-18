@@ -8,7 +8,7 @@ import { fill } from "@/i18n/fill";
 import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/cn";
 import { formatClock } from "@/lib/format";
-import { blurProps } from "@/lib/image";
+import { blurProps, FULL_WIDTH_SIZES } from "@/lib/image";
 import { aparatEmbedUrl, START_TIME_PARAM } from "@/lib/video";
 import type { GuideChapter, GuideVideo } from "@/types/content";
 
@@ -138,7 +138,7 @@ function PosterImage({
       {...blurProps(video.poster)}
       alt={video.poster.alt || title}
       fill
-      sizes="(min-width: 1024px) 60vw, 100vw"
+      sizes={`(min-width: 1024px) 60vw, ${FULL_WIDTH_SIZES}`}
       loading={eager ? "eager" : "lazy"}
       fetchPriority={eager ? "high" : "auto"}
       className="object-cover"

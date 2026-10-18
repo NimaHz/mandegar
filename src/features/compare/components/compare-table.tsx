@@ -13,7 +13,7 @@ import { localizePath } from "@/i18n/paths";
 import { cn } from "@/lib/cn";
 import { gregorianToJalaliYear } from "@/lib/dates";
 import { formatNumber } from "@/lib/format";
-import { blurProps } from "@/lib/image";
+import { blurProps, phoneWidth } from "@/lib/image";
 import { routes } from "@/lib/routes";
 import { COMPARE_LIMIT, type ProductDetail } from "@/types/catalog";
 
@@ -127,7 +127,7 @@ export function CompareTable({ products, locale }: CompareTableProps) {
                         {...blurProps(product.image)}
                         alt=""
                         fill
-                        sizes="(min-width: 1024px) 300px, 40vw"
+                        sizes={`(min-width: 1024px) 300px, ${phoneWidth(40)}`}
                         loading="eager"
                         fetchPriority="high"
                         className="object-cover"

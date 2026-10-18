@@ -7,7 +7,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { formatNumber } from "@/lib/format";
-import { blurProps } from "@/lib/image";
+import { blurProps, FULL_WIDTH_SIZES } from "@/lib/image";
 import type { ImageAsset } from "@/types/common";
 
 import { homeContent } from "../content";
@@ -40,7 +40,7 @@ export function WhyMandegar({ image, warrantyMonths, locale }: WhyMandegarProps)
                   {...blurProps(image)}
                   alt={image.alt}
                   fill
-                  sizes="(min-width: 1024px) 560px, 100vw"
+                  sizes={`(min-width: 1024px) 560px, ${FULL_WIDTH_SIZES}`}
                   className="object-cover"
                 />
                 <span

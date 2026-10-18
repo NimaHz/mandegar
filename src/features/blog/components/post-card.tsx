@@ -5,6 +5,7 @@ import { ModelCodeText } from "@/components/shared/model-code-text";
 import type { Locale } from "@/i18n/config";
 import { localizePath } from "@/i18n/paths";
 import { cn } from "@/lib/cn";
+import { FULL_WIDTH_SIZES } from "@/lib/image";
 import { routes } from "@/lib/routes";
 import type { PostListItem } from "@/types/content";
 
@@ -45,7 +46,7 @@ export function PostCard({
           cover={post.cover}
           kind={post.kind}
           priority={priority}
-          sizes="(min-width: 80rem) 25rem, (min-width: 64rem) 33vw, (min-width: 40rem) 50vw, 100vw"
+          sizes={`(min-width: 80rem) 25rem, (min-width: 64rem) 33vw, (min-width: 40rem) 50vw, ${FULL_WIDTH_SIZES}`}
           className="aspect-[16/10]"
         />
         <KindBadge

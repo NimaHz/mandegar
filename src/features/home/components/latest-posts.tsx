@@ -11,7 +11,7 @@ import { fill } from "@/i18n/fill";
 import { localizePath } from "@/i18n/paths";
 import { formatDate } from "@/lib/dates";
 import { formatNumber } from "@/lib/format";
-import { blurProps } from "@/lib/image";
+import { blurProps, FULL_WIDTH_SIZES } from "@/lib/image";
 import { routes } from "@/lib/routes";
 import type { PostListItem } from "@/types/content";
 
@@ -48,7 +48,7 @@ export function LatestPosts({ posts, locale }: LatestPostsProps) {
                     {...blurProps(post.cover)}
                     alt={post.cover.alt}
                     fill
-                    sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw"
+                    sizes={`(min-width: 1024px) 400px, (min-width: 640px) 50vw, ${FULL_WIDTH_SIZES}`}
                     className="object-cover transition-transform duration-700 ease-(--ease-out-expo) group-hover:scale-[1.04]"
                   />
                 )}

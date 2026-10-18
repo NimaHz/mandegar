@@ -10,7 +10,7 @@ import { fill } from "@/i18n/fill";
 import { localizePath } from "@/i18n/paths";
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
-import { blurProps } from "@/lib/image";
+import { blurProps, phoneWidth } from "@/lib/image";
 import { routes } from "@/lib/routes";
 import type { ProductListItem } from "@/types/catalog";
 
@@ -25,8 +25,7 @@ interface ProductCardProps {
   className?: string;
 }
 
-const PRODUCT_CARD_SIZES =
-  "(min-width: 1280px) 296px, (min-width: 1024px) 30vw, (min-width: 640px) 46vw, 92vw";
+const PRODUCT_CARD_SIZES = `(min-width: 1280px) 296px, (min-width: 1024px) 30vw, (min-width: 640px) 46vw, ${phoneWidth(92)}`;
 
 export function ProductCard({
   product,

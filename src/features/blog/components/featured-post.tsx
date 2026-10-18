@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Locale } from "@/i18n/config";
 import { localizePath } from "@/i18n/paths";
 import { cn } from "@/lib/cn";
+import { FULL_WIDTH_SIZES } from "@/lib/image";
 import { routes } from "@/lib/routes";
 import type { PostListItem } from "@/types/content";
 
@@ -41,8 +42,8 @@ export function FeaturedPost({ post, locale, layout = "tall" }: FeaturedPostProp
         priority
         sizes={
           wide
-            ? "(min-width: 80rem) 42rem, (min-width: 48rem) 55vw, 100vw"
-            : "(min-width: 80rem) 50rem, (min-width: 64rem) 66vw, 100vw"
+            ? `(min-width: 80rem) 42rem, (min-width: 48rem) 55vw, ${FULL_WIDTH_SIZES}`
+            : `(min-width: 80rem) 50rem, (min-width: 64rem) 66vw, ${FULL_WIDTH_SIZES}`
         }
         className={cn("aspect-[16/10]", wide ? "md:aspect-auto md:min-h-96" : "lg:aspect-auto")}
       />

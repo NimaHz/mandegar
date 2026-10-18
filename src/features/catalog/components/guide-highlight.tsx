@@ -9,7 +9,7 @@ import { fill } from "@/i18n/fill";
 import { localizePath } from "@/i18n/paths";
 import { pluralize } from "@/i18n/plural";
 import { durationMinutes, formatNumber } from "@/lib/format";
-import { blurProps } from "@/lib/image";
+import { blurProps, FULL_WIDTH_SIZES } from "@/lib/image";
 import { routes } from "@/lib/routes";
 import type { GuideListItem } from "@/types/content";
 
@@ -54,7 +54,7 @@ export function GuideHighlight({ guide, locale }: GuideHighlightProps) {
             {...blurProps(guide.poster)}
             alt=""
             fill
-            sizes="(min-width: 768px) 50vw, 100vw"
+            sizes={`(min-width: 768px) 50vw, ${FULL_WIDTH_SIZES}`}
             className="object-cover transition-transform duration-700 ease-(--ease-out-expo) group-hover:scale-[1.03]"
           />
         )}

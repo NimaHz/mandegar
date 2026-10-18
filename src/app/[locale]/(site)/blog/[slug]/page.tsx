@@ -17,7 +17,7 @@ import { findRelatedPosts, getAuthor, getPost } from "@/features/blog/query";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getLocale } from "@/i18n/get-locale";
 import { localizePath } from "@/i18n/paths";
-import { blurProps } from "@/lib/image";
+import { blurProps, FULL_WIDTH_SIZES } from "@/lib/image";
 import { routes } from "@/lib/routes";
 import { postGraph } from "@/lib/seo/graphs";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -95,7 +95,7 @@ export default async function PostPage({ params }: PageProps<"/[locale]/blog/[sl
               {...blurProps(post.cover)}
               alt={post.cover.alt}
               fill
-              sizes="(min-width: 80rem) 76rem, 100vw"
+              sizes={`(min-width: 80rem) 76rem, ${FULL_WIDTH_SIZES}`}
               loading="eager"
               fetchPriority="high"
               className="object-cover"

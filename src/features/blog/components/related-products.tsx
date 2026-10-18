@@ -7,7 +7,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { localizePath } from "@/i18n/paths";
-import { blurProps } from "@/lib/image";
+import { blurProps, phoneWidth } from "@/lib/image";
 import { routes } from "@/lib/routes";
 import type { PostDetail } from "@/types/content";
 
@@ -41,7 +41,7 @@ export function RelatedProducts({ products, locale }: RelatedProductsProps) {
                     {...blurProps(product.image)}
                     alt=""
                     fill
-                    sizes="(min-width: 64rem) 18rem, (min-width: 48rem) 33vw, 50vw"
+                    sizes={`(min-width: 64rem) 18rem, (min-width: 48rem) 33vw, ${phoneWidth(50)}`}
                     className="object-cover transition-transform duration-700 ease-(--ease-out-expo) group-hover:scale-105"
                   />
                 ) : (

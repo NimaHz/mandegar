@@ -7,7 +7,7 @@ import { fill } from "@/i18n/fill";
 import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
-import { blurProps } from "@/lib/image";
+import { blurProps, phoneWidth } from "@/lib/image";
 import type { GuideStep } from "@/types/content";
 
 import type { GuidesContent } from "../content";
@@ -97,7 +97,7 @@ export function GuideSteps({ slug, steps, copy }: GuideStepsProps) {
                     {...blurProps(step.image)}
                     alt={step.image.alt}
                     fill
-                    sizes="(min-width: 640px) 15rem, 92vw"
+                    sizes={`(min-width: 640px) 15rem, ${phoneWidth(92)}`}
                     className="object-cover"
                   />
                 </div>

@@ -10,7 +10,7 @@ import type { Locale } from "@/i18n/config";
 import { fill } from "@/i18n/fill";
 import { localizePath } from "@/i18n/paths";
 import { durationMinutes, formatNumber } from "@/lib/format";
-import { blurProps } from "@/lib/image";
+import { blurProps, phoneWidth } from "@/lib/image";
 import { routes } from "@/lib/routes";
 import type { GuideDetail } from "@/types/content";
 
@@ -143,7 +143,7 @@ export function ProductInstallation({ guide, productSlug, locale }: ProductInsta
                       {...blurProps(step.image)}
                       alt={step.image.alt}
                       fill
-                      sizes="(min-width: 1024px) 420px, 90vw"
+                      sizes={`(min-width: 1024px) 420px, ${phoneWidth(90)}`}
                       className="object-cover"
                     />
                   </div>
