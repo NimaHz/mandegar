@@ -22,7 +22,6 @@ type Block = string | false | null | undefined;
 const RELATED_LIMIT = 8;
 const HEADING = /^(#{1,6})(?=[ \t])/gm;
 const ROOT_LINK = /(\]\()\/(?![/\\])/g;
-/** Escapes in front of plain punctuation, which the generated category answers carry. */
 const PUNCTUATION_ESCAPE = /\\([.,:;?!،؛'"=%&@/])/g;
 
 const inline = (text: string) => text.replace(/\s+/g, " ").trim();
@@ -49,7 +48,6 @@ const list = (items: Block[]) => {
 const facts = (entries: [string, Block][]) =>
   list(entries.map(([label, value]) => value && `**${label}:** ${value}`));
 
-/** Shifts editor Markdown so its top heading sits at `depth`, below the page's own sections. */
 const nest = (markdown: string, depth: number) => {
   const levels = [...markdown.matchAll(HEADING)].map((match) => match[1]?.length ?? depth);
   const shift = levels.length > 0 ? Math.max(0, depth - Math.min(...levels)) : 0;
@@ -401,7 +399,6 @@ const loadPost = async (locale: Locale, slug: string) => {
   return settings.features.blog && post ? postMarkdown(locale, post) : null;
 };
 
-/** The Markdown copy of a public page, or null when the page does not exist. */
 export const pageMarkdown = async (locale: Locale, page: MarkdownPage) => {
   switch (page.kind) {
     case "product":

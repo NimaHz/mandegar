@@ -77,7 +77,6 @@ const nextConfig: NextConfig = {
   },
   images: {
     formats: ["image/avif", "image/webp"],
-    // Uploads are capped at 2400px (media service), so larger widths only re-encode the original.
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2400],
     localPatterns: [{ pathname: "/uploads/**" }],
     remotePatterns: [],

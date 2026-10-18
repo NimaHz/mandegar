@@ -18,7 +18,6 @@ const DETAIL_KIND = {
 
 const isSection = (value: string): value is keyof typeof DETAIL_KIND => value in DETAIL_KIND;
 
-/** The page a locale-free path describes, when that page has a Markdown copy. */
 export const markdownPage = (path: string): MarkdownPage | null => {
   if (path === routes.faq) return { kind: "faq" };
   const [, section, slug] = DETAIL_PATH.exec(path) ?? [];
@@ -29,5 +28,4 @@ export const markdownPage = (path: string): MarkdownPage | null => {
 export const markdownPath = (locale: Locale, path: string) =>
   markdownPage(path) ? `${localizePath(locale, path)}${MARKDOWN_EXTENSION}` : null;
 
-/** Internal route the proxy rewrites `.md` URLs and `Accept: text/markdown` requests to. */
 export const markdownRoute = (locale: Locale, path: string) => `/md/${locale}${path}`;
