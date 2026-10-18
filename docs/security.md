@@ -187,7 +187,7 @@ customer data: keep them on the server with mode 600, encrypt off-site copies, a
 
 ### Privacy by design
 
-- No third-party scripts, analytics, fonts or embeds other than the Aparat video frame on guide and product pages that have an Aparat video.
+- No third-party scripts, analytics, fonts or embeds other than the Aparat video frame on guide and product pages that have an Aparat video. The frame loads only after the visitor presses play.
 - Visitor IPs are stored only as keyed hashes (rate limits, contact messages). Raw IPs are kept only
   for staff: on admin sessions and in the audit log.
 - Cookies are used only for admin sessions; theme and compare preferences stay in local storage.

@@ -167,19 +167,37 @@ function AparatPlayer({
   eager = false,
   className,
 }: VideoPlayerProps) {
+  const [loaded, setLoaded] = useState(false);
   if (video.kind !== "aparat") return null;
 
   return (
     <div className={cn("flex flex-col gap-4", className)}>
       <div className="relative aspect-video overflow-hidden rounded-card bg-night shadow-card">
-        <iframe
-          src={aparatEmbedUrl(video.hash)}
-          title={title}
-          loading={eager ? "eager" : "lazy"}
-          allow="autoplay; picture-in-picture"
-          allowFullScreen
-          className="absolute inset-0 size-full border-0"
-        />
+        {loaded ? (
+          <iframe
+            ref={(frame) => frame?.focus()}
+            src={aparatEmbedUrl(video.hash, { autoplay: true })}
+            title={title}
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowFullScreen
+            className="absolute inset-0 size-full border-0"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setLoaded(true)}
+            className="group absolute inset-0 grid place-items-center outline-none focus-visible:ring-4 focus-visible:ring-primary focus-visible:ring-inset"
+          >
+            <PosterImage video={video} title={title} eager={eager} />
+            <span
+              aria-hidden
+              className="absolute inset-0 bg-linear-to-t from-night/70 via-night/10 to-transparent"
+            />
+            <span className="relative">
+              <PlayBadge label={labels.play} />
+            </span>
+          </button>
+        )}
       </div>
       <ChapterList chapters={chapters} activeIndex={-1} labels={labels} />
     </div>
