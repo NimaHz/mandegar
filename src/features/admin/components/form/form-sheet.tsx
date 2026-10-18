@@ -103,10 +103,7 @@ export function FormSheet<TValues extends FieldValues, TOutput extends FieldValu
                       <X className="size-4.5" aria-hidden />
                     </button>
                   </div>
-                  <div
-                    className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-5 py-5"
-                    data-lenis-prevent
-                  >
+                  <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-5 py-5">
                     <ReadOnlyScope readOnly={Boolean(readOnly)}>{children}</ReadOnlyScope>
                   </div>
                   <div className="flex items-center gap-2 border-t border-line bg-surface px-5 pb-safe pt-3">

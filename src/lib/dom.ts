@@ -1,5 +1,8 @@
 export const SWIPE_DISTANCE = 48;
 
+export const scrollBehavior = (): ScrollBehavior =>
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+
 export const isRtl = (element: Element) => getComputedStyle(element).direction === "rtl";
 
 export const swipeStep = (element: Element, dx: number, dy = 0) => {

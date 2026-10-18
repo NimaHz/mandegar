@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { springSnappy } from "@/components/motion/easing";
 import { cn } from "@/lib/cn";
+import { scrollBehavior } from "@/lib/dom";
 
 interface SectionNavItem {
   id: string;
@@ -56,7 +57,7 @@ export function SectionNav({ items, label }: SectionNavProps) {
     const listRect = list.getBoundingClientRect();
     const linkRect = link.getBoundingClientRect();
     const offset = linkRect.left + linkRect.width / 2 - (listRect.left + listRect.width / 2);
-    list.scrollBy({ left: offset, behavior: "smooth" });
+    list.scrollBy({ left: offset, behavior: scrollBehavior() });
   }, [active]);
 
   return (

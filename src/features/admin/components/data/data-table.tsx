@@ -39,7 +39,7 @@ export function DataTable<TRow>({
   return (
     <>
       <div className="overflow-hidden card shadow-card max-md:hidden">
-        <div className="overflow-x-auto" data-lenis-prevent>
+        <div className="overflow-x-auto">
           <table className="w-full min-w-[44rem] border-collapse text-sm">
             <caption className="sr-only">{caption}</caption>
             <thead>

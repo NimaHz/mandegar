@@ -159,7 +159,6 @@ export function ModelPicker({ ref, models, value, onChange, labels, error }: Mod
               id={listId}
               role="listbox"
               aria-label={labels.label}
-              data-lenis-prevent
               className="absolute inset-x-0 top-full z-30 mt-2 max-h-72 overflow-y-auto overscroll-contain rounded-field border border-line bg-raised p-1.5 shadow-lift"
             >
               {results.length === 0 ? (

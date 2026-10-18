@@ -1,6 +1,5 @@
 "use client";
 
-import { useLenis } from "lenis/react";
 import { type RefObject, useEffect, useEffectEvent, useId } from "react";
 
 const FOCUSABLE =
@@ -18,7 +17,6 @@ export function useModal(
   open: boolean,
   onClose: () => void,
 ) {
-  const lenis = useLenis();
   const close = useEffectEvent(onClose);
   const modalId = useId();
 
@@ -33,15 +31,13 @@ export function useModal(
 
   useEffect(() => {
     if (!open) return;
-    lenis?.stop();
     const root = document.documentElement;
     const previousOverflow = root.style.overflow;
     root.style.overflow = "hidden";
     return () => {
-      if (openModals.length === 0) lenis?.start();
       root.style.overflow = previousOverflow;
     };
-  }, [open, lenis]);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;

@@ -48,7 +48,6 @@ export function DiffViewer({ value, empty }: DiffViewerProps) {
     <div
       dir="ltr"
       className="max-h-[50dvh] overflow-auto rounded-field border border-line bg-raised p-3 text-start font-code text-xs leading-6"
-      data-lenis-prevent
     >
       <Node value={value} />
     </div>

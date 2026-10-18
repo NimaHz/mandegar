@@ -122,7 +122,6 @@ export function MobileMenu({ categories, socials, features }: MobileMenuProps) {
               aria-modal="true"
               aria-label={mobileMenu.label}
               tabIndex={-1}
-              data-lenis-prevent
               className="absolute inset-y-0 start-0 flex w-[min(22rem,88vw)] flex-col gap-6 overflow-y-auto bg-canvas p-4 pb-safe outline-none"
               initial={{ x: offset }}
               animate={{ x: 0 }}

@@ -113,7 +113,6 @@ export function SearchDialog() {
               aria-modal="true"
               aria-label={header.searchTitle}
               tabIndex={-1}
-              data-lenis-prevent
               className="relative flex max-h-[min(36rem,80dvh)] w-full max-w-2xl flex-col overflow-hidden panel shadow-lift outline-none"
               initial={{ opacity: 0, y: -12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -156,7 +155,7 @@ export function SearchDialog() {
                   <kbd className="font-code">Esc</kbd>
                 </button>
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto p-2" data-lenis-prevent>
+              <div className="min-h-0 flex-1 overflow-y-auto p-2">
                 {!searchable && (
                   <div className="flex flex-col gap-3 p-2">
                     <p className="text-sm text-muted">{header.searchHint}</p>

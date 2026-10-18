@@ -107,7 +107,6 @@ export function MultiSelect({ name, label, options, hint, max, exclude }: MultiS
                 aria-multiselectable="true"
                 aria-labelledby={`${id}-label`}
                 className="max-h-56 overflow-y-auto overscroll-contain p-1"
-                data-lenis-prevent
               >
                 {visible.length === 0 ? (
                   <li className="px-3 py-4 text-center text-xs text-muted">

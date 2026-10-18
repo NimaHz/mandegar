@@ -72,7 +72,6 @@ function SidebarBody({
       <nav
         aria-label={shell.navLabel}
         className="min-h-0 flex-1 scrollbar-thin scrollbar-thumb-line-strong scrollbar-track-transparent overflow-y-auto overscroll-contain mask-b-from-[calc(100%-1.5rem)] px-3 pt-3 pb-6"
-        data-lenis-prevent
       >
         <AdminNavList permissions={user.permissions} counts={counts} onNavigate={onNavigate} />
       </nav>

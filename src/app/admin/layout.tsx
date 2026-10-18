@@ -32,7 +32,13 @@ export const viewport = rootViewport;
 
 export default function AdminLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="fa" dir="rtl" className={fontVariables} suppressHydrationWarning>
+    <html
+      data-scroll-behavior="smooth"
+      lang="fa"
+      dir="rtl"
+      className={fontVariables}
+      suppressHydrationWarning
+    >
       <head>
         <ThemeBootScript />
       </head>

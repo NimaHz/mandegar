@@ -77,7 +77,13 @@ export default async function LocaleLayout({ children }: LayoutProps<"/[locale]"
   const { hreflang, dir } = localeMeta[locale];
 
   return (
-    <html lang={hreflang} dir={dir} className={fontVariables} suppressHydrationWarning>
+    <html
+      data-scroll-behavior="smooth"
+      lang={hreflang}
+      dir={dir}
+      className={fontVariables}
+      suppressHydrationWarning
+    >
       <head>
         <ThemeBootScript />
       </head>

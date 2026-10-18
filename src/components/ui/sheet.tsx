@@ -64,9 +64,7 @@ export function Sheet({ open, onClose, title, children, footer }: SheetProps) {
                   <X className="size-4.5" aria-hidden />
                 </button>
               </div>
-              <div className="overflow-y-auto overscroll-contain px-5 py-5" data-lenis-prevent>
-                {children}
-              </div>
+              <div className="overflow-y-auto overscroll-contain px-5 py-5">{children}</div>
               {footer && <div className="border-t border-line px-5 pb-safe pt-3">{footer}</div>}
             </m.div>
           </div>

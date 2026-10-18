@@ -51,7 +51,6 @@ export function MarkdownPreview({ source, dir }: MarkdownPreviewProps) {
             "max-h-[28rem] overflow-y-auto rounded-field border border-dashed border-line-strong bg-raised px-4 py-4 sm:px-6",
             pending && "opacity-70",
           )}
-          data-lenis-prevent
         >
           {html ? (
             <div className="prose-mandegar" dangerouslySetInnerHTML={{ __html: html }} />

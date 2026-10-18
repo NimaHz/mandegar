@@ -30,6 +30,7 @@ import {
   postMultipart,
   readyFormToken,
 } from "@/lib/api-client";
+import { scrollBehavior } from "@/lib/dom";
 import { formatNumber } from "@/lib/format";
 import { routes } from "@/lib/routes";
 import { parseWarrantyCode } from "@/lib/warranty-code";
@@ -227,7 +228,7 @@ function RequestFlow({ models, copy, types }: ServiceRequestFlowProps) {
     setSubmitError(null);
     const panel = panelRef.current;
     if (panel && panel.getBoundingClientRect().top < 0) {
-      panel.scrollIntoView({ block: "start", behavior: "smooth" });
+      panel.scrollIntoView({ block: "start", behavior: scrollBehavior() });
     }
   };
 

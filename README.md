@@ -20,7 +20,7 @@ scripts, images and the proof-of-work spam challenge are all self-hosted.
 | Database   | PostgreSQL 16 with Drizzle ORM and drizzle-kit migrations                        |
 | Validation | Zod 4, shared between API schemas and React Hook Form                            |
 | Styling    | Tailwind CSS 4 (CSS-first `@theme` tokens), light and dark themes                |
-| Motion     | Motion 14 (`LazyMotion` with `m` components) and Lenis                           |
+| Motion     | Motion 14 (`LazyMotion` with `m` components) and native CSS smooth scrolling     |
 | State      | Zustand 5 (persisted, hydration-safe) and nuqs 2 for URL state                   |
 | Auth       | argon2id (`@node-rs/argon2`), database sessions, optional TOTP (otplib)          |
 | Media      | sharp (WebP and AVIF), local disk or S3-compatible storage (ArvanCloud)          |

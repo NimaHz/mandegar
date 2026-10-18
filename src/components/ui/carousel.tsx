@@ -6,7 +6,7 @@ import { Children, type KeyboardEvent, type ReactNode, useEffect, useRef, useSta
 import { fill } from "@/i18n/fill";
 import { useDictionary, useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/cn";
-import { isRtl } from "@/lib/dom";
+import { isRtl, scrollBehavior } from "@/lib/dom";
 import { formatNumber } from "@/lib/format";
 
 interface CarouselProps {
@@ -17,9 +17,6 @@ interface CarouselProps {
 }
 
 const VISIBLE_RATIO = 0.75;
-
-const scrollBehavior = (): ScrollBehavior =>
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
 
 export function Carousel({
   children,

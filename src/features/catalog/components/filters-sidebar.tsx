@@ -59,10 +59,7 @@ export function FiltersSidebar({ facets, hideCategory = false, className }: Filt
           {listing.clearAll}
         </button>
       </div>
-      <div
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4"
-        data-lenis-prevent
-      >
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4">
         <FiltersPanel facets={facets} hideCategory={hideCategory} />
       </div>
     </aside>
