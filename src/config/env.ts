@@ -1,6 +1,6 @@
 import "server-only";
 
-import { z } from "zod";
+import { z } from "@/lib/zod";
 
 const publishedSessionSecret = "replace-with-at-least-32-random-characters";
 

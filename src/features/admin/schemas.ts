@@ -1,7 +1,6 @@
-import { z } from "zod";
-
 import { isRecord } from "@/lib/guards";
 import { toLatinDigits } from "@/lib/persian";
+import { z } from "@/lib/zod";
 import { localizedText, provinceSchemaWith, urlOrPathSchemaWith } from "@/server/lib/validation";
 import { authorInputSchema } from "@/server/modules/authors/schema";
 import { brandInputSchema } from "@/server/modules/brands/schema";

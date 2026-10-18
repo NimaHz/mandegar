@@ -50,7 +50,23 @@ export default defineConfig([
       "prefer-const": "error",
       "object-shorthand": "error",
       eqeqeq: ["error", "always"],
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "zod",
+              allowTypeImports: true,
+              message: "Import z from @/lib/zod so browsers run Zod without eval.",
+            },
+          ],
+        },
+      ],
     },
+  },
+  {
+    files: ["src/lib/zod.ts"],
+    rules: { "no-restricted-imports": "off" },
   },
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
 ]);

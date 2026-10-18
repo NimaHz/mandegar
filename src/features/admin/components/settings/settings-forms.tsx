@@ -10,12 +10,12 @@ import {
   useFormContext,
   useWatch,
 } from "react-hook-form";
-import { z } from "zod";
 
 import { buttonVariants } from "@/components/ui/button";
 import { panelId, tabId, Tabs } from "@/components/ui/tabs";
 import { mapLinks } from "@/features/info/map-links";
 import { apiClient } from "@/lib/api-client";
+import { z } from "@/lib/zod";
 import {
   companySettingsSchema,
   contactSettingsSchema,

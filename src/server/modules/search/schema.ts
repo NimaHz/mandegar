@@ -1,5 +1,4 @@
-import { z } from "zod";
-
+import { z } from "@/lib/zod";
 import { localeSchema } from "@/server/lib/validation";
 
 export const searchQuerySchema = z.object({

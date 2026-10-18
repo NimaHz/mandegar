@@ -5,12 +5,12 @@ import { KeyRound, LoaderCircle } from "lucide-react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { apiClient } from "@/lib/api-client";
 import { adminRoutes } from "@/lib/routes";
+import { z } from "@/lib/zod";
 import { passwordSchema } from "@/server/modules/auth/schema";
 
 import { adminContent } from "../../content";

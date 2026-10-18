@@ -1,6 +1,5 @@
-import { z } from "zod";
-
 import { todayIsoDate } from "@/lib/dates";
+import { z } from "@/lib/zod";
 import {
   emailSchema,
   listQuerySchema,

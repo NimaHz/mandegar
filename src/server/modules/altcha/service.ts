@@ -2,8 +2,8 @@ import "server-only";
 
 import { type Challenge, createChallenge, randomInt, verifySolution } from "altcha-lib";
 import { deriveKey } from "altcha-lib/algorithms/pbkdf2";
-import { z } from "zod";
 
+import { z } from "@/lib/zod";
 import { getServerEnv } from "@/server/env";
 import { derivedSecret } from "@/server/lib/crypto";
 import { claimOnce } from "@/server/lib/rate-limit";

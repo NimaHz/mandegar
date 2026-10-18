@@ -2,10 +2,10 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import { z } from "zod";
 
 import { apiClient } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
+import { z } from "@/lib/zod";
 import { userInputSchema } from "@/server/modules/users/schema";
 import { type AdminUser, userRoles } from "@/types/admin";
 

@@ -1,6 +1,5 @@
-import { z } from "zod";
-
 import { toLatinDigits } from "@/lib/persian";
+import { z } from "@/lib/zod";
 import {
   expectedUpdatedAtSchema,
   iconSchema,

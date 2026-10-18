@@ -137,6 +137,7 @@ PostgreSQL 16 service, runs the tests, builds, and smoke-tests the standalone se
 ## Conventions
 
 - No comments in source files. Names and small functions carry the intent; ESLint rejects comments.
+- Import `z` from `@/lib/zod`, never from `zod` directly, so browsers run Zod without `eval`.
 - Server Components by default; `"use client"` only where interaction or motion needs it.
 - Every link goes through `localizePath(locale, routes.x)`; routes live in `src/lib/routes.ts`.
 - Feature copy lives in `src/features/<feature>/content.ts` as `Record<Locale, …>`; shared chrome

@@ -1,5 +1,4 @@
-import { z } from "zod";
-
+import { z } from "@/lib/zod";
 import { emailSchema, listQuerySchema } from "@/server/lib/validation";
 import { userRoles } from "@/types/admin";
 

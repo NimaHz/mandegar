@@ -1,8 +1,7 @@
-import { z } from "zod";
-
 import { defaultLocale, locales } from "@/i18n/config";
 import { normalizeMobile, toLatinDigits } from "@/lib/persian";
 import { isProvinceCode } from "@/lib/provinces";
+import { z } from "@/lib/zod";
 
 import { HttpError } from "./http-error";
 import { MAX_PAGE } from "./pagination";

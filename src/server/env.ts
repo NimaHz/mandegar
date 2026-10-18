@@ -2,9 +2,8 @@ import "server-only";
 
 import { isAbsolute } from "node:path";
 
-import { z } from "zod";
-
 import { blankAsUnset, type Env, getEnv } from "@/config/env";
+import { z } from "@/lib/zod";
 
 const S3_REQUIRED = [
   "S3_ENDPOINT",

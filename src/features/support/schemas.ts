@@ -1,9 +1,8 @@
-import { z } from "zod";
-
 import { todayIsoDate } from "@/lib/dates";
 import { normalizeMobile } from "@/lib/persian";
 import { isProvinceCode } from "@/lib/provinces";
 import { parseWarrantyCode } from "@/lib/warranty-code";
+import { z } from "@/lib/zod";
 import { type TicketFieldsInput, ticketFieldsSchema } from "@/server/modules/tickets/schema";
 import { type TicketType, ticketTypes } from "@/types/support";
 

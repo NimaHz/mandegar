@@ -129,8 +129,10 @@ base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-re
   except Aparat videos, the site cannot be framed, plugins are disabled and `<base>` cannot be
   hijacked. ALTCHA uses Web Crypto and needs no `wasm-unsafe-eval`.
 - There is no `'unsafe-eval'` in production. Zod 4 probes `new Function` to enable its JIT parser,
-  which a strict CSP reports as a violation even though the probe is caught, so
-  `src/instrumentation-client.ts` switches Zod to `jitless` mode before any application code runs.
+  which a strict CSP reports as a violation even though the probe is caught. Every module imports
+  `z` from `src/lib/zod.ts`, which switches Zod to `jitless` mode in the browser before any schema is
+  built, so pages without forms never download Zod at all. ESLint rejects value imports from `zod`
+  anywhere else.
 - Development adds `'unsafe-eval'` (React Refresh) and `ws:` (hot reload). `upgrade-insecure-requests`
   is sent only in production builds whose `NEXT_PUBLIC_SITE_URL` is HTTPS.
 - Other headers: `Strict-Transport-Security` (2 years, subdomains), `X-Content-Type-Options`,

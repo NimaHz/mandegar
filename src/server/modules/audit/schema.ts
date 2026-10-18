@@ -1,5 +1,4 @@
-import { z } from "zod";
-
+import { z } from "@/lib/zod";
 import { listQuerySchema, optionalFilter } from "@/server/lib/validation";
 
 export const auditQuerySchema = listQuerySchema.extend({
