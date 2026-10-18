@@ -131,7 +131,7 @@ export function ModelPicker({ ref, models, value, onChange, labels, error }: Mod
             type="text"
             role="combobox"
             aria-expanded={open}
-            aria-controls={listId}
+            aria-controls={open ? listId : undefined}
             aria-autocomplete="list"
             aria-activedescendant={
               open && results[activeIndex] ? `${listId}-${activeIndex}` : undefined

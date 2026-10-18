@@ -34,7 +34,7 @@ export function FooterAccordion({ groups, className }: FooterAccordionProps) {
             <button
               type="button"
               aria-expanded={isOpen}
-              aria-controls={listId}
+              aria-controls={isOpen ? listId : undefined}
               onClick={() => setOpen(isOpen ? null : group.title)}
               className="flex h-12 w-full items-center justify-between font-display text-base font-bold text-ink transition-colors hover:text-primary"
             >

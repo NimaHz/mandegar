@@ -34,7 +34,7 @@ export function UserMenu({ user }: { user: AdminIdentity }) {
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        aria-controls={menuId}
+        aria-controls={open ? menuId : undefined}
         aria-label={shell.userMenu}
         className="group flex h-10 items-center gap-2 rounded-full p-0.5 pe-2 transition-colors hover:bg-sunken sm:pe-3"
       >

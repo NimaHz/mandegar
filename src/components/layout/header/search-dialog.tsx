@@ -136,7 +136,7 @@ export function SearchDialog() {
                   onKeyDown={onInputKeyDown}
                   placeholder={common.searchPlaceholder}
                   aria-label={header.searchTitle}
-                  aria-controls={listId}
+                  aria-controls={hits.length > 0 ? listId : undefined}
                   aria-activedescendant={hits[highlighted] ? `${listId}-${highlighted}` : undefined}
                   role="combobox"
                   aria-expanded={hits.length > 0}
