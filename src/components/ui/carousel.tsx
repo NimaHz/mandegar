@@ -13,6 +13,9 @@ interface CarouselProps {
   children: ReactNode;
   label: string;
   slideClassName?: string;
+  viewportClassName?: string;
+  controlsClassName?: string;
+  desktopLimit?: number;
   className?: string;
 }
 
@@ -22,6 +25,9 @@ export function Carousel({
   children,
   label,
   slideClassName = "basis-full",
+  viewportClassName,
+  controlsClassName,
+  desktopLimit = Infinity,
   className,
 }: CarouselProps) {
   const locale = useLocale();
@@ -33,6 +39,17 @@ export function Carousel({
   const viewportRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [visible, setVisible] = useState<ReadonlySet<number>>(() => new Set([0]));
+  const [overflowing, setOverflowing] = useState(true);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const observer = new ResizeObserver(() =>
+      setOverflowing(viewport.scrollWidth > viewport.clientWidth + 1),
+    );
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -104,7 +121,7 @@ export function Carousel({
 
   const atStart = count === 0 || visible.has(0);
   const atEnd = count === 0 || visible.has(count - 1);
-  const scrollable = !(atStart && atEnd);
+  const scrollable = overflowing && !(atStart && atEnd);
 
   return (
     <div
@@ -117,7 +134,10 @@ export function Carousel({
         ref={viewportRef}
         tabIndex={scrollable ? 0 : -1}
         onKeyDown={onKeyDown}
-        className="-mx-1 -my-4 scrollbar-none flex snap-x snap-mandatory scroll-px-1 gap-4 overflow-x-auto overscroll-x-contain px-1 py-4 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
+        className={cn(
+          "-mx-1 -my-4 scrollbar-none flex snap-x snap-mandatory scroll-px-1 gap-4 overflow-x-auto overscroll-x-contain px-1 py-4 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
+          viewportClassName,
+        )}
       >
         {slides.map((slide, index) => (
           <div
@@ -129,7 +149,11 @@ export function Carousel({
             role="group"
             aria-roledescription={ui.carouselSlideRole}
             aria-label={fill(ui.carouselSlide, { current: formatNumber(locale, index + 1), total })}
-            className={cn("min-w-0 shrink-0 grow-0 snap-start", slideClassName)}
+            className={cn(
+              "min-w-0 shrink-0 grow-0 snap-start",
+              slideClassName,
+              index >= desktopLimit && "lg:hidden",
+            )}
           >
             {slide}
           </div>
@@ -137,7 +161,7 @@ export function Carousel({
       </div>
 
       {scrollable && (
-        <div className="flex items-center justify-between gap-4">
+        <div className={cn("flex items-center justify-between gap-4", controlsClassName)}>
           <div className="flex flex-wrap items-center gap-1.5">
             {slides.map((_, index) => {
               const active = visible.has(index);

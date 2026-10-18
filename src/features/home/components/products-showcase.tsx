@@ -28,22 +28,17 @@ export function ProductsShowcase({ featured, latest, locale }: ProductsShowcaseP
       Math.floor(products.length / GRID_COLUMNS) * GRID_COLUMNS,
     );
     return (
-      <>
-        <div className="lg:hidden">
-          <Carousel label={content.carouselLabel} slideClassName="basis-[82%] sm:basis-[46%]">
-            {products.map((product) => (
-              <ProductCard key={product.slug} product={product} locale={locale} />
-            ))}
-          </Carousel>
-        </div>
-        <ul className="hidden grid-cols-4 gap-5 lg:grid">
-          {products.slice(0, gridCount).map((product) => (
-            <li key={product.slug} className="min-w-0">
-              <ProductCard product={product} locale={locale} />
-            </li>
-          ))}
-        </ul>
-      </>
+      <Carousel
+        label={content.carouselLabel}
+        viewportClassName="lg:m-0 lg:grid lg:grid-cols-4 lg:gap-5 lg:overflow-visible lg:p-0"
+        controlsClassName="lg:hidden"
+        slideClassName="basis-[82%] sm:basis-[46%]"
+        desktopLimit={gridCount}
+      >
+        {products.map((product) => (
+          <ProductCard key={product.slug} product={product} locale={locale} />
+        ))}
+      </Carousel>
     );
   };
 
