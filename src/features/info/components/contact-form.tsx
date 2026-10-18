@@ -2,7 +2,8 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AtSign, LoaderCircle, Mail, Send, Smartphone, Type, UserRound } from "lucide-react";
-import { AnimatePresence, m } from "motion/react";
+import { AnimatePresence } from "motion/react";
+import * as m from "motion/react-m";
 import { useQueryStates } from "nuqs";
 import { Suspense, useEffect, useId, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";

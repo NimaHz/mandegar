@@ -1,7 +1,8 @@
 "use client";
 
 import { X } from "lucide-react";
-import { AnimatePresence, m } from "motion/react";
+import { AnimatePresence } from "motion/react";
+import * as m from "motion/react-m";
 import { type ReactNode, useId, useRef } from "react";
 
 import { EASE_OUT_EXPO } from "@/components/motion/easing";

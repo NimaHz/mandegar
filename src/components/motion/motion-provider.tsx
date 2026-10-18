@@ -3,7 +3,13 @@
 import { LazyMotion, MotionConfig } from "motion/react";
 import type { ReactNode } from "react";
 
-const loadFeatures = () => import("./features").then((module) => module.motionFeatures);
+const importFeatures = () => import("./features").then((module) => module.motionFeatures);
+
+let features: ReturnType<typeof importFeatures> | undefined;
+
+const loadFeatures = () => (features ??= importFeatures());
+
+if (typeof window !== "undefined") void loadFeatures();
 
 export function MotionProvider({ children }: { children: ReactNode }) {
   return (

@@ -1,7 +1,8 @@
 "use client";
 
 import { ArrowLeft, GitCompareArrows, Info, X } from "lucide-react";
-import { AnimatePresence, m } from "motion/react";
+import { AnimatePresence } from "motion/react";
+import * as m from "motion/react-m";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect } from "react";

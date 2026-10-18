@@ -3,12 +3,12 @@
 import { CircleAlert, CircleCheck, Info, X } from "lucide-react";
 import {
   AnimatePresence,
-  m,
   type PanInfo,
   useMotionValue,
   useReducedMotion,
   useTransform,
 } from "motion/react";
+import * as m from "motion/react-m";
 import type { Route } from "next";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";

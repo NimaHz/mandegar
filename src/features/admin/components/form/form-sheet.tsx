@@ -1,7 +1,8 @@
 "use client";
 
 import { LoaderCircle, Save, X } from "lucide-react";
-import { AnimatePresence, m } from "motion/react";
+import { AnimatePresence } from "motion/react";
+import * as m from "motion/react-m";
 import { type FormEventHandler, type ReactNode, useId, useRef } from "react";
 import { type FieldValues, FormProvider, type UseFormReturn } from "react-hook-form";
 

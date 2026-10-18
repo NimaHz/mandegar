@@ -1,6 +1,7 @@
 "use client";
 
-import { AnimatePresence, m } from "motion/react";
+import { AnimatePresence } from "motion/react";
+import * as m from "motion/react-m";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/cn";

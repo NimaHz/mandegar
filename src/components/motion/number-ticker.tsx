@@ -1,6 +1,7 @@
 "use client";
 
-import { m, useReducedMotion, useSpring, useTransform } from "motion/react";
+import { useReducedMotion, useSpring, useTransform } from "motion/react";
+import * as m from "motion/react-m";
 import { useEffect } from "react";
 
 import { useLocale } from "@/i18n/locale-provider";

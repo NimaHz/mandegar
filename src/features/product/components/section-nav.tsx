@@ -1,6 +1,6 @@
 "use client";
 
-import { m } from "motion/react";
+import * as m from "motion/react-m";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { springSnappy } from "@/components/motion/easing";

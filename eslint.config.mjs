@@ -59,6 +59,12 @@ export default defineConfig([
               allowTypeImports: true,
               message: "Import z from @/lib/zod so browsers run Zod without eval.",
             },
+            {
+              name: "motion/react",
+              importNames: ["m"],
+              message:
+                "Import m from motion/react-m so Motion's feature bundle stays out of the first load.",
+            },
           ],
         },
       ],

@@ -8,7 +8,8 @@ import {
   Search,
   ShieldCheck,
 } from "lucide-react";
-import { AnimatePresence, m } from "motion/react";
+import { AnimatePresence } from "motion/react";
+import * as m from "motion/react-m";
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";

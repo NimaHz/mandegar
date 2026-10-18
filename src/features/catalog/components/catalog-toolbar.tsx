@@ -1,7 +1,8 @@
 "use client";
 
 import { ArrowDownWideNarrow, LoaderCircle, SlidersHorizontal } from "lucide-react";
-import { AnimatePresence, m } from "motion/react";
+import { AnimatePresence } from "motion/react";
+import * as m from "motion/react-m";
 import { useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";

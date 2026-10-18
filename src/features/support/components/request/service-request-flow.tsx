@@ -9,7 +9,8 @@ import {
   RotateCcw,
   Send,
 } from "lucide-react";
-import { AnimatePresence, m, type Variants } from "motion/react";
+import { AnimatePresence, type Variants } from "motion/react";
+import * as m from "motion/react-m";
 import Link from "next/link";
 import { useQueryStates } from "nuqs";
 import { Suspense, useEffect, useRef, useState } from "react";

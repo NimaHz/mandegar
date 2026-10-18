@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown, ListTree } from "lucide-react";
-import { m } from "motion/react";
+import * as m from "motion/react-m";
 import { useEffect, useId, useState } from "react";
 
 import { springSnappy } from "@/components/motion/easing";

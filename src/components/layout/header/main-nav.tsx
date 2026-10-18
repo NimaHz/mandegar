@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowLeft, Columns3, LayoutGrid, MapPin } from "lucide-react";
-import { m } from "motion/react";
+import * as m from "motion/react-m";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useId } from "react";

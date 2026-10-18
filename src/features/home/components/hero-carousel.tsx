@@ -1,7 +1,8 @@
 "use client";
 
 import { ArrowLeft, ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
-import { m, type Variants } from "motion/react";
+import { type Variants } from "motion/react";
+import * as m from "motion/react-m";
 import type { Route } from "next";
 import Link from "next/link";
 import {

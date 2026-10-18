@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { m } from "motion/react";
+import * as m from "motion/react-m";
 
 import { springSnappy } from "@/components/motion/easing";
 
