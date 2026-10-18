@@ -1,15 +1,20 @@
 "use client";
 
-import { useMotionValueEvent, useScroll } from "motion/react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useSyncExternalStore } from "react";
 
 import { cn } from "@/lib/cn";
 
-export function HeaderShell({ children }: { children: ReactNode }) {
-  const { scrollY } = useScroll();
-  const [isScrolled, setIsScrolled] = useState(false);
+const SCROLLED_OFFSET = 8;
 
-  useMotionValueEvent(scrollY, "change", (latest) => setIsScrolled(latest > 8));
+const subscribe = (onChange: () => void) => {
+  window.addEventListener("scroll", onChange, { passive: true });
+  return () => window.removeEventListener("scroll", onChange);
+};
+
+const isScrolledPast = () => window.scrollY > SCROLLED_OFFSET;
+
+export function HeaderShell({ children }: { children: ReactNode }) {
+  const isScrolled = useSyncExternalStore(subscribe, isScrolledPast, () => false);
 
   return (
     <header
