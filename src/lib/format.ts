@@ -1,14 +1,15 @@
 import { type Locale, localeMeta } from "@/i18n/config";
+import { listFormat, numberFormat } from "@/lib/intl";
 
 export const MB = 1024 * 1024;
 
 const BYTE_UNITS = ["byte", "kilobyte", "megabyte", "gigabyte"] as const;
 
 export const formatNumber = (locale: Locale, value: number, options?: Intl.NumberFormatOptions) =>
-  new Intl.NumberFormat(localeMeta[locale].intl, options).format(value);
+  numberFormat(localeMeta[locale].intl, options).format(value);
 
 export const formatList = (locale: Locale, items: string[]) =>
-  new Intl.ListFormat(localeMeta[locale].intl, { style: "narrow" }).format(items);
+  listFormat(localeMeta[locale].intl, { style: "narrow" }).format(items);
 
 export const formatBytes = (locale: Locale, bytes: number) => {
   const last = BYTE_UNITS.length - 1;

@@ -1,4 +1,5 @@
 import { type Locale, localeMeta } from "@/i18n/config";
+import { dateTimeFormat } from "@/lib/intl";
 
 const TIME_ZONE = "Asia/Tehran";
 
@@ -10,7 +11,7 @@ export const formatDate = (
   value: string | Date,
   options: Intl.DateTimeFormatOptions = { year: "numeric", month: "long", day: "numeric" },
 ) =>
-  new Intl.DateTimeFormat(calendarLocale(locale), { timeZone: TIME_ZONE, ...options }).format(
+  dateTimeFormat(calendarLocale(locale), { timeZone: TIME_ZONE, ...options }).format(
     new Date(value),
   );
 
@@ -24,7 +25,7 @@ export const formatDateTime = (locale: Locale, value: string | Date) =>
   });
 
 export const todayIsoDate = (date = new Date()) => {
-  const parts = new Intl.DateTimeFormat("en-US", {
+  const parts = dateTimeFormat("en-US", {
     timeZone: TIME_ZONE,
     year: "numeric",
     month: "2-digit",
@@ -41,7 +42,7 @@ export const startOfTehranDay = (date = new Date()) => tehranMidnight(todayIsoDa
 
 export const currentJalaliYear = (date = new Date()) =>
   Number(
-    new Intl.DateTimeFormat("en-u-ca-persian", { timeZone: TIME_ZONE, year: "numeric" })
+    dateTimeFormat("en-u-ca-persian", { timeZone: TIME_ZONE, year: "numeric" })
       .formatToParts(date)
       .find((part) => part.type === "year")?.value ?? "1405",
   );
