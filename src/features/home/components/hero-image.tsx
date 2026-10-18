@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-import { blurProps } from "@/lib/image";
+import { blurProps, FULL_WIDTH_SIZES } from "@/lib/image";
 import type { HeroSlide } from "@/types/content";
 
 interface HeroImageProps {
@@ -19,7 +19,7 @@ export function HeroImage({ slide, priority }: HeroImageProps) {
         {...blurProps(slide.image)}
         alt={slide.image.alt}
         fill
-        sizes="100vw"
+        sizes={FULL_WIDTH_SIZES}
         loading={loading}
         fetchPriority={fetchPriority}
         className="object-cover"
@@ -34,7 +34,7 @@ export function HeroImage({ slide, priority }: HeroImageProps) {
         {...blurProps(slide.mobileImage)}
         alt={slide.mobileImage.alt || slide.image.alt}
         fill
-        sizes="(min-width: 40rem) 1px, 100vw"
+        sizes={`(min-width: 40rem) 1px, ${FULL_WIDTH_SIZES}`}
         loading={loading}
         fetchPriority={fetchPriority}
         className="object-cover sm:hidden"

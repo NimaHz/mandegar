@@ -9,6 +9,7 @@ import { useLocale } from "@/i18n/locale-provider";
 import { cn } from "@/lib/cn";
 import { isRtl, swipeStep } from "@/lib/dom";
 import { formatNumber } from "@/lib/format";
+import { FULL_WIDTH_SIZES } from "@/lib/image";
 import type { ImageAsset } from "@/types/common";
 
 import { productContent } from "../content";
@@ -107,7 +108,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
           src={active.src}
           alt={active.alt}
           fill
-          sizes="(min-width: 1280px) 640px, (min-width: 1024px) 52vw, 100vw"
+          sizes={`(min-width: 1280px) 640px, (min-width: 1024px) 52vw, ${FULL_WIDTH_SIZES}`}
           loading={index === 0 ? "eager" : "lazy"}
           fetchPriority={index === 0 ? "high" : "auto"}
           className={cn("object-contain", browsed && "animate-fade")}
