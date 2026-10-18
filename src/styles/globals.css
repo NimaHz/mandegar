@@ -257,6 +257,25 @@
   }
 }
 
+@utility scroll-shadow-y {
+  background:
+    linear-gradient(var(--surface) 30%, transparent) center top / 100% 2.5rem no-repeat local,
+    linear-gradient(transparent, var(--surface) 70%) center bottom / 100% 2.5rem no-repeat local,
+    radial-gradient(
+        farthest-side at 50% 0,
+        color-mix(in oklab, var(--ink) 16%, transparent),
+        transparent
+      )
+      center top / 100% 0.75rem no-repeat scroll,
+    radial-gradient(
+        farthest-side at 50% 100%,
+        color-mix(in oklab, var(--ink) 16%, transparent),
+        transparent
+      )
+      center bottom / 100% 0.75rem no-repeat scroll;
+  background-color: var(--surface);
+}
+
 @utility scrollbar-none {
   scrollbar-width: none;
 
