@@ -8,9 +8,15 @@ import { getEnv } from "@/config/env";
 
 import * as schema from "./schema";
 
+const CONNECT_TIMEOUT_SEC = 10;
+const STATEMENT_TIMEOUT_MS = 30_000;
+
 const createDatabase = () =>
   drizzle({
-    client: postgres(getEnv().DATABASE_URL),
+    client: postgres(getEnv().DATABASE_URL, {
+      connect_timeout: CONNECT_TIMEOUT_SEC,
+      connection: { application_name: "mandegar", statement_timeout: STATEMENT_TIMEOUT_MS },
+    }),
     schema,
     casing: "snake_case",
   });
