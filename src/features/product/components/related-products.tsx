@@ -19,7 +19,7 @@ export function RelatedProducts({ products, locale }: RelatedProductsProps) {
   if (products.length === 0) return null;
 
   return (
-    <section aria-labelledby="related-products" className="container-page section-y">
+    <section aria-labelledby="related-products" className="container-page section-y content-auto">
       <SectionHeading
         id="related-products"
         eyebrow={related.eyebrow}

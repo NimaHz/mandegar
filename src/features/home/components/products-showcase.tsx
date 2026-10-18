@@ -43,7 +43,7 @@ export function ProductsShowcase({ featured, latest, locale }: ProductsShowcaseP
   };
 
   return (
-    <section aria-labelledby="home-products" className="container-page section-y">
+    <section aria-labelledby="home-products" className="container-page section-y content-auto">
       <SectionHeading
         id="home-products"
         eyebrow={content.eyebrow}

@@ -18,11 +18,52 @@ interface SectionNavProps {
 }
 
 const SPY_OFFSET = 160;
+const IDLE_FALLBACK_MS = 200;
+
+const onIdle = (callback: () => void) => {
+  if (typeof window.requestIdleCallback === "function") {
+    const handle = window.requestIdleCallback(callback);
+    return () => window.cancelIdleCallback(handle);
+  }
+  const handle = window.setTimeout(callback, IDLE_FALLBACK_MS);
+  return () => window.clearTimeout(handle);
+};
+
+const afterNextFrame = (callback: () => void) => {
+  let inner = 0;
+  const outer = window.requestAnimationFrame(() => {
+    inner = window.requestAnimationFrame(callback);
+  });
+  return () => {
+    window.cancelAnimationFrame(outer);
+    window.cancelAnimationFrame(inner);
+  };
+};
+
+function useRememberedSectionSizes(items: SectionNavItem[]) {
+  useEffect(() => {
+    const sections = items.flatMap((item) => document.getElementById(item.id) ?? []);
+    let cancel = () => {};
+    const renderNext = () => {
+      const section = sections.shift();
+      if (!section) return;
+      section.style.contentVisibility = "visible";
+      cancel = afterNextFrame(() => {
+        section.style.contentVisibility = "";
+        cancel = onIdle(renderNext);
+      });
+    };
+    cancel = onIdle(renderNext);
+    return () => cancel();
+  }, [items]);
+}
 
 export function SectionNav({ items, label }: SectionNavProps) {
   const [active, setActive] = useState(items[0]?.id ?? "");
   const layoutId = useId();
   const listRef = useRef<HTMLUListElement>(null);
+
+  useRememberedSectionSizes(items);
 
   useEffect(() => {
     let frame = 0;

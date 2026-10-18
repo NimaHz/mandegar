@@ -47,13 +47,15 @@ type PendingHandler = (element: HTMLElement) => void;
 const queued = new Map<HTMLElement, PendingHandler | undefined>();
 let frame = 0;
 
+const isOffscreen = (element: HTMLElement) =>
+  !element.checkVisibility({ contentVisibilityAuto: true }) ||
+  element.getBoundingClientRect().top >= window.innerHeight;
+
 const hideBelowFold = () => {
   frame = 0;
   const entries = [...queued];
   queued.clear();
-  const below = entries.filter(
-    ([element]) => element.getBoundingClientRect().top >= window.innerHeight,
-  );
+  const below = entries.filter(([element]) => isOffscreen(element));
   for (const [element, onPending] of below) {
     element.dataset.reveal = "pending";
     onPending?.(element);

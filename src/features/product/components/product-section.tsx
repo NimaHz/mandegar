@@ -27,7 +27,7 @@ export function ProductSection({
       id={id}
       aria-labelledby={`${id}-title`}
       className={cn(
-        "scroll-mt-32 border-t border-line py-12 first:border-t-0 sm:py-16 lg:scroll-mt-36",
+        "scroll-mt-32 border-t border-line py-12 content-auto first:border-t-0 sm:py-16 lg:scroll-mt-36",
         className,
       )}
     >

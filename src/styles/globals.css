@@ -257,6 +257,15 @@
   }
 }
 
+@utility content-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 50rem;
+
+  @media print {
+    content-visibility: visible;
+  }
+}
+
 @utility scroll-shadow-y {
   background:
     linear-gradient(var(--surface) 30%, transparent) center top / 100% 2.5rem no-repeat local,

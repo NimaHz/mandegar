@@ -24,7 +24,10 @@ export function PartnerBrands({ brands, locale }: PartnerBrandsProps) {
   const ordered = brands.toSorted((left, right) => Number(right.isOwn) - Number(left.isOwn));
 
   return (
-    <section aria-labelledby="home-partners" className="border-y border-line bg-surface">
+    <section
+      aria-labelledby="home-partners"
+      className="border-y border-line bg-surface content-auto"
+    >
       <div className="container-page flex flex-col gap-8 py-12 sm:py-14 lg:flex-row lg:items-center lg:gap-12">
         <div className="flex shrink-0 flex-col gap-2 lg:w-80">
           <p className="eyebrow">{content.eyebrow}</p>

@@ -28,7 +28,7 @@ export function InstallationGuides({ guides, locale }: InstallationGuidesProps) 
   if (items.length === 0) return null;
 
   return (
-    <section aria-labelledby="home-guides" className="bg-sunken">
+    <section aria-labelledby="home-guides" className="bg-sunken content-auto">
       <div className="container-page section-y">
         <SectionHeading
           id="home-guides"

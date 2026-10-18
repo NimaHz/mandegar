@@ -28,7 +28,7 @@ export function LatestPosts({ posts, locale }: LatestPostsProps) {
   if (posts.length === 0) return null;
 
   return (
-    <section aria-labelledby="home-posts" className="container-page section-y">
+    <section aria-labelledby="home-posts" className="container-page section-y content-auto">
       <SectionHeading
         id="home-posts"
         eyebrow={content.eyebrow}

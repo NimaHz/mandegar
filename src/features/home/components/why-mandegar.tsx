@@ -29,7 +29,7 @@ export function WhyMandegar({ image, warrantyMonths, locale }: WhyMandegarProps)
   const content = homeContent[locale].why;
 
   return (
-    <section aria-labelledby="home-why" className="container-page section-y">
+    <section aria-labelledby="home-why" className="container-page section-y content-auto">
       <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-16">
         <div className="relative">
           <div className="relative aspect-4/5 overflow-hidden rounded-panel bg-sunken shadow-lift sm:aspect-5/4 lg:aspect-4/5">

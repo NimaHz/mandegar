@@ -45,7 +45,7 @@ export function CategoriesBento({ categories, locale }: CategoriesBentoProps) {
   if (items.length === 0) return null;
 
   return (
-    <section aria-labelledby="home-categories" className="container-page section-y">
+    <section aria-labelledby="home-categories" className="container-page section-y content-auto">
       <SectionHeading
         id="home-categories"
         eyebrow={content.eyebrow}

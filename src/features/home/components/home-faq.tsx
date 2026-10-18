@@ -21,7 +21,7 @@ export function HomeFaq({ faqs, locale }: HomeFaqProps) {
   if (faqs.length === 0) return null;
 
   return (
-    <section aria-labelledby="home-faq" className="container-page section-y">
+    <section aria-labelledby="home-faq" className="container-page section-y content-auto">
       <div className="grid gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.4fr)] lg:gap-14">
         <div className="flex flex-col items-start gap-6 lg:sticky lg:top-28 lg:self-start">
           <SectionHeading

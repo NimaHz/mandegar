@@ -20,7 +20,7 @@ export function BrandPromise({ stats, locale }: BrandPromiseProps) {
   return (
     <section
       aria-labelledby="home-promise"
-      className="relative isolate overflow-hidden bg-brand-deep text-white"
+      className="relative isolate overflow-hidden bg-brand-deep text-white content-auto"
     >
       <LogoMark
         tone="mono"

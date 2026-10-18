@@ -58,7 +58,7 @@ export async function SiteFooter({ locale }: { locale: Locale }) {
   ];
 
   return (
-    <footer className="relative overflow-hidden border-t border-line bg-surface max-lg:pb-[calc(4.25rem+max(0.75rem,env(safe-area-inset-bottom)))]">
+    <footer className="relative overflow-hidden border-t border-line bg-surface content-auto max-lg:pb-[calc(4.25rem+max(0.75rem,env(safe-area-inset-bottom)))]">
       <LogoMark
         tone="mono"
         className="pointer-events-none absolute -end-24 -bottom-32 size-[26rem] text-primary/[0.04]"

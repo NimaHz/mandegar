@@ -18,7 +18,7 @@ export function ServiceJourney({ locale }: { locale: Locale }) {
   const content = homeContent[locale].journey;
 
   return (
-    <section aria-labelledby="home-journey" className="container-page section-y">
+    <section aria-labelledby="home-journey" className="container-page section-y content-auto">
       <div className="relative isolate overflow-hidden panel bg-raised px-5 py-10 shadow-card sm:px-10 lg:px-14 lg:py-14">
         <span
           aria-hidden
