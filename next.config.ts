@@ -43,13 +43,7 @@ const nextConfig: NextConfig = {
   typedRoutes: true,
   poweredByHeader: false,
   agentRules: false,
-  allowedDevOrigins: [
-    "noncommunistic-stepfatherly-jeanice.ngrok-free.dev",
-    "*.ngrok-free.dev",
-    "*.ngrok-free.app",
-    "*.ngrok.app",
-    "*.ngrok.io",
-  ],
+  allowedDevOrigins: ["*.ngrok-free.dev", "*.ngrok-free.app", "*.ngrok.app", "*.ngrok.io"],
   serverExternalPackages: ["@resvg/resvg-js"],
   outputFileTracingIncludes: {
     "/og/**": [
