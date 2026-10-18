@@ -1,7 +1,6 @@
 "use client";
 
-import { type Challenge, solveChallenge, solveChallengeWorkers } from "altcha-lib";
-import { deriveKey } from "altcha-lib/algorithms/web/pbkdf2";
+import type { Challenge } from "altcha-lib";
 import { useEffect, useState } from "react";
 
 import { apiClient, apiResult } from "@/lib/api-client";
@@ -25,7 +24,11 @@ const MAX_WORKERS = 4;
 const createWorker = () =>
   new Worker(new URL("./altcha-worker.ts", import.meta.url), { type: "module" });
 
-const solve = (challenge: Challenge, controller: AbortController) => {
+const solve = async (challenge: Challenge, controller: AbortController) => {
+  const [{ solveChallenge, solveChallengeWorkers }, { deriveKey }] = await Promise.all([
+    import("altcha-lib"),
+    import("altcha-lib/algorithms/web/pbkdf2"),
+  ]);
   const inline = () => solveChallenge({ challenge, deriveKey, controller });
   if (typeof Worker === "undefined") return inline();
   return solveChallengeWorkers({
