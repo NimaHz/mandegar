@@ -12,21 +12,21 @@ scripts, images and the proof-of-work spam challenge are all self-hosted.
 
 ## Stack
 
-| Concern    | Choice                                                                           |
-| ---------- | -------------------------------------------------------------------------------- |
-| Framework  | Next.js 16 (App Router, Turbopack, React Compiler, typed routes, ISR)            |
-| UI runtime | React 19.3                                                                       |
-| API        | Elysia 1.4 mounted inside Next at `/api`, typed client through Eden              |
-| Database   | PostgreSQL 16 with Drizzle ORM and drizzle-kit migrations                        |
-| Validation | Zod 4, shared between API schemas and React Hook Form                            |
-| Styling    | Tailwind CSS 4 (CSS-first `@theme` tokens), light and dark themes                |
-| Motion     | Motion 14 (`LazyMotion` with `m` components) and native CSS smooth scrolling     |
-| State      | Zustand 5 (persisted, hydration-safe) and nuqs 2 for URL state                   |
-| Auth       | argon2id (`@node-rs/argon2`), database sessions, optional TOTP (otplib)          |
-| Media      | sharp (WebP and AVIF), local disk or S3-compatible storage (ArvanCloud)          |
-| Anti-spam  | ALTCHA proof-of-work (self-hosted), honeypot, signed form tokens, rate limits    |
-| Fonts      | Vazirmatn, Estedad, Kufam and JetBrains Mono, self-hosted with `next/font/local` |
-| Tooling    | pnpm 11, TypeScript 6, ESLint 9, Prettier 3, `node:test` through tsx             |
+| Concern    | Choice                                                                         |
+| ---------- | ------------------------------------------------------------------------------ |
+| Framework  | Next.js 16 (App Router, Turbopack, React Compiler, typed routes, ISR)          |
+| UI runtime | React 19.3                                                                     |
+| API        | Elysia 1.4 mounted inside Next at `/api`, typed client through Eden            |
+| Database   | PostgreSQL 16 with Drizzle ORM and drizzle-kit migrations                      |
+| Validation | Zod 4, shared between API schemas and React Hook Form                          |
+| Styling    | Tailwind CSS 4 (CSS-first `@theme` tokens), light and dark themes              |
+| Motion     | Motion 14 (`LazyMotion` with `m` components) and native CSS smooth scrolling   |
+| State      | Zustand 5 (persisted, hydration-safe) and nuqs 2 for URL state                 |
+| Auth       | argon2id (`@node-rs/argon2`), database sessions, optional TOTP (otplib)        |
+| Media      | sharp (WebP and AVIF), local disk or S3-compatible storage (ArvanCloud)        |
+| Anti-spam  | ALTCHA proof-of-work (self-hosted), honeypot, signed form tokens, rate limits  |
+| Fonts      | Vazirmatn, Estedad, Kufam and JetBrains Mono subsets through `next/font/local` |
+| Tooling    | pnpm 11, TypeScript 6, ESLint 9, Prettier 3, `node:test` through tsx           |
 
 ## Architecture
 
@@ -146,6 +146,20 @@ PostgreSQL 16 service, runs the tests, builds, and smoke-tests the standalone se
 - Numbers and dates go through `formatNumber` and `formatDate` (Jalali for fa, Gregorian for en,
   Asia/Tehran time zone).
 - Model codes, phone numbers and warranty codes are isolated with `<bdi dir="ltr">`.
+
+## Fonts
+
+The site serves subsets of its fonts, generated from the full files in `src/assets/fonts` by
+`scripts/subset-fonts.py` (Python 3 with `pip install fonttools brotli`):
+
+- Vazirmatn (body text) and Estedad (headings) keep only their Persian and Latin glyphs, with the
+  weight axis narrowed to the weights the interface uses: 400 to 900 for Vazirmatn and 700 to 900 for
+  Estedad. The line metrics of the full fonts are kept, so text sets exactly as before.
+- JetBrains Mono (codes and phone numbers) keeps Latin glyphs and weights 400 to 700.
+- Kufam keeps only the glyphs of the wordmark.
+
+Run `python3 scripts/subset-fonts.py` after changing `siteConfig.name` or `latinName`, and before
+using a weight or a script outside these ranges.
 
 ## Deployment
 
