@@ -42,17 +42,37 @@ const staggerItems = (group: HTMLElement) => {
   });
 };
 
-function useReveal(onPending?: (element: HTMLElement) => void) {
+type PendingHandler = (element: HTMLElement) => void;
+
+const queued = new Map<HTMLElement, PendingHandler | undefined>();
+let frame = 0;
+
+const hideBelowFold = () => {
+  frame = 0;
+  const entries = [...queued];
+  queued.clear();
+  const below = entries.filter(
+    ([element]) => element.getBoundingClientRect().top >= window.innerHeight,
+  );
+  for (const [element, onPending] of below) {
+    element.dataset.reveal = "pending";
+    onPending?.(element);
+    revealObserver().observe(element);
+  }
+};
+
+function useReveal(onPending?: PendingHandler) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const element = ref.current;
-    if (!element || element.getBoundingClientRect().top < window.innerHeight) return;
-    element.dataset.reveal = "pending";
-    onPending?.(element);
-    const io = revealObserver();
-    io.observe(element);
-    return () => io.unobserve(element);
+    if (!element) return;
+    queued.set(element, onPending);
+    frame ||= window.requestAnimationFrame(hideBelowFold);
+    return () => {
+      queued.delete(element);
+      revealObserver().unobserve(element);
+    };
   }, [onPending]);
 
   return ref;
